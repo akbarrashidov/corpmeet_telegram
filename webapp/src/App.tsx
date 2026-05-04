@@ -95,10 +95,10 @@ export default function App() {
         ? browser_url
         : `${DESKTOP_FALLBACK_URL}${browser_url}`;
       tg.openLink(fullUrl);
-      tg.close();
+      setTimeout(() => tg.close(), 500);
     } catch {
       tg.openLink(DESKTOP_FALLBACK_URL);
-      tg.close();
+      setTimeout(() => tg.close(), 500);
     }
   }
 
