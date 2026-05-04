@@ -1,0 +1,97 @@
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+vi.mock("@corpmeet/design/complex", () => ({
+  useCreateBooking: vi.fn(),
+}));
+
+import { useCreateBooking } from "@corpmeet/design/complex";
+import { CreateBookingPage } from "../src/pages/CreateBookingPage";
+
+function renderPage(props: Partial<{ onBack: () => void; onCreated: () => void }> = {}) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <CreateBookingPage
+        onBack={props.onBack ?? vi.fn()}
+        onCreated={props.onCreated ?? vi.fn()}
+      />
+    </QueryClientProvider>
+  );
+}
+
+describe("CreateBookingPage", () => {
+  it("validates: title required", async () => {
+    vi.mocked(useCreateBooking).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: null,
+    } as any);
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Создать" }));
+    expect(screen.getByText(/Назови встречу/i)).toBeInTheDocument();
+  });
+
+  it("submits and calls onCreated", async () => {
+    const mutate = vi.fn().mockResolvedValue([]);
+    vi.mocked(useCreateBooking).mockReturnValue({
+      mutateAsync: mutate,
+      isPending: false,
+      error: null,
+    } as any);
+    const onCreated = vi.fn();
+    renderPage({ onCreated });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Название/i), "Демо");
+    await user.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalled();
+      expect(onCreated).toHaveBeenCalled();
+    });
+    const arg = mutate.mock.calls[0][0];
+    expect(arg.title).toBe("Демо");
+    expect(arg.start_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(arg.end_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("parses guests by commas, trims, filters empty", async () => {
+    const mutate = vi.fn().mockResolvedValue([]);
+    vi.mocked(useCreateBooking).mockReturnValue({
+      mutateAsync: mutate,
+      isPending: false,
+      error: null,
+    } as any);
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Название/i), "Z");
+    await user.type(
+      screen.getByLabelText(/Гости/i),
+      "  Иван Иванов  , Анна Смит ,, "
+    );
+    await user.click(screen.getByRole("button", { name: "Создать" }));
+
+    await waitFor(() => expect(mutate).toHaveBeenCalled());
+    expect(mutate.mock.calls[0][0].guests).toEqual(["Иван Иванов", "Анна Смит"]);
+  });
+
+  it("shows error from server", async () => {
+    const mutate = vi.fn().mockRejectedValue(new Error("boom"));
+    vi.mocked(useCreateBooking).mockReturnValue({
+      mutateAsync: mutate,
+      isPending: false,
+      error: null,
+    } as any);
+    renderPage();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Название/i), "Z");
+    await user.click(screen.getByRole("button", { name: "Создать" }));
+
+    await screen.findByText(/Не удалось создать встречу/i);
+  });
+});
