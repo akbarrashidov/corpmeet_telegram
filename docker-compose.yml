@@ -16,14 +16,14 @@ services:
 
   webapp:
     build:
-      context: .                    # corpmeet_telegram/
+      context: .
       dockerfile: webapp/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-}
     image: corpmeet-tg-webapp:latest
     container_name: corpmeet-tg-webapp
     ports:
-      - "${WEBAPP_PORT:-8080}:80"
+      - "${WEBAPP_PORT:-8090}:80"
     restart: unless-stopped
     logging:
       driver: json-file
