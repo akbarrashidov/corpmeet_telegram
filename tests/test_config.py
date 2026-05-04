@@ -28,6 +28,7 @@ def test_optional_fields_have_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.tg_bot_username == "corpmeet_dev_bot"
     assert s.bot_secret == ""
     assert s.group_id is None
+    assert s.app_timezone == "Asia/Yekaterinburg"
 
 
 def test_ignores_unrelated_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,3 +70,19 @@ def test_get_settings_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert s1 is s2
     get_settings.cache_clear()
+
+
+def test_tz_property_returns_zoneinfo(monkeypatch: pytest.MonkeyPatch) -> None:
+    from zoneinfo import ZoneInfo
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:abc")
+    monkeypatch.setenv("BACKEND_URL", "https://api.example.com")
+    monkeypatch.setenv("WEBAPP_URL", "https://webapp.example.com")
+    monkeypatch.setenv("APP_TIMEZONE", "Asia/Tashkent")
+
+    from bot.config import Settings
+
+    s = Settings()
+
+    assert isinstance(s.tz, ZoneInfo)
+    assert str(s.tz) == "Asia/Tashkent"

@@ -1,6 +1,7 @@
 """Configuration loaded from environment / .env file."""
 from functools import lru_cache
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,6 +22,11 @@ class Settings(BaseSettings):
     backend_url: HttpUrl
     webapp_url: HttpUrl
     group_id: Optional[int] = None
+    app_timezone: str = "Asia/Yekaterinburg"
+
+    @property
+    def tz(self) -> ZoneInfo:
+        return ZoneInfo(self.app_timezone)
 
 
 @lru_cache
