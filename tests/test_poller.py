@@ -156,3 +156,21 @@ async def test_mark_reminded_failure_does_not_break_others() -> None:
 
     assert bot.send_message.await_count == 2
     assert p._api.mark_reminded.await_count == 2
+
+
+def test_format_time_range_uses_given_tz() -> None:
+    """Ключевой тест: формат времени конвертирует UTC в указанный TZ, а не показывает UTC."""
+    from zoneinfo import ZoneInfo
+
+    from bot.tasks.poller import format_time_range
+
+    b = make_booking()
+    # Переопределяем времена явно: 11:30 UTC = 16:30 Asia/Yekaterinburg (UTC+5)
+    b.start_time = dt.datetime(2026, 5, 4, 11, 30, tzinfo=dt.timezone.utc)
+    b.end_time = dt.datetime(2026, 5, 4, 12, 0, tzinfo=dt.timezone.utc)
+
+    result = format_time_range(b, ZoneInfo("Asia/Yekaterinburg"))
+
+    assert result == "04.05 16:30–17:00"
+
+

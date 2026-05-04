@@ -3,6 +3,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 
@@ -14,27 +15,27 @@ logger = logging.getLogger(__name__)
 POLL_INTERVAL = 60.0
 
 
-def format_time_range(b: BookingBotInfo) -> str:
-    """'<dd.mm> <hh:mm>–<hh:mm>' from booking's local time."""
-    start = b.start_time.astimezone()
-    end = b.end_time.astimezone()
+def format_time_range(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    """'<dd.mm> <hh:mm>–<hh:mm>' in the given timezone."""
+    start = b.start_time.astimezone(tz)
+    end = b.end_time.astimezone(tz)
     return f"{start:%d.%m} {start:%H:%M}–{end:%H:%M}"
 
 
-def msg_new_booking(b: BookingBotInfo) -> str:
-    return f"📌 Новая встреча «{b.title}»\n{format_time_range(b)}"
+def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return f"📌 Новая встреча «{b.title}»\n{format_time_range(b, tz)}"
 
 
-def msg_changed_booking(b: BookingBotInfo) -> str:
-    return f"✏️ Встреча «{b.title}» перенесена\nСтало: {format_time_range(b)}"
+def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return f"✏️ Встреча «{b.title}» перенесена\nСтало: {format_time_range(b, tz)}"
 
 
-def msg_deleted_booking(b: BookingBotInfo) -> str:
-    return f"❌ Встреча «{b.title}» отменена\n{format_time_range(b)}"
+def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return f"❌ Встреча «{b.title}» отменена\n{format_time_range(b, tz)}"
 
 
-def msg_reminder(b: BookingBotInfo) -> str:
-    return f"⏰ Через 15 минут: «{b.title}»\n{format_time_range(b)}"
+def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return f"⏰ Через 15 минут: «{b.title}»\n{format_time_range(b, tz)}"
 
 
 class Poller:
@@ -43,6 +44,7 @@ class Poller:
     def __init__(self, bot: Bot, settings: Settings) -> None:
         self._bot = bot
         self._settings = settings
+        self._tz = settings.tz
         self._api = ApiClient(settings)
         self._task: Optional[asyncio.Task] = None
         # Курсоры стартуют с now — нет бэкфила старых событий после рестарта
@@ -88,7 +90,7 @@ class Poller:
         bookings = await self._api.bookings_since(self._cursor_updated)
         for b in bookings:
             is_change = b.prev_start_time is not None or b.prev_end_time is not None
-            text = msg_changed_booking(b) if is_change else msg_new_booking(b)
+            text = msg_changed_booking(b, self._tz) if is_change else msg_new_booking(b, self._tz)
             await self._notify_owner(b, text)
             if b.updated_at > self._cursor_updated:
                 self._cursor_updated = b.updated_at
@@ -96,7 +98,7 @@ class Poller:
     async def _poll_reminders(self) -> None:
         bookings = await self._api.bookings_reminders()
         for b in bookings:
-            await self._notify_owner(b, msg_reminder(b))
+            await self._notify_owner(b, msg_reminder(b, self._tz))
             try:
                 await self._api.mark_reminded(b.id)
             except Exception:  # noqa: BLE001
@@ -105,7 +107,7 @@ class Poller:
     async def _poll_deletions(self) -> None:
         bookings = await self._api.bookings_deleted_since(self._cursor_deleted)
         for b in bookings:
-            await self._notify_owner(b, msg_deleted_booking(b))
+            await self._notify_owner(b, msg_deleted_booking(b, self._tz))
             if b.updated_at > self._cursor_deleted:
                 self._cursor_deleted = b.updated_at
 
