@@ -43,7 +43,7 @@ async def cmd_start_deep_link(message: Message, command: CommandObject) -> None:
         await message.answer("Что-то сломалось при входе. Попробуй ещё раз позже.")
         return
 
-    await message.answer("Вход подтверждён. Возвращайся в браузер — там уже всё.")
+    await message.answer("Вход подтверждён! Возвращайся в браузер — там уже всё.")
 
 
 @router.message(CommandStart())
