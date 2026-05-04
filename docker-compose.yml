@@ -1,0 +1,32 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: corpmeet-tg-bot:latest
+    container_name: corpmeet-tg-bot
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  webapp:
+    build:
+      context: .                    # corpmeet_telegram/
+      dockerfile: webapp/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    image: corpmeet-tg-webapp:latest
+    container_name: corpmeet-tg-webapp
+    ports:
+      - "${WEBAPP_PORT:-8080}:80"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
