@@ -24,6 +24,7 @@ async def main() -> None:
     poller = Poller(bot, settings)
 
     async def on_startup() -> None:
+        await bot.delete_webhook(drop_pending_updates=True)
         await poller.start()
 
     async def on_shutdown() -> None:
