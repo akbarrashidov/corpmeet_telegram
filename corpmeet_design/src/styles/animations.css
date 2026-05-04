@@ -1,0 +1,27 @@
+/* Corpmeet keyframes. Used by Tailwind preset (animate-levitate, animate-glow-pulse)
+   and by raw class consumers. */
+
+@keyframes levitate {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(139,92,246,0.4); }
+  50%      { box-shadow: 0 0 20px rgba(139,92,246,0.8), 0 0 40px rgba(139,92,246,0.3); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-skeleton {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.cm-levitate    { animation: levitate 3s ease-in-out infinite; }
+.cm-glow-pulse  { animation: glow-pulse 2s ease-in-out infinite; }
+.cm-fade-in     { animation: fade-in 0.3s ease-out; }
+.cm-skeleton    { animation: pulse-skeleton 1.5s ease-in-out infinite; }

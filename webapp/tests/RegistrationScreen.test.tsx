@@ -58,6 +58,6 @@ describe("RegistrationScreen", () => {
     await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
 
     // wait for re-render
-    await screen.findByText(/Не удалось зарегистрироваться/i);
+    await screen.findByText(/Сеть: 422/i);
   });
 });

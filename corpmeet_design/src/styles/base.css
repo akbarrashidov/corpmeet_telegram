@@ -1,0 +1,31 @@
+/* Corpmeet base styles — apply globally. Depends on tokens.css being loaded first.
+   Also requires Manrope and Unbounded fonts. Either include them via Google Fonts
+   in your <head> or self-host:
+     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet"> */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 15px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.text-xs { font-size: 13px !important; line-height: 1.45; }
+.text-sm { font-size: 15px !important; line-height: 1.5; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Unbounded", "Manrope", system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+::selection { background: var(--primary-light); color: var(--primary); }
