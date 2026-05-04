@@ -24,6 +24,6 @@ jobs:
           cd /var/www/www-root/data/www/tg.corpmeet.uz
           git pull origin main
           docker compose build
-          docker compose up -d --remove-orphans
+          docker compose up -d --remove-orphans --force-recreate
           sleep 5
           docker compose ps
