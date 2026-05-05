@@ -116,3 +116,21 @@ class ApiClient:
         )
         resp.raise_for_status()
         return [BookingBotInfo.model_validate(item) for item in resp.json()]
+    
+    async def get_user_telegram_id_by_username(self, username: str) -> Optional[int]:
+        """Resolve @username to telegram_id via /internal/users/by-username.
+
+        Returns None on 404 (user not found / has no telegram_id).
+        Strips leading '@' from username if present.
+        """
+        clean = username.lstrip("@")
+        resp = await self.client.get(
+            f"/api/v1/internal/users/by-username/{clean}",
+            headers=self._internal_headers(),
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        data = resp.json()
+        tg_id = data.get("telegram_id")
+        return int(tg_id) if tg_id is not None else None    
