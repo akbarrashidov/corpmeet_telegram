@@ -15,7 +15,7 @@ vi.mock("@corpmeet/design/complex", () => ({
   useActiveBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
   useCreateBooking: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false, error: null })),
   useDeleteBooking: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false, error: null })),
-  apiClient: { get: vi.fn(), post: vi.fn() },
+  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
 vi.mock("../src/hooks/useInvitedBookings", () => ({

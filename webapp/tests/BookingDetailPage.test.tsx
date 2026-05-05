@@ -51,6 +51,7 @@ function renderPage(opts: {
   currentUserId?: number;
   onBack?: () => void;
   onDeleted?: () => void;
+  onReschedule?: (defaultStart: string, defaultEnd: string) => void;
 }) {
   vi.mocked(useAuth).mockReturnValue({
     user: { ...baseUser, id: opts.currentUserId ?? 1 },
@@ -65,6 +66,7 @@ function renderPage(opts: {
         booking={opts.booking ?? baseBooking}
         onBack={opts.onBack ?? vi.fn()}
         onDeleted={opts.onDeleted ?? vi.fn()}
+        onReschedule={opts.onReschedule ?? vi.fn()}
       />
     </QueryClientProvider>
   );
@@ -130,7 +132,7 @@ describe("BookingDetailPage", () => {
   it("shows reschedule button for organizer with recurrence=none", () => {
     renderPage({ currentUserId: 1 });
     expect(
-      screen.getByRole("button", { name: /Перенести на ближайшее свободное/i })
+      screen.getByRole("button", { name: "Перенести встречу" })
     ).toBeInTheDocument();
   });
 
@@ -149,87 +151,55 @@ describe("BookingDetailPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("on click reschedule: fetches today's slots and opens confirm dialog", async () => {
+  it("on click reschedule: fetches today's slots and calls onReschedule with prefill", async () => {
     const ONE_HOUR = 60 * 60 * 1000;
     vi.mocked(apiClient.get).mockResolvedValue({
       data: [futureSlot(ONE_HOUR, 30 * 60 * 1000)],
     });
+    const onReschedule = vi.fn();
 
-    renderPage({ currentUserId: 1 });
+    renderPage({ currentUserId: 1, onReschedule });
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole("button", { name: /Перенести на ближайшее свободное/i })
-    );
+    await user.click(screen.getByRole("button", { name: "Перенести встречу" }));
 
     await waitFor(() => {
       expect(apiClient.get).toHaveBeenCalledWith(
         "/api/v1/slots",
-        expect.objectContaining({ params: expect.objectContaining({ date: expect.any(String) }) })
-      );
-    });
-    await screen.findByText(/Перенести встречу\?/i);
-  });
-
-  it("shows error when no available slots", async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({ data: [] });
-
-    renderPage({ currentUserId: 1 });
-
-    const user = userEvent.setup();
-    await user.click(
-      screen.getByRole("button", { name: /Перенести на ближайшее свободное/i })
-    );
-
-    await screen.findByText(/Нет свободных слотов сегодня/i);
-  });
-
-  it("on confirm reschedule: PATCH called and onBack triggered", async () => {
-    const ONE_HOUR = 60 * 60 * 1000;
-    const slot = futureSlot(ONE_HOUR, 30 * 60 * 1000);
-    vi.mocked(apiClient.get).mockResolvedValue({ data: [slot] });
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} });
-    const onBack = vi.fn();
-
-    renderPage({ currentUserId: 1, onBack });
-
-    const user = userEvent.setup();
-    await user.click(
-      screen.getByRole("button", { name: /Перенести на ближайшее свободное/i })
-    );
-
-    // Wait for confirm dialog
-    const confirmBtn = await screen.findByRole("button", { name: /^Перенести$/ });
-    await user.click(confirmBtn);
-
-    await waitFor(() => {
-      expect(apiClient.patch).toHaveBeenCalledWith(
-        "/api/v1/bookings/5",
         expect.objectContaining({
-          start_time: expect.any(String),
-          end_time: expect.any(String),
+          params: expect.objectContaining({ date: expect.any(String) }),
         })
       );
-      expect(onBack).toHaveBeenCalled();
+      expect(onReschedule).toHaveBeenCalledWith(
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+      );
     });
   });
 
-  it("shows error when PATCH fails", async () => {
-    const ONE_HOUR = 60 * 60 * 1000;
-    vi.mocked(apiClient.get).mockResolvedValue({
-      data: [futureSlot(ONE_HOUR, 30 * 60 * 1000)],
-    });
-    vi.mocked(apiClient.patch).mockRejectedValue(new Error("server"));
+  it("shows error and does not call onReschedule when no available slots", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: [] });
+    const onReschedule = vi.fn();
 
-    renderPage({ currentUserId: 1 });
+    renderPage({ currentUserId: 1, onReschedule });
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole("button", { name: /Перенести на ближайшее свободное/i })
-    );
-    const confirmBtn = await screen.findByRole("button", { name: /^Перенести$/ });
-    await user.click(confirmBtn);
+    await user.click(screen.getByRole("button", { name: "Перенести встречу" }));
 
-    await screen.findByText(/Не удалось перенести/i);
+    await screen.findByText(/На сегодня нет свободных слотов/i);
+    expect(onReschedule).not.toHaveBeenCalled();
+  });
+
+  it("shows error when slots fetch fails", async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error("network"));
+    const onReschedule = vi.fn();
+
+    renderPage({ currentUserId: 1, onReschedule });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Перенести встречу" }));
+
+    await screen.findByText(/Не удалось получить занятость/i);
+    expect(onReschedule).not.toHaveBeenCalled();
   });
 });
