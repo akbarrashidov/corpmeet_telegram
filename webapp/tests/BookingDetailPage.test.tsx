@@ -71,9 +71,11 @@ function renderPage(opts: {
 }
 
 function futureSlot(offsetMs: number, durationMs: number) {
-  const start = new Date(Date.now() + offsetMs).toISOString();
-  const end = new Date(Date.now() + offsetMs + durationMs).toISOString();
-  return { start, end, available: true };
+  const startDate = new Date(Date.now() + offsetMs);
+  const endDate = new Date(Date.now() + offsetMs + durationMs);
+  const hhmm = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return { start: hhmm(startDate), end: hhmm(endDate), available: true };
 }
 
 describe("BookingDetailPage", () => {
