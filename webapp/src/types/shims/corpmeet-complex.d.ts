@@ -54,6 +54,12 @@ export interface BrowserSessionResponse {
   browser_url: string;
 }
 
+export interface SlotResponse {
+  start: string;
+  end: string;
+  available: boolean;
+}
+
 export const authApi: {
   register(initData: string, first_name: string, last_name: string): Promise<TokenResponse>;
   login(initData: string): Promise<TokenResponse>;
@@ -70,6 +76,7 @@ export const bookingsApi: {
 export const apiClient: {
   get<T>(url: string, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
   post<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
+  patch<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
 };
 
 export const storage: {
