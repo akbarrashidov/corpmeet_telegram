@@ -410,3 +410,100 @@ async def test_deleted_since_500_advances_cursor_to_now() -> None:
 
     assert p._cursor_deleted > initial_cursor
     bot.send_message.assert_not_awaited()
+
+
+
+# ---------- Local dedup (anti-spam) ----------
+
+async def test_same_booking_returned_twice_notifies_once() -> None:
+    """Backend возвращает ту же встречу повторно (commit-trigger spam) —
+    мы шлём DM только при первом появлении."""
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking(id=100, title="Same")
+    p._api.bookings_since.return_value = [booking]
+
+    # Первый тик — нотифицируем
+    await p._tick()
+    initial_count = bot.send_message.await_count
+
+    # Второй тик с тем же booking — должны проигнорировать
+    p._api.bookings_since.return_value = [booking]
+    await p._tick()
+
+    assert bot.send_message.await_count == initial_count
+
+
+async def test_booking_with_changed_time_notifies_again() -> None:
+    """Если start/end реально изменились, шлём «перенесена»."""
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking(id=200, title="Demo")
+    p._api.bookings_since.return_value = [booking]
+
+    # Первый тик — нотификация о создании
+    await p._tick()
+    first_count = bot.send_message.await_count
+    first_text = bot.send_message.call_args.args[1]
+    assert "📌" in first_text  # New
+
+    # Меняем start/end
+    booking.start_time = booking.start_time + dt.timedelta(hours=1)
+    booking.end_time = booking.end_time + dt.timedelta(hours=1)
+    p._api.bookings_since.return_value = [booking]
+
+    await p._tick()
+    assert bot.send_message.await_count > first_count
+    last_text = bot.send_message.call_args.args[1]
+    assert "✏️" in last_text  # Changed
+
+
+async def test_first_sight_with_prev_start_uses_change_message() -> None:
+    """Если cache пуст, но booking имеет prev_start_time (= был изменён до того
+    как мы его впервые увидели) — шлём «перенесена», не «Новая»."""
+    p, bot = make_poller_with_mocked_api()
+    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)
+    p._api.bookings_since.return_value = [make_booking(prev_start=past)]
+
+    await p._tick()
+
+    text = bot.send_message.call_args.args[1]
+    assert "✏️" in text
+    assert "перенесена" in text
+
+
+async def test_deletion_dedup() -> None:
+    """Backend возвращает удалённую встречу повторно — нотификация только раз."""
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking(id=300, title="ToDelete")
+    p._api.bookings_deleted_since.return_value = [booking]
+
+    await p._tick()
+    first_count = bot.send_message.await_count
+    assert first_count > 0  # got at least one notification
+
+    # Повтор того же удаления
+    p._api.bookings_deleted_since.return_value = [booking]
+    await p._tick()
+
+    assert bot.send_message.await_count == first_count
+
+
+async def test_deletion_after_creation_still_notifies() -> None:
+    """Если встречу сначала видели в /since, потом она пришла в /deleted-since —
+    нотификация об удалении должна прийти."""
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking(id=400, title="LifecycleTest")
+
+    # Tick 1: появилась через /since
+    p._api.bookings_since.return_value = [booking]
+    await p._tick()
+    after_create = bot.send_message.await_count
+
+    # Tick 2: пришла через /deleted-since
+    p._api.bookings_since.return_value = []
+    p._api.bookings_deleted_since.return_value = [booking]
+    await p._tick()
+
+    # +1 (как минимум — больше если group_id или guests)
+    assert bot.send_message.await_count > after_create
+    last_text = bot.send_message.call_args.args[1]
+    assert "❌" in last_text
