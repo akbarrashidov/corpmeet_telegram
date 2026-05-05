@@ -338,3 +338,75 @@ def test_msg_deleted_booking_group_format() -> None:
     assert "отменена" in text
     assert "Old" in text
     assert "👤 Anna" in text
+
+
+
+# ---------- Resilience: 5xx → cursor jump to NOW ----------
+
+async def test_since_500_advances_cursor_to_now() -> None:
+    import httpx
+    from unittest.mock import MagicMock as MM
+
+    p, bot = make_poller_with_mocked_api()
+    fake_response = MM()
+    fake_response.status_code = 500
+    err = httpx.HTTPStatusError("boom", request=MM(), response=fake_response)
+    p._api.bookings_since.side_effect = err
+
+    initial_cursor = p._cursor_updated
+    await p._tick()  # должен НЕ упасть
+
+    # Cursor продвинулся (близко к now, не равен initial)
+    assert p._cursor_updated > initial_cursor
+    # Никаких уведомлений не было
+    bot.send_message.assert_not_awaited()
+
+
+async def test_since_503_also_advances_cursor() -> None:
+    import httpx
+    from unittest.mock import MagicMock as MM
+
+    p, bot = make_poller_with_mocked_api()
+    fake_response = MM()
+    fake_response.status_code = 503
+    err = httpx.HTTPStatusError("unavailable", request=MM(), response=fake_response)
+    p._api.bookings_since.side_effect = err
+
+    initial_cursor = p._cursor_updated
+    await p._tick()
+
+    assert p._cursor_updated > initial_cursor
+
+
+async def test_since_400_does_not_advance_cursor() -> None:
+    """4xx — не наша зона, не двигаем курсор, exception пропагается."""
+    import httpx
+    from unittest.mock import MagicMock as MM
+
+    p, bot = make_poller_with_mocked_api()
+    fake_response = MM()
+    fake_response.status_code = 400
+    err = httpx.HTTPStatusError("bad request", request=MM(), response=fake_response)
+    p._api.bookings_since.side_effect = err
+
+    initial_cursor = p._cursor_updated
+    with pytest.raises(httpx.HTTPStatusError):
+        await p._tick()
+
+    assert p._cursor_updated == initial_cursor
+
+async def test_deleted_since_500_advances_cursor_to_now() -> None:
+    import httpx
+    from unittest.mock import MagicMock as MM
+
+    p, bot = make_poller_with_mocked_api()
+    fake_response = MM()
+    fake_response.status_code = 500
+    err = httpx.HTTPStatusError("boom", request=MM(), response=fake_response)
+    p._api.bookings_deleted_since.side_effect = err
+
+    initial_cursor = p._cursor_deleted
+    await p._tick()
+
+    assert p._cursor_deleted > initial_cursor
+    bot.send_message.assert_not_awaited()

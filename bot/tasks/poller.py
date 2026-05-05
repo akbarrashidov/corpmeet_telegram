@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+import httpx
+
 from aiogram import Bot
 
 from bot.config import Settings
@@ -121,7 +123,18 @@ class Poller:
         await self._poll_deletions()
 
     async def _poll_updates(self) -> None:
-        bookings = await self._api.bookings_since(self._cursor_updated)
+        try:
+            bookings = await self._api.bookings_since(self._cursor_updated)
+        except httpx.HTTPStatusError as e:
+            if 500 <= e.response.status_code < 600:
+                now = datetime.now(timezone.utc)
+                logger.warning(
+                    "bookings/since %s — advancing cursor from %s to %s",
+                    e.response.status_code, self._cursor_updated, now,
+                )
+                self._cursor_updated = now
+                return
+            raise
         for b in bookings:
             is_change = b.prev_start_time is not None or b.prev_end_time is not None
             if is_change:
@@ -148,7 +161,18 @@ class Poller:
                 logger.exception("mark-reminded failed for booking %s", b.id)
 
     async def _poll_deletions(self) -> None:
-        bookings = await self._api.bookings_deleted_since(self._cursor_deleted)
+        try:
+            bookings = await self._api.bookings_deleted_since(self._cursor_deleted)
+        except httpx.HTTPStatusError as e:
+            if 500 <= e.response.status_code < 600:
+                now = datetime.now(timezone.utc)
+                logger.warning(
+                    "bookings/deleted-since %s — advancing cursor from %s to %s",
+                    e.response.status_code, self._cursor_deleted, now,
+                )
+                self._cursor_deleted = now
+                return
+            raise
         for b in bookings:
             dm_text = msg_deleted_booking(b, self._tz)
             group_text = msg_deleted_booking_group(b, self._tz)
