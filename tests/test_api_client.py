@@ -169,3 +169,53 @@ async def test_bookings_deleted_since_uses_since_param() -> None:
         sent_url = str(route.calls.last.request.url)
         assert "since=" in sent_url
         assert "updated_at=" not in sent_url  # отдельный параметр, не путать
+
+# ---------- get_user_telegram_id_by_username ----------
+
+async def test_by_username_returns_telegram_id() -> None:
+    with respx.mock(base_url="https://api.example.com") as router:
+        route = router.get("/api/v1/internal/users/by-username/alice").respond(
+            json={"telegram_id": 123456789, "display_name": "Alice"}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            result = await api.get_user_telegram_id_by_username("alice")
+
+        assert result == 123456789
+        assert route.calls.last.request.headers.get("X-Bot-Secret") == "secret-xyz"
+
+
+async def test_by_username_strips_leading_at_sign() -> None:
+    with respx.mock(base_url="https://api.example.com") as router:
+        route = router.get("/api/v1/internal/users/by-username/bob").respond(
+            json={"telegram_id": 42, "display_name": "Bob"}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            result = await api.get_user_telegram_id_by_username("@bob")
+
+        assert result == 42
+        assert route.called  # без @ в URL
+
+
+async def test_by_username_returns_none_on_404() -> None:
+    with respx.mock(base_url="https://api.example.com") as router:
+        router.get("/api/v1/internal/users/by-username/ghost").respond(
+            status_code=404, json={"detail": "User not found"}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            result = await api.get_user_telegram_id_by_username("ghost")
+
+        assert result is None
+
+
+async def test_by_username_raises_on_5xx() -> None:
+    with respx.mock(base_url="https://api.example.com") as router:
+        router.get("/api/v1/internal/users/by-username/whoever").respond(
+            status_code=500, json={"detail": "boom"}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            with pytest.raises(httpx.HTTPStatusError):
+                await api.get_user_telegram_id_by_username("whoever")

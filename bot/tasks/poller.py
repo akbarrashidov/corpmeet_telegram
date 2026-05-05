@@ -22,6 +22,9 @@ def format_time_range(b: BookingBotInfo, tz: ZoneInfo) -> str:
     return f"{start:%d.%m} {start:%H:%M}–{end:%H:%M}"
 
 
+# ── Тексты для DM (owner / guests) ───────────────────────────────────────────
+
+
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     return f"📌 Новая встреча «{b.title}»\n{format_time_range(b, tz)}"
 
@@ -38,6 +41,36 @@ def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
     return f"⏰ Через 15 минут: «{b.title}»\n{format_time_range(b, tz)}"
 
 
+# ── Тексты для группы (с organizer и guests) ─────────────────────────────────
+
+
+def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    text = (
+        f"📌 Новая встреча «{b.title}»\n"
+        f"{format_time_range(b, tz)}\n"
+        f"👤 {b.user.display_name}"
+    )
+    if b.guests:
+        text += f"\n👥 {', '.join(b.guests)}"
+    return text
+
+
+def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return (
+        f"✏️ «{b.title}» перенесена\n"
+        f"Стало: {format_time_range(b, tz)}\n"
+        f"👤 {b.user.display_name}"
+    )
+
+
+def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    return (
+        f"❌ «{b.title}» отменена\n"
+        f"{format_time_range(b, tz)}\n"
+        f"👤 {b.user.display_name}"
+    )
+
+
 class Poller:
     """Owns ApiClient + asyncio task + cursors."""
 
@@ -45,6 +78,7 @@ class Poller:
         self._bot = bot
         self._settings = settings
         self._tz = settings.tz
+        self._group_id = settings.group_id
         self._api = ApiClient(settings)
         self._task: Optional[asyncio.Task] = None
         # Курсоры стартуют с now — нет бэкфила старых событий после рестарта
@@ -55,7 +89,7 @@ class Poller:
     async def start(self) -> None:
         await self._api.__aenter__()
         self._task = asyncio.create_task(self._run(), name="bot-poller")
-        logger.info("Poller started (interval=%ss)", POLL_INTERVAL)
+        logger.info("Poller started (interval=%ss, group_id=%s)", POLL_INTERVAL, self._group_id)
 
     async def stop(self) -> None:
         if self._task is not None:
@@ -90,15 +124,24 @@ class Poller:
         bookings = await self._api.bookings_since(self._cursor_updated)
         for b in bookings:
             is_change = b.prev_start_time is not None or b.prev_end_time is not None
-            text = msg_changed_booking(b, self._tz) if is_change else msg_new_booking(b, self._tz)
-            await self._notify_owner(b, text)
+            if is_change:
+                dm_text = msg_changed_booking(b, self._tz)
+                group_text = msg_changed_booking_group(b, self._tz)
+            else:
+                dm_text = msg_new_booking(b, self._tz)
+                group_text = msg_new_booking_group(b, self._tz)
+            await self._notify_owner(b, dm_text)
+            await self._notify_guests(b, dm_text)
+            await self._notify_group(group_text)
             if b.updated_at > self._cursor_updated:
                 self._cursor_updated = b.updated_at
 
     async def _poll_reminders(self) -> None:
         bookings = await self._api.bookings_reminders()
         for b in bookings:
-            await self._notify_owner(b, msg_reminder(b, self._tz))
+            text = msg_reminder(b, self._tz)
+            await self._notify_owner(b, text)
+            await self._notify_guests(b, text)
             try:
                 await self._api.mark_reminded(b.id)
             except Exception:  # noqa: BLE001
@@ -107,7 +150,11 @@ class Poller:
     async def _poll_deletions(self) -> None:
         bookings = await self._api.bookings_deleted_since(self._cursor_deleted)
         for b in bookings:
-            await self._notify_owner(b, msg_deleted_booking(b, self._tz))
+            dm_text = msg_deleted_booking(b, self._tz)
+            group_text = msg_deleted_booking_group(b, self._tz)
+            await self._notify_owner(b, dm_text)
+            await self._notify_guests(b, dm_text)
+            await self._notify_group(group_text)
             if b.updated_at > self._cursor_deleted:
                 self._cursor_deleted = b.updated_at
 
@@ -117,4 +164,37 @@ class Poller:
         try:
             await self._bot.send_message(b.user.telegram_id, text)
         except Exception:  # noqa: BLE001
-            logger.exception("send_message to %s failed", b.user.telegram_id)
+            logger.exception("send_message to owner %s failed", b.user.telegram_id)
+
+    async def _notify_group(self, text: str) -> None:
+        if self._group_id is None:
+            return
+        try:
+            await self._bot.send_message(self._group_id, text)
+        except Exception:  # noqa: BLE001
+            logger.exception("send_message to group %s failed", self._group_id)
+
+    async def _notify_guests(self, b: BookingBotInfo, text: str) -> None:
+        for guest in b.guests:
+            await self._notify_guest(guest, text)
+
+    async def _notify_guest(self, guest: str, text: str) -> None:
+        """Resolve guest string to telegram_id and DM. Silent on failure."""
+        try:
+            telegram_id = await self._api.get_user_telegram_id_by_username(guest)
+        except Exception:  # noqa: BLE001
+            logger.exception("by-username lookup failed for guest %s", guest)
+            return
+        if telegram_id is None:
+            logger.warning(
+                "Cannot resolve guest %r — likely a full name (no by-name endpoint) "
+                "or user not registered with bot",
+                guest,
+            )
+            return
+        try:
+            await self._bot.send_message(telegram_id, text)
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "send_message to guest %r (tg_id=%s) failed", guest, telegram_id
+            )

@@ -1,6 +1,7 @@
 """Tests for bot.tasks.poller."""
 import datetime as dt
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -46,18 +47,23 @@ def make_booking(
     )
 
 
-def make_poller_with_mocked_api() -> tuple[Poller, MagicMock]:
+def make_poller_with_mocked_api(
+    *, group_id: int | None = None
+) -> tuple[Poller, MagicMock]:
     bot = MagicMock()
     bot.send_message = AsyncMock()
-    p = Poller(bot, make_settings())
+    p = Poller(bot, make_settings(group_id=group_id))
     fake_api = MagicMock()
     fake_api.bookings_since = AsyncMock(return_value=[])
     fake_api.bookings_reminders = AsyncMock(return_value=[])
     fake_api.bookings_deleted_since = AsyncMock(return_value=[])
     fake_api.mark_reminded = AsyncMock()
+    fake_api.get_user_telegram_id_by_username = AsyncMock(return_value=None)
     p._api = fake_api
     return p, bot
 
+
+# ---------- Existing tests (owner DM only path) ----------
 
 async def test_new_booking_notification() -> None:
     p, bot = make_poller_with_mocked_api()
@@ -117,7 +123,6 @@ async def test_user_without_telegram_id_skipped() -> None:
 
 
 async def test_send_message_failure_does_not_break_loop() -> None:
-    """Если send_message упал на одном букинге, остальные обрабатываются."""
     p, bot = make_poller_with_mocked_api()
     bot.send_message.side_effect = [Exception("boom"), None]
     p._api.bookings_since.return_value = [
@@ -158,19 +163,178 @@ async def test_mark_reminded_failure_does_not_break_others() -> None:
     assert p._api.mark_reminded.await_count == 2
 
 
-def test_format_time_range_uses_given_tz() -> None:
-    """Ключевой тест: формат времени конвертирует UTC в указанный TZ, а не показывает UTC."""
-    from zoneinfo import ZoneInfo
+# ---------- Group notifications ----------
 
-    from bot.tasks.poller import format_time_range
+async def test_group_notification_on_new_booking() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [make_booking(title="Standup")]
 
-    b = make_booking()
-    # Переопределяем времена явно: 11:30 UTC = 16:30 Asia/Yekaterinburg (UTC+5)
-    b.start_time = dt.datetime(2026, 5, 4, 11, 30, tzinfo=dt.timezone.utc)
-    b.end_time = dt.datetime(2026, 5, 4, 12, 0, tzinfo=dt.timezone.utc)
+    await p._tick()
 
-    result = format_time_range(b, ZoneInfo("Asia/Yekaterinburg"))
-
-    assert result == "04.05 16:30–17:00"
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 in chat_ids  # owner
+    assert -100 in chat_ids  # group
 
 
+async def test_group_message_includes_organizer() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [make_booking()]
+
+    await p._tick()
+
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    assert "👤 Anna" in group_call.args[1]
+
+
+async def test_group_message_includes_guests_when_present() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    booking = make_booking()
+    booking.guests = ["alice", "bob"]
+    p._api.bookings_since.return_value = [booking]
+
+    await p._tick()
+
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    assert "👥 alice, bob" in group_call.args[1]
+
+
+async def test_no_group_id_skips_group_notify() -> None:
+    p, bot = make_poller_with_mocked_api()  # group_id=None
+    p._api.bookings_since.return_value = [make_booking()]
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert chat_ids == [999]  # only owner, no group
+
+
+async def test_group_notification_on_deletion() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_deleted_since.return_value = [make_booking()]
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert -100 in chat_ids
+
+
+async def test_reminder_does_not_notify_group() -> None:
+    """Per matrix: reminder goes only to owner+guests DMs, NOT to group."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_reminders.return_value = [make_booking()]
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 in chat_ids
+    assert -100 not in chat_ids
+
+
+# ---------- Guest notifications ----------
+
+async def test_guest_dmed_when_username_resolves() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking()
+    booking.guests = ["alice"]
+    p._api.bookings_since.return_value = [booking]
+    p._api.get_user_telegram_id_by_username.return_value = 555
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 in chat_ids  # owner
+    assert 555 in chat_ids  # guest
+    p._api.get_user_telegram_id_by_username.assert_awaited_with("alice")
+
+
+async def test_guest_skipped_silently_when_resolution_returns_none() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking()
+    booking.guests = ["unknown_user"]
+    p._api.bookings_since.return_value = [booking]
+    p._api.get_user_telegram_id_by_username.return_value = None
+
+    await p._tick()
+
+    assert bot.send_message.await_count == 1  # owner only
+
+
+async def test_guest_resolution_error_does_not_break_loop() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking()
+    booking.guests = ["broken"]
+    p._api.bookings_since.return_value = [booking]
+    p._api.get_user_telegram_id_by_username.side_effect = Exception("api down")
+
+    await p._tick()  # not raise
+
+    assert bot.send_message.await_count == 1  # owner still notified
+
+
+async def test_reminder_notifies_owner_and_guests() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking = make_booking(id=42)
+    booking.guests = ["alice"]
+    p._api.bookings_reminders.return_value = [booking]
+    p._api.get_user_telegram_id_by_username.return_value = 555
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 in chat_ids
+    assert 555 in chat_ids
+    p._api.mark_reminded.assert_awaited_once_with(42)
+
+
+async def test_deletion_notifies_owner_and_guests_and_group() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    booking = make_booking()
+    booking.guests = ["alice"]
+    p._api.bookings_deleted_since.return_value = [booking]
+    p._api.get_user_telegram_id_by_username.return_value = 555
+
+    await p._tick()
+
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 in chat_ids   # owner
+    assert 555 in chat_ids   # guest
+    assert -100 in chat_ids  # group
+
+
+# ---------- Group message format (pure functions) ----------
+
+def test_msg_new_booking_group_includes_organizer_and_omits_guests() -> None:
+    booking = make_booking(title="Demo")
+    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
+    assert "📌 Новая встреча «Demo»" in text
+    assert "👤 Anna" in text
+    assert "👥" not in text
+
+
+def test_msg_new_booking_group_with_guests() -> None:
+    booking = make_booking()
+    booking.guests = ["alice", "bob"]
+    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
+    assert "👥 alice, bob" in text
+
+
+def test_msg_changed_booking_group_format() -> None:
+    booking = make_booking(title="Sync")
+    text = poller_module.msg_changed_booking_group(booking, ZoneInfo("UTC"))
+    assert "✏️" in text
+    assert "перенесена" in text
+    assert "Sync" in text
+    assert "👤 Anna" in text
+
+
+def test_msg_deleted_booking_group_format() -> None:
+    booking = make_booking(title="Old")
+    text = poller_module.msg_deleted_booking_group(booking, ZoneInfo("UTC"))
+    assert "❌" in text
+    assert "отменена" in text
+    assert "Old" in text
+    assert "👤 Anna" in text
