@@ -2,7 +2,7 @@
 import logging
 
 import httpx
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
@@ -11,21 +11,38 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from bot.config import get_settings
+from bot.config import Settings, get_settings
 from bot.services.api_client import ApiClient
+from bot.services.membership import is_group_member
 
 logger = logging.getLogger(__name__)
 router = Router()
 
+DENY_MESSAGE = "Кажется, тебя нет в группе с доступом к переговорке."
+
+
+async def _has_access(bot: Bot, settings: Settings, user_id: int) -> bool:
+    """Группа-гейт. Если GROUP_ID не задан — пускаем всех (dev/CI режим)."""
+    if settings.group_id is None:
+        return True
+    return await is_group_member(bot, settings.group_id, user_id)
+
 
 @router.message(CommandStart(deep_link=True))
-async def cmd_start_deep_link(message: Message, command: CommandObject) -> None:
+async def cmd_start_deep_link(
+    message: Message, command: CommandObject, bot: Bot
+) -> None:
     """QR-flow: /start <session_token> binds Telegram user to a browser session."""
     token = (command.args or "").strip()
     if not token or message.from_user is None:
         return
 
     settings = get_settings()
+
+    if not await _has_access(bot, settings, message.from_user.id):
+        await message.answer(DENY_MESSAGE)
+        return
+
     try:
         async with ApiClient(settings) as api:
             await api.consume_session(token=token, telegram_id=message.from_user.id)
@@ -47,9 +64,17 @@ async def cmd_start_deep_link(message: Message, command: CommandObject) -> None:
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
-    """Plain /start — show Mini App button."""
+async def cmd_start(message: Message, bot: Bot) -> None:
+    """Plain /start — show Mini App button (only for group members)."""
+    if message.from_user is None:
+        return
+
     settings = get_settings()
+
+    if not await _has_access(bot, settings, message.from_user.id):
+        await message.answer(DENY_MESSAGE)
+        return
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
