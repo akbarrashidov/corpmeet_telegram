@@ -74,7 +74,7 @@ def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
 
 
 class Poller:
-    """Owns ApiClient + asyncio task + cursors."""
+    """Owns ApiClient + asyncio task + cursors + dedup state."""
 
     def __init__(self, bot: Bot, settings: Settings) -> None:
         self._bot = bot
@@ -87,11 +87,18 @@ class Poller:
         now = datetime.now(timezone.utc)
         self._cursor_updated = now
         self._cursor_deleted = now
+        # Локальный дедуп: backend может возвращать одну и ту же встречу повторно
+        # из-за SQLAlchemy commit-trigger'а. Шлём DM только при реальных изменениях.
+        self._notified_state: dict[int, tuple[datetime, datetime]] = {}
+        self._notified_deletions: set[int] = set()
 
     async def start(self) -> None:
         await self._api.__aenter__()
         self._task = asyncio.create_task(self._run(), name="bot-poller")
-        logger.info("Poller started (interval=%ss, group_id=%s)", POLL_INTERVAL, self._group_id)
+        logger.info(
+            "Poller started (interval=%ss, group_id=%s)",
+            POLL_INTERVAL, self._group_id,
+        )
 
     async def stop(self) -> None:
         if self._task is not None:
@@ -136,16 +143,38 @@ class Poller:
                 return
             raise
         for b in bookings:
-            is_change = b.prev_start_time is not None or b.prev_end_time is not None
-            if is_change:
+            cached = self._notified_state.get(b.id)
+            current = (b.start_time, b.end_time)
+
+            if cached is None:
+                # Никогда не видели в этой сессии бота
+                is_change = b.prev_start_time is not None or b.prev_end_time is not None
+                if is_change:
+                    # Backend сигнализирует — это перенос (мы пропустили его создание)
+                    dm_text = msg_changed_booking(b, self._tz)
+                    group_text = msg_changed_booking_group(b, self._tz)
+                else:
+                    dm_text = msg_new_booking(b, self._tz)
+                    group_text = msg_new_booking_group(b, self._tz)
+                await self._notify_owner(b, dm_text)
+                await self._notify_guests(b, dm_text)
+                await self._notify_group(group_text)
+                self._notified_state[b.id] = current
+            elif cached != current:
+                # Время реально изменилось — перенос
                 dm_text = msg_changed_booking(b, self._tz)
                 group_text = msg_changed_booking_group(b, self._tz)
+                await self._notify_owner(b, dm_text)
+                await self._notify_guests(b, dm_text)
+                await self._notify_group(group_text)
+                self._notified_state[b.id] = current
             else:
-                dm_text = msg_new_booking(b, self._tz)
-                group_text = msg_new_booking_group(b, self._tz)
-            await self._notify_owner(b, dm_text)
-            await self._notify_guests(b, dm_text)
-            await self._notify_group(group_text)
+                # Та же встреча, то же время — backend-спам, скипаем
+                logger.debug(
+                    "Skip duplicate notification for booking %s (no time change)",
+                    b.id,
+                )
+
             if b.updated_at > self._cursor_updated:
                 self._cursor_updated = b.updated_at
 
@@ -174,11 +203,18 @@ class Poller:
                 return
             raise
         for b in bookings:
-            dm_text = msg_deleted_booking(b, self._tz)
-            group_text = msg_deleted_booking_group(b, self._tz)
-            await self._notify_owner(b, dm_text)
-            await self._notify_guests(b, dm_text)
-            await self._notify_group(group_text)
+            if b.id in self._notified_deletions:
+                logger.debug(
+                    "Skip duplicate cancellation for booking %s", b.id
+                )
+            else:
+                dm_text = msg_deleted_booking(b, self._tz)
+                group_text = msg_deleted_booking_group(b, self._tz)
+                await self._notify_owner(b, dm_text)
+                await self._notify_guests(b, dm_text)
+                await self._notify_group(group_text)
+                self._notified_deletions.add(b.id)
+
             if b.updated_at > self._cursor_deleted:
                 self._cursor_deleted = b.updated_at
 
