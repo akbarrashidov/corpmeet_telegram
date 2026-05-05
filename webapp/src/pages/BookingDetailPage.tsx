@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   apiClient,
   useAuth,
@@ -9,33 +8,35 @@ import {
 } from "@corpmeet/design/complex";
 import { PageHeader } from "../components/PageHeader";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { formatTime, formatDayMonth, todayIso } from "../lib/datetime";
-import { useTgMainButton } from "../hooks/useTgMainButton";
-import { useTgBackButton } from "../hooks/useTgBackButton";
-import { getTelegram } from "../lib/telegram";
-import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import {
-  findNextFreeSlot,
-  type ReschedulePlan,
-} from "../lib/findNextFreeSlot";
+  formatTime,
+  formatDayMonth,
+  todayIso,
+  isoToLocalInput,
+} from "../lib/datetime";
+import { useTgBackButton } from "../hooks/useTgBackButton";
+import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
+import { findNextFreeSlot } from "../lib/findNextFreeSlot";
 
 interface Props {
   booking: Booking;
   onBack: () => void;
   onDeleted: () => void;
+  onReschedule: (defaultStart: string, defaultEnd: string) => void;
 }
 
-export function BookingDetailPage({ booking, onBack, onDeleted }: Props) {
+export function BookingDetailPage({
+  booking,
+  onBack,
+  onDeleted,
+  onReschedule,
+}: Props) {
   const { user } = useAuth();
   const deleteBooking = useDeleteBooking();
-  const queryClient = useQueryClient();
-
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [proposedSlot, setProposedSlot] = useState<ReschedulePlan | null>(null);
   const [rescheduleBusy, setRescheduleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const inTg = !!getTelegram();
   const isOrganizer = user?.id === booking.user.id;
   const isReschedulable = isOrganizer && booking.recurrence === "none";
   const dayLabel = formatDayMonth(booking.start_time.split("T")[0]);
@@ -49,14 +50,6 @@ export function BookingDetailPage({ booking, onBack, onDeleted }: Props) {
     haptic();
     setConfirmDeleteOpen(true);
   }
-
-  // TG MainButton "Отменить встречу" — только для организатора
-  useTgMainButton({
-    text: "Отменить встречу",
-    onClick: openConfirmDelete,
-    visible: isOrganizer,
-    disabled: deleteBooking.isPending,
-  });
 
   async function handleConfirmDelete() {
     setConfirmDeleteOpen(false);
@@ -87,34 +80,13 @@ export function BookingDetailPage({ booking, onBack, onDeleted }: Props) {
       const plan = findNextFreeSlot(slots, originalDurationMs);
       if (!plan) {
         hapticError();
-        setError("Нет свободных слотов сегодня.");
+        setError("На сегодня нет свободных слотов :(");
         return;
       }
-      setProposedSlot(plan);
+      onReschedule(isoToLocalInput(plan.start), isoToLocalInput(plan.end));
     } catch {
       hapticError();
       setError("Не удалось получить занятость. Попробуй ещё.");
-    } finally {
-      setRescheduleBusy(false);
-    }
-  }
-
-  async function handleConfirmReschedule() {
-    if (!proposedSlot) return;
-    setRescheduleBusy(true);
-    setError(null);
-    try {
-      await apiClient.patch(`/api/v1/bookings/${booking.id}`, {
-        start_time: proposedSlot.start,
-        end_time: proposedSlot.end,
-      });
-      hapticSuccess();
-      setProposedSlot(null);
-      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      onBack();
-    } catch {
-      hapticError();
-      setError("Не удалось перенести. Попробуй ещё.");
     } finally {
       setRescheduleBusy(false);
     }
@@ -154,38 +126,39 @@ export function BookingDetailPage({ booking, onBack, onDeleted }: Props) {
         </p>
       )}
 
-      {isReschedulable && (
-        <button
-          type="button"
-          onClick={handleClickReschedule}
-          disabled={rescheduleBusy}
-          className="rounded-lg p-3 font-semibold"
-          style={{
-            background: "var(--surface)",
-            color: "var(--text)",
-            border: "1px solid var(--border)",
-            opacity: rescheduleBusy ? 0.5 : 1,
-          }}
-        >
-          Перенести на ближайшее свободное
-        </button>
-      )}
+      <div className="mt-auto flex flex-col gap-3">
+        {isReschedulable && (
+          <button
+            type="button"
+            onClick={handleClickReschedule}
+            disabled={rescheduleBusy}
+            className="rounded-lg p-3 font-semibold"
+            style={{
+              background: "var(--primary)",
+              color: "white",
+              opacity: rescheduleBusy ? 0.5 : 1,
+            }}
+          >
+            Перенести встречу
+          </button>
+        )}
 
-      {isOrganizer && !inTg && (
-        <button
-          type="button"
-          onClick={openConfirmDelete}
-          disabled={deleteBooking.isPending}
-          className="mt-auto rounded-lg p-3 font-semibold"
-          style={{
-            background: "var(--danger)",
-            color: "white",
-            opacity: deleteBooking.isPending ? 0.5 : 1,
-          }}
-        >
-          Отменить встречу
-        </button>
-      )}
+        {isOrganizer && (
+          <button
+            type="button"
+            onClick={openConfirmDelete}
+            disabled={deleteBooking.isPending}
+            className="rounded-lg p-3 font-semibold"
+            style={{
+              background: "var(--danger)",
+              color: "white",
+              opacity: deleteBooking.isPending ? 0.5 : 1,
+            }}
+          >
+            Отменить встречу
+          </button>
+        )}
+      </div>
 
       <ConfirmDialog
         open={confirmDeleteOpen}
@@ -196,26 +169,6 @@ export function BookingDetailPage({ booking, onBack, onDeleted }: Props) {
         variant="danger"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
-      />
-
-      <ConfirmDialog
-        open={proposedSlot !== null}
-        title="Перенести встречу?"
-        body={
-          proposedSlot && (
-            <>
-              «{booking.title}» — на{" "}
-              <strong>
-                {formatTime(proposedSlot.start)}–{formatTime(proposedSlot.end)}
-              </strong>
-              .
-            </>
-          )
-        }
-        confirmLabel="Перенести"
-        cancelLabel="Назад"
-        onConfirm={handleConfirmReschedule}
-        onCancel={() => setProposedSlot(null)}
       />
     </div>
   );
