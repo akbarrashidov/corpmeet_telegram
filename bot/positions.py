@@ -1,46 +1,40 @@
-"""Должности пользователей CorpMeet — labels, api-values, inline-клавиатура.
+"""Должности пользователей CorpMeet — список + inline-клавиатура.
 
-API-values захардкожены: бэкенд принимает только их (валидируется в
-`/api/v1/internal/users/position`). Labels отображаются в Telegram-кнопке —
-часть из них отличается от api-value (например, label "Программист и др."
-маппится на api-value "Программист").
+Whitelist синхронизирован с бэкендом (`POST /internal/users/position`,
+проверено curl 2026-05-06). Label и api-value совпадают.
 """
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-# (button label, api value)
-POSITION_OPTIONS: tuple[tuple[str, str], ...] = (
-    ("Начальник департамента/отдела", "Начальник департамента"),
-    ("PM", "PM"),
-    ("Аналитик", "Аналитик"),
-    ("Программист и др.", "Программист"),
-    ("Дизайнер", "Дизайнер"),
+POSITION_OPTIONS: tuple[str, ...] = (
+    "Начальник департамента/отдела",
+    "PM",
+    "Аналитик",
+    "Программист и др.",
+    "Дизайнер",
 )
 
-POSITION_API_VALUES: frozenset[str] = frozenset(
-    api_value for _, api_value in POSITION_OPTIONS
-)
+POSITION_API_VALUES: frozenset[str] = frozenset(POSITION_OPTIONS)
 
-CALLBACK_PREFIX = "position:"
+# Telegram ограничивает callback_data 64 байтами UTF-8.
+# "Начальник департамента/отдела" — 56 байт; с "p:" — 58, влезает. С "position:" — 65 ❌.
+CALLBACK_PREFIX = "p:"
 
 
 def position_keyboard() -> InlineKeyboardMarkup:
-    """Inline-клавиатура с 5 кнопками — по одной должности на строку."""
+    """Inline-клавиатура с кнопкой на каждую должность (по строке)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
                     text=label,
-                    callback_data=f"{CALLBACK_PREFIX}{api_value}",
+                    callback_data=f"{CALLBACK_PREFIX}{label}",
                 )
             ]
-            for label, api_value in POSITION_OPTIONS
+            for label in POSITION_OPTIONS
         ]
     )
 
 
 def label_for(api_value: str) -> str | None:
-    """Найти отображаемый label по api-value (для confirmation message)."""
-    for label, value in POSITION_OPTIONS:
-        if value == api_value:
-            return label
-    return None
+    """Identity-проверка: возвращает api_value если валиден, иначе None."""
+    return api_value if api_value in POSITION_API_VALUES else None

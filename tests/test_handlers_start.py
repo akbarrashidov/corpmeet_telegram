@@ -177,7 +177,6 @@ async def test_start_prompts_for_position_when_missing(
     assert "должность" in args[0].lower()
     kb = kwargs.get("reply_markup")
     assert kb is not None
-    # 5 кнопок (по одной на строку)
     assert len(kb.inline_keyboard) == 5
 
 
@@ -245,7 +244,7 @@ async def test_position_callback_saves_and_edits_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     setup_env(monkeypatch)
-    cb = make_callback(data="position:PM")
+    cb = make_callback(data="p:PM")
     bot = make_bot()
 
     set_position_mock = AsyncMock()
@@ -263,19 +262,24 @@ async def test_position_callback_saves_and_edits_message(
     cb.answer.assert_awaited()
 
 
-async def test_position_callback_uses_label_in_confirmation(
+async def test_position_callback_saves_programmer_label(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Регрессия: «Программист и др.» — самая длинная и со спецсимволами позиция."""
     setup_env(monkeypatch)
-    # api_value="Программист", label="Программист и др."
-    cb = make_callback(data="position:Программист")
+    cb = make_callback(data="p:Программист и др.")
     bot = make_bot()
+
+    set_position_mock = AsyncMock()
 
     with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
          patch("bot.handlers.start.ApiClient") as mock_cls:
-        mock_cls.return_value = patch_api_client(set_position=AsyncMock())
+        mock_cls.return_value = patch_api_client(set_position=set_position_mock)
         await on_position_chosen(cb, bot)
 
+    set_position_mock.assert_awaited_once_with(
+        telegram_id=999, position="Программист и др."
+    )
     text = cb.message.edit_text.call_args.args[0]
     assert "Программист и др." in text
 
@@ -284,7 +288,7 @@ async def test_position_callback_rejects_unknown_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     setup_env(monkeypatch)
-    cb = make_callback(data="position:Маркетолог")
+    cb = make_callback(data="p:Маркетолог")
     bot = make_bot()
 
     set_position_mock = AsyncMock()
@@ -305,7 +309,7 @@ async def test_position_callback_denies_non_member(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     setup_env(monkeypatch)
-    cb = make_callback(data="position:PM")
+    cb = make_callback(data="p:PM")
     bot = make_bot()
 
     with patch("bot.handlers.start._has_access", AsyncMock(return_value=False)), \
@@ -323,7 +327,7 @@ async def test_position_callback_handles_404_user_not_found(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     setup_env(monkeypatch)
-    cb = make_callback(data="position:PM")
+    cb = make_callback(data="p:PM")
     bot = make_bot()
 
     fake_response = MagicMock()
