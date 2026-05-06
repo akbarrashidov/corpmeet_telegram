@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useCreateBooking } from "@corpmeet/design/complex";
 import { PageHeader } from "../components/PageHeader";
+import { GuestPicker } from "../components/GuestPicker";
 import { defaultStartLocal, defaultEndLocal, localInputToIso } from "../lib/datetime";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
@@ -17,7 +18,7 @@ export function CreateBookingPage({ onBack, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [start, setStart] = useState(defaultStartLocal());
   const [end, setEnd] = useState(defaultEndLocal());
-  const [guestsRaw, setGuestsRaw] = useState("");
+  const [guests, setGuests] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const inTg = !!getTelegram();
 
@@ -37,10 +38,6 @@ export function CreateBookingPage({ onBack, onCreated }: Props) {
     setError(null);
     haptic();
     try {
-      const guests = guestsRaw
-        .split(",")
-        .map((g) => g.trim())
-        .filter(Boolean);
       await createBooking.mutateAsync({
         title: title.trim(),
         start_time: localInputToIso(start),
@@ -116,18 +113,11 @@ export function CreateBookingPage({ onBack, onCreated }: Props) {
           />
         </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">Гости (через запятую)</span>
-          <input
-            type="text"
-            value={guestsRaw}
-            onChange={(e) => setGuestsRaw(e.target.value)}
-            disabled={createBooking.isPending}
-            placeholder="Иван Иванов, Анна Смит"
-            className="rounded-lg p-3 outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <GuestPicker
+          value={guests}
+          onChange={setGuests}
+          disabled={createBooking.isPending}
+        />
 
         {error && (
           <p className="text-sm" style={{ color: "var(--danger)" }}>

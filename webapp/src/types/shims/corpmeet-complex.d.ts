@@ -118,3 +118,14 @@ export function useDeleteBooking(): {
   isPending: boolean;
   error: unknown;
 };
+
+export const usersApi: {
+  search(q: string): Promise<User[]>;
+};
+
+export function useUsers(query?: string): {
+  data: User[] | undefined;
+  isLoading: boolean;
+  isFetching: boolean;
+  error: unknown;
+};

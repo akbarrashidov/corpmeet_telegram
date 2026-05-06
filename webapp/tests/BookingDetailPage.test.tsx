@@ -18,6 +18,7 @@ import {
   useAuth,
   useDeleteBooking,
 } from "@corpmeet/design/complex";
+import type { Booking } from "@corpmeet/design/complex";
 import { BookingDetailPage } from "../src/pages/BookingDetailPage";
 
 const baseUser = {
@@ -30,7 +31,7 @@ const baseUser = {
   display_name: "Иван Иванов",
 };
 
-const baseBooking = {
+const baseBooking: Booking = {
   id: 5,
   title: "Демо",
   description: "Текст описания",
