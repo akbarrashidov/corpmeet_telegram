@@ -29,22 +29,39 @@ export function formatDayMonth(isoDate: string): string {
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 }
 
-/**
- * Текущее время округлённое до ближайшего получаса вверх,
- * формат для <input type="datetime-local"> ("2026-05-01T14:30").
- */
-export function defaultStartLocal(): string {
-  const d = new Date();
-  const m = d.getMinutes();
-  d.setMinutes(m < 30 ? 30 : 60, 0, 0);
-  return localDateTime(d);
+/** Короткое имя дня недели на русском, с заглавной: "Пн", "Вт". */
+export function formatDayShort(isoDate: string): string {
+  const d = new Date(isoDate + "T00:00:00");
+  const s = d.toLocaleDateString("ru-RU", { weekday: "short" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** +1 час от defaultStartLocal. */
-export function defaultEndLocal(): string {
-  const d = new Date(defaultStartLocal());
-  d.setHours(d.getHours() + 1);
-  return localDateTime(d);
+/**
+ * Время по умолчанию для начала встречи в формате <input type="datetime-local">.
+ *
+ * - Если forDate не задан или равен сегодня → ближайший получас вверх от now.
+ * - Если forDate в другой день → 09:00 указанного дня.
+ */
+export function defaultStartLocal(forDate?: string): string {
+  const today = todayIso();
+  if (!forDate || forDate === today) {
+    const d = new Date();
+    const m = d.getMinutes();
+    d.setMinutes(m < 30 ? 30 : 60, 0, 0);
+    return localDateTime(d);
+  }
+  return `${forDate}T09:00`;
+}
+
+/** Время по умолчанию для конца встречи (+1 час от defaultStartLocal). */
+export function defaultEndLocal(forDate?: string): string {
+  const today = todayIso();
+  if (!forDate || forDate === today) {
+    const d = new Date(defaultStartLocal());
+    d.setHours(d.getHours() + 1);
+    return localDateTime(d);
+  }
+  return `${forDate}T10:00`;
 }
 
 function localDateTime(d: Date): string {

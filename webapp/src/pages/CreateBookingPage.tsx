@@ -11,13 +11,14 @@ import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 interface Props {
   onBack: () => void;
   onCreated: () => void;
+  defaultDate?: string;
 }
 
-export function CreateBookingPage({ onBack, onCreated }: Props) {
+export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
   const createBooking = useCreateBooking();
   const [title, setTitle] = useState("");
-  const [start, setStart] = useState(defaultStartLocal());
-  const [end, setEnd] = useState(defaultEndLocal());
+  const [start, setStart] = useState(defaultStartLocal(defaultDate));
+  const [end, setEnd] = useState(defaultEndLocal(defaultDate));
   const [guests, setGuests] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const inTg = !!getTelegram();

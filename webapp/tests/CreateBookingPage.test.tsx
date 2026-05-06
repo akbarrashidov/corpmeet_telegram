@@ -11,7 +11,9 @@ vi.mock("@corpmeet/design/complex", () => ({
 import { useCreateBooking, useUsers } from "@corpmeet/design/complex";
 import { CreateBookingPage } from "../src/pages/CreateBookingPage";
 
-function renderPage(props: Partial<{ onBack: () => void; onCreated: () => void }> = {}) {
+function renderPage(
+  props: Partial<{ onBack: () => void; onCreated: () => void; defaultDate: string }> = {}
+) {
   vi.mocked(useUsers).mockReturnValue({
     data: [],
     isLoading: false,
@@ -23,6 +25,7 @@ function renderPage(props: Partial<{ onBack: () => void; onCreated: () => void }
       <CreateBookingPage
         onBack={props.onBack ?? vi.fn()}
         onCreated={props.onCreated ?? vi.fn()}
+        defaultDate={props.defaultDate}
       />
     </QueryClientProvider>
   );
@@ -102,5 +105,18 @@ describe("CreateBookingPage", () => {
     await user.click(screen.getByRole("button", { name: "Создать" }));
 
     await screen.findByText(/Не удалось создать встречу/i);
+  });
+
+  it("prefills start/end at 09:00/10:00 when defaultDate is provided", () => {
+    vi.mocked(useCreateBooking).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: null,
+    } as any);
+    renderPage({ defaultDate: "2026-12-25" });
+    const start = screen.getByLabelText(/Начало/i) as HTMLInputElement;
+    const end = screen.getByLabelText(/Конец/i) as HTMLInputElement;
+    expect(start.value).toBe("2026-12-25T09:00");
+    expect(end.value).toBe("2026-12-25T10:00");
   });
 });

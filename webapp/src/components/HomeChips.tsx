@@ -6,7 +6,7 @@ interface Props {
 }
 
 const TABS: { id: HomeTab; label: string }[] = [
-  { id: "today", label: "Сегодня" },
+  { id: "today", label: "День" },
   { id: "mine", label: "Мои" },
   { id: "invited", label: "Приглашён" },
 ];
