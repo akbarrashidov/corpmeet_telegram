@@ -17,6 +17,13 @@ class UserBotInfo(BaseModel):
     display_name: str
 
 
+class GuestInfo(BaseModel):
+    """Гость встречи. Backend сам резолвит имя в telegram_id."""
+
+    name: str
+    telegram_id: Optional[int] = None
+
+
 class BookingBotInfo(BaseModel):
     """Минимальная инфа о бронировании для уведомлений."""
 
@@ -27,7 +34,7 @@ class BookingBotInfo(BaseModel):
     end_time: datetime
     prev_start_time: Optional[datetime] = None
     prev_end_time: Optional[datetime] = None
-    guests: list[str] = Field(default_factory=list)
+    guests: list[GuestInfo] = Field(default_factory=list)
     reminder_sent: bool
     created_at: datetime
     updated_at: datetime
@@ -116,21 +123,3 @@ class ApiClient:
         )
         resp.raise_for_status()
         return [BookingBotInfo.model_validate(item) for item in resp.json()]
-    
-    async def get_user_telegram_id_by_username(self, username: str) -> Optional[int]:
-        """Resolve @username to telegram_id via /internal/users/by-username.
-
-        Returns None on 404 (user not found / has no telegram_id).
-        Strips leading '@' from username if present.
-        """
-        clean = username.lstrip("@")
-        resp = await self.client.get(
-            f"/api/v1/internal/users/by-username/{clean}",
-            headers=self._internal_headers(),
-        )
-        if resp.status_code == 404:
-            return None
-        resp.raise_for_status()
-        data = resp.json()
-        tg_id = data.get("telegram_id")
-        return int(tg_id) if tg_id is not None else None    
