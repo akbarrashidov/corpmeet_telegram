@@ -46,6 +46,11 @@ def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
 # ── Тексты для группы (с organizer и guests) ─────────────────────────────────
 
 
+def _guests_line(b: BookingBotInfo) -> str:
+    """', '.join гостей. Используется только в group-сообщениях, где нужны имена."""
+    return ", ".join(g.name for g in b.guests)
+
+
 def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     text = (
         f"📌 Новая встреча «{b.title}»\n"
@@ -53,7 +58,7 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
         f"👤 {b.user.display_name}"
     )
     if b.guests:
-        text += f"\n👥 {', '.join(b.guests)}"
+        text += f"\n👥 {_guests_line(b)}"
     return text
 
 
@@ -235,26 +240,23 @@ class Poller:
             logger.exception("send_message to group %s failed", self._group_id)
 
     async def _notify_guests(self, b: BookingBotInfo, text: str) -> None:
-        for guest in b.guests:
-            await self._notify_guest(guest, text)
+        """Шлёт DM каждому гостю с известным telegram_id.
 
-    async def _notify_guest(self, guest: str, text: str) -> None:
-        """Resolve guest string to telegram_id and DM. Silent on failure."""
-        try:
-            telegram_id = await self._api.get_user_telegram_id_by_username(guest)
-        except Exception:  # noqa: BLE001
-            logger.exception("by-username lookup failed for guest %s", guest)
-            return
-        if telegram_id is None:
-            logger.warning(
-                "Cannot resolve guest %r — likely a full name (no by-name endpoint) "
-                "or user not registered with bot",
-                guest,
-            )
-            return
-        try:
-            await self._bot.send_message(telegram_id, text)
-        except Exception:  # noqa: BLE001
-            logger.exception(
-                "send_message to guest %r (tg_id=%s) failed", guest, telegram_id
-            )
+        Backend резолвит name → telegram_id при сборке /since и др.
+        Гости с telegram_id=None — это либо незарегистрированные люди,
+        либо свободный текст («все PM»). Их пропускаем.
+        """
+        for g in b.guests:
+            if g.telegram_id is None:
+                logger.debug(
+                    "Skip guest %r — no telegram_id (unregistered or free-form text)",
+                    g.name,
+                )
+                continue
+            try:
+                await self._bot.send_message(g.telegram_id, text)
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "send_message to guest %r (tg_id=%s) failed",
+                    g.name, g.telegram_id,
+                )

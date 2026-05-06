@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from bot.config import Settings
-from bot.services.api_client import BookingBotInfo, UserBotInfo
+from bot.services.api_client import BookingBotInfo, GuestInfo, UserBotInfo
 from bot.tasks import poller as poller_module
 from bot.tasks.poller import Poller
 
@@ -27,6 +27,7 @@ def make_booking(
     title: str = "Standup",
     telegram_id: int | None = 999,
     prev_start: dt.datetime | None = None,
+    guests: list[GuestInfo] | None = None,
 ) -> BookingBotInfo:
     now = dt.datetime.now(dt.timezone.utc)
     return BookingBotInfo(
@@ -37,7 +38,7 @@ def make_booking(
         end_time=now + dt.timedelta(hours=2),
         prev_start_time=prev_start,
         prev_end_time=None,
-        guests=[],
+        guests=guests or [],
         reminder_sent=False,
         created_at=now,
         updated_at=now,
@@ -58,12 +59,11 @@ def make_poller_with_mocked_api(
     fake_api.bookings_reminders = AsyncMock(return_value=[])
     fake_api.bookings_deleted_since = AsyncMock(return_value=[])
     fake_api.mark_reminded = AsyncMock()
-    fake_api.get_user_telegram_id_by_username = AsyncMock(return_value=None)
     p._api = fake_api
     return p, bot
 
 
-# ---------- Existing tests (owner DM only path) ----------
+# ---------- Owner DM (the simplest path) ----------
 
 async def test_new_booking_notification() -> None:
     p, bot = make_poller_with_mocked_api()
@@ -190,8 +190,10 @@ async def test_group_message_includes_organizer() -> None:
 
 async def test_group_message_includes_guests_when_present() -> None:
     p, bot = make_poller_with_mocked_api(group_id=-100)
-    booking = make_booking()
-    booking.guests = ["alice", "bob"]
+    booking = make_booking(guests=[
+        GuestInfo(name="alice", telegram_id=111),
+        GuestInfo(name="bob", telegram_id=None),
+    ])
     p._api.bookings_since.return_value = [booking]
 
     await p._tick()
@@ -234,53 +236,53 @@ async def test_reminder_does_not_notify_group() -> None:
     assert -100 not in chat_ids
 
 
-# ---------- Guest notifications ----------
+# ---------- Guest notifications (using resolved telegram_id from backend) ----------
 
-async def test_guest_dmed_when_username_resolves() -> None:
+async def test_guest_dmed_when_telegram_id_present() -> None:
+    """Guest with resolved telegram_id receives DM."""
     p, bot = make_poller_with_mocked_api()
-    booking = make_booking()
-    booking.guests = ["alice"]
+    booking = make_booking(guests=[GuestInfo(name="alice", telegram_id=555)])
     p._api.bookings_since.return_value = [booking]
-    p._api.get_user_telegram_id_by_username.return_value = 555
 
     await p._tick()
 
     chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
     assert 999 in chat_ids  # owner
-    assert 555 in chat_ids  # guest
-    p._api.get_user_telegram_id_by_username.assert_awaited_with("alice")
+    assert 555 in chat_ids  # guest alice
 
 
-async def test_guest_skipped_silently_when_resolution_returns_none() -> None:
+async def test_guest_skipped_when_telegram_id_is_null() -> None:
+    """Free-form text or unregistered users have telegram_id=None — skipped."""
     p, bot = make_poller_with_mocked_api()
-    booking = make_booking()
-    booking.guests = ["unknown_user"]
+    booking = make_booking(guests=[GuestInfo(name="все PM", telegram_id=None)])
     p._api.bookings_since.return_value = [booking]
-    p._api.get_user_telegram_id_by_username.return_value = None
 
     await p._tick()
 
     assert bot.send_message.await_count == 1  # owner only
 
 
-async def test_guest_resolution_error_does_not_break_loop() -> None:
+async def test_guest_send_failure_does_not_break_loop() -> None:
+    """If send_message to guest fails, owner notification still happens."""
     p, bot = make_poller_with_mocked_api()
-    booking = make_booking()
-    booking.guests = ["broken"]
+    booking = make_booking(guests=[GuestInfo(name="alice", telegram_id=555)])
+    # First call (owner) succeeds, second (guest) fails
+    bot.send_message.side_effect = [None, Exception("fbn"), None]
     p._api.bookings_since.return_value = [booking]
-    p._api.get_user_telegram_id_by_username.side_effect = Exception("api down")
 
-    await p._tick()  # not raise
+    await p._tick()  # не должен бросить
 
-    assert bot.send_message.await_count == 1  # owner still notified
+    # owner + group attempts; even if guest fails, loop continues
+    assert bot.send_message.await_count >= 2
 
 
 async def test_reminder_notifies_owner_and_guests() -> None:
     p, bot = make_poller_with_mocked_api()
-    booking = make_booking(id=42)
-    booking.guests = ["alice"]
+    booking = make_booking(
+        id=42,
+        guests=[GuestInfo(name="alice", telegram_id=555)],
+    )
     p._api.bookings_reminders.return_value = [booking]
-    p._api.get_user_telegram_id_by_username.return_value = 555
 
     await p._tick()
 
@@ -292,10 +294,8 @@ async def test_reminder_notifies_owner_and_guests() -> None:
 
 async def test_deletion_notifies_owner_and_guests_and_group() -> None:
     p, bot = make_poller_with_mocked_api(group_id=-100)
-    booking = make_booking()
-    booking.guests = ["alice"]
+    booking = make_booking(guests=[GuestInfo(name="alice", telegram_id=555)])
     p._api.bookings_deleted_since.return_value = [booking]
-    p._api.get_user_telegram_id_by_username.return_value = 555
 
     await p._tick()
 
@@ -303,42 +303,6 @@ async def test_deletion_notifies_owner_and_guests_and_group() -> None:
     assert 999 in chat_ids   # owner
     assert 555 in chat_ids   # guest
     assert -100 in chat_ids  # group
-
-
-# ---------- Group message format (pure functions) ----------
-
-def test_msg_new_booking_group_includes_organizer_and_omits_guests() -> None:
-    booking = make_booking(title="Demo")
-    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
-    assert "📌 Новая встреча «Demo»" in text
-    assert "👤 Anna" in text
-    assert "👥" not in text
-
-
-def test_msg_new_booking_group_with_guests() -> None:
-    booking = make_booking()
-    booking.guests = ["alice", "bob"]
-    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
-    assert "👥 alice, bob" in text
-
-
-def test_msg_changed_booking_group_format() -> None:
-    booking = make_booking(title="Sync")
-    text = poller_module.msg_changed_booking_group(booking, ZoneInfo("UTC"))
-    assert "✏️" in text
-    assert "перенесена" in text
-    assert "Sync" in text
-    assert "👤 Anna" in text
-
-
-def test_msg_deleted_booking_group_format() -> None:
-    booking = make_booking(title="Old")
-    text = poller_module.msg_deleted_booking_group(booking, ZoneInfo("UTC"))
-    assert "❌" in text
-    assert "отменена" in text
-    assert "Old" in text
-    assert "👤 Anna" in text
-
 
 
 # ---------- Resilience: 5xx → cursor jump to NOW ----------
@@ -354,11 +318,9 @@ async def test_since_500_advances_cursor_to_now() -> None:
     p._api.bookings_since.side_effect = err
 
     initial_cursor = p._cursor_updated
-    await p._tick()  # должен НЕ упасть
+    await p._tick()
 
-    # Cursor продвинулся (близко к now, не равен initial)
     assert p._cursor_updated > initial_cursor
-    # Никаких уведомлений не было
     bot.send_message.assert_not_awaited()
 
 
@@ -395,6 +357,7 @@ async def test_since_400_does_not_advance_cursor() -> None:
 
     assert p._cursor_updated == initial_cursor
 
+
 async def test_deleted_since_500_advances_cursor_to_now() -> None:
     import httpx
     from unittest.mock import MagicMock as MM
@@ -411,6 +374,42 @@ async def test_deleted_since_500_advances_cursor_to_now() -> None:
     assert p._cursor_deleted > initial_cursor
     bot.send_message.assert_not_awaited()
 
+
+# ---------- Group message format (pure functions) ----------
+
+def test_msg_new_booking_group_includes_organizer_and_omits_guests() -> None:
+    booking = make_booking(title="Demo")
+    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
+    assert "📌 Новая встреча «Demo»" in text
+    assert "👤 Anna" in text
+    assert "👥" not in text
+
+
+def test_msg_new_booking_group_with_guests() -> None:
+    booking = make_booking(guests=[
+        GuestInfo(name="alice", telegram_id=111),
+        GuestInfo(name="bob", telegram_id=None),
+    ])
+    text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
+    assert "👥 alice, bob" in text
+
+
+def test_msg_changed_booking_group_format() -> None:
+    booking = make_booking(title="Sync")
+    text = poller_module.msg_changed_booking_group(booking, ZoneInfo("UTC"))
+    assert "✏️" in text
+    assert "перенесена" in text
+    assert "Sync" in text
+    assert "👤 Anna" in text
+
+
+def test_msg_deleted_booking_group_format() -> None:
+    booking = make_booking(title="Old")
+    text = poller_module.msg_deleted_booking_group(booking, ZoneInfo("UTC"))
+    assert "❌" in text
+    assert "отменена" in text
+    assert "Old" in text
+    assert "👤 Anna" in text
 
 
 # ---------- Local dedup (anti-spam) ----------
@@ -478,7 +477,7 @@ async def test_deletion_dedup() -> None:
 
     await p._tick()
     first_count = bot.send_message.await_count
-    assert first_count > 0  # got at least one notification
+    assert first_count > 0
 
     # Повтор того же удаления
     p._api.bookings_deleted_since.return_value = [booking]
@@ -503,7 +502,6 @@ async def test_deletion_after_creation_still_notifies() -> None:
     p._api.bookings_deleted_since.return_value = [booking]
     await p._tick()
 
-    # +1 (как минимум — больше если group_id или guests)
     assert bot.send_message.await_count > after_create
     last_text = bot.send_message.call_args.args[1]
     assert "❌" in last_text

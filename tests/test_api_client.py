@@ -30,7 +30,10 @@ def sample_booking(**overrides) -> dict:
         "end_time": "2026-05-01T11:00:00+00:00",
         "prev_start_time": None,
         "prev_end_time": None,
-        "guests": ["alice", "bob"],
+        "guests": [
+            {"name": "alice", "telegram_id": 111},
+            {"name": "bob", "telegram_id": None},
+        ],
         "reminder_sent": False,
         "created_at": "2026-04-30T08:00:00+00:00",
         "updated_at": "2026-04-30T08:30:00+00:00",
@@ -45,7 +48,7 @@ def sample_booking(**overrides) -> dict:
     return base
 
 
-# ---------- consume_session (unchanged from B.1) ----------
+# ---------- consume_session ----------
 
 async def test_sends_ngrok_skip_header() -> None:
     with respx.mock(base_url="https://api.example.com") as router:
@@ -111,7 +114,7 @@ async def test_bookings_since_sends_iso_datetime_and_secret() -> None:
         assert sent.headers.get("X-Bot-Secret") == "secret-xyz"
 
 
-async def test_bookings_since_parses_response() -> None:
+async def test_bookings_since_parses_response_with_guest_info() -> None:
     with respx.mock(base_url="https://api.example.com") as router:
         router.get("/api/v1/internal/bookings/since").respond(json=[sample_booking()])
 
@@ -123,7 +126,12 @@ async def test_bookings_since_parses_response() -> None:
         assert b.id == 7
         assert b.title == "Test meeting"
         assert b.user.telegram_id == 999
-        assert b.guests == ["alice", "bob"]
+        # Guests parsed as objects
+        assert len(b.guests) == 2
+        assert b.guests[0].name == "alice"
+        assert b.guests[0].telegram_id == 111
+        assert b.guests[1].name == "bob"
+        assert b.guests[1].telegram_id is None
 
 
 # ---------- bookings_reminders ----------
@@ -169,53 +177,3 @@ async def test_bookings_deleted_since_uses_since_param() -> None:
         sent_url = str(route.calls.last.request.url)
         assert "since=" in sent_url
         assert "updated_at=" not in sent_url  # отдельный параметр, не путать
-
-# ---------- get_user_telegram_id_by_username ----------
-
-async def test_by_username_returns_telegram_id() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        route = router.get("/api/v1/internal/users/by-username/alice").respond(
-            json={"telegram_id": 123456789, "display_name": "Alice"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            result = await api.get_user_telegram_id_by_username("alice")
-
-        assert result == 123456789
-        assert route.calls.last.request.headers.get("X-Bot-Secret") == "secret-xyz"
-
-
-async def test_by_username_strips_leading_at_sign() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        route = router.get("/api/v1/internal/users/by-username/bob").respond(
-            json={"telegram_id": 42, "display_name": "Bob"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            result = await api.get_user_telegram_id_by_username("@bob")
-
-        assert result == 42
-        assert route.called  # без @ в URL
-
-
-async def test_by_username_returns_none_on_404() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        router.get("/api/v1/internal/users/by-username/ghost").respond(
-            status_code=404, json={"detail": "User not found"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            result = await api.get_user_telegram_id_by_username("ghost")
-
-        assert result is None
-
-
-async def test_by_username_raises_on_5xx() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        router.get("/api/v1/internal/users/by-username/whoever").respond(
-            status_code=500, json={"detail": "boom"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            with pytest.raises(httpx.HTTPStatusError):
-                await api.get_user_telegram_id_by_username("whoever")
