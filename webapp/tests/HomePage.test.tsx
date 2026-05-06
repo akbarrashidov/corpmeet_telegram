@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -17,14 +18,34 @@ vi.mock("../src/hooks/useInvitedBookings", () => ({
 import { useAuth, useBookings, useActiveBookings } from "@corpmeet/design/complex";
 import { useInvitedBookings } from "../src/hooks/useInvitedBookings";
 import { HomePage } from "../src/pages/HomePage";
+import { todayIso } from "../src/lib/datetime";
+import type { HomeTab } from "../src/components/HomeChips";
+
+function HomePageWrapper({
+  onCreate = vi.fn(),
+  onSelect = vi.fn(),
+}: {
+  onCreate?: () => void;
+  onSelect?: (b: any) => void;
+}) {
+  const [tab, setTab] = useState<HomeTab>("today");
+  const [selectedDate, setSelectedDate] = useState<string>(todayIso());
+  return (
+    <HomePage
+      tab={tab}
+      onTabChange={setTab}
+      selectedDate={selectedDate}
+      onDateChange={setSelectedDate}
+      onCreate={onCreate}
+      onSelect={onSelect}
+    />
+  );
+}
 
 function renderPage(props: { onCreate?: () => void; onSelect?: (b: any) => void } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <HomePage
-        onCreate={props.onCreate ?? vi.fn()}
-        onSelect={props.onSelect ?? vi.fn()}
-      />
+      <HomePageWrapper {...props} />
     </QueryClientProvider>
   );
 }

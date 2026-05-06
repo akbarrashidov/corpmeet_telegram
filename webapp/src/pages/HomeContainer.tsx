@@ -4,6 +4,8 @@ import { HomePage } from "./HomePage";
 import { CreateBookingPage } from "./CreateBookingPage";
 import { BookingDetailPage } from "./BookingDetailPage";
 import { ReschedulePage } from "./ReschedulePage";
+import type { HomeTab } from "../components/HomeChips";
+import { todayIso } from "../lib/datetime";
 
 type View =
   | { kind: "list" }
@@ -18,10 +20,16 @@ type View =
 
 export function HomeContainer() {
   const [view, setView] = useState<View>({ kind: "list" });
+  const [tab, setTab] = useState<HomeTab>("today");
+  const [selectedDate, setSelectedDate] = useState<string>(todayIso());
 
   if (view.kind === "list") {
     return (
       <HomePage
+        tab={tab}
+        onTabChange={setTab}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
         onCreate={() => setView({ kind: "create" })}
         onSelect={(b) => setView({ kind: "detail", booking: b })}
       />
@@ -30,6 +38,7 @@ export function HomeContainer() {
   if (view.kind === "create") {
     return (
       <CreateBookingPage
+        defaultDate={selectedDate}
         onBack={() => setView({ kind: "list" })}
         onCreated={() => setView({ kind: "list" })}
       />

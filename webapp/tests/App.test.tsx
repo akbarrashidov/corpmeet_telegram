@@ -118,7 +118,7 @@ describe("App", () => {
     renderApp();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Сегодня" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
     });
     expect(storage.setToken).toHaveBeenCalledWith("tok");
   });
@@ -149,7 +149,7 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(authApi.register).toHaveBeenCalledWith("valid-init-data", "Anna", "Smith");
-      expect(screen.getByRole("button", { name: "Сегодня" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
     });
     expect(storage.setToken).toHaveBeenCalledWith("newtok");
   });

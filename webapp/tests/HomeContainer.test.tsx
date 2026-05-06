@@ -24,6 +24,7 @@ vi.mock("../src/hooks/useInvitedBookings", () => ({
 }));
 
 import { HomeContainer } from "../src/pages/HomeContainer";
+import { addDaysIso, formatDayMonth, todayIso } from "../src/lib/datetime";
 
 function renderApp() {
   return render(
@@ -36,7 +37,7 @@ function renderApp() {
 describe("HomeContainer navigation", () => {
   it("starts on list view", () => {
     renderApp();
-    expect(screen.getByRole("button", { name: "Сегодня" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
   });
 
   it("opens create page on + click and goes back on ←", async () => {
@@ -45,6 +46,20 @@ describe("HomeContainer navigation", () => {
     await user.click(screen.getByRole("button", { name: "Забронировать" }));
     expect(screen.getByText(/Новая встреча/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Назад" }));
-    expect(screen.getByRole("button", { name: "Сегодня" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
+  });
+
+  it("propagates selected date to create page as defaultDate", async () => {
+    renderApp();
+    const user = userEvent.setup();
+
+    const tomorrow = addDaysIso(todayIso(), 1);
+    const tomorrowLabel = formatDayMonth(tomorrow);
+
+    await user.click(screen.getByRole("button", { name: tomorrowLabel }));
+    await user.click(screen.getByRole("button", { name: "Забронировать" }));
+
+    const start = screen.getByLabelText(/Начало/i) as HTMLInputElement;
+    expect(start.value).toBe(`${tomorrow}T09:00`);
   });
 });
