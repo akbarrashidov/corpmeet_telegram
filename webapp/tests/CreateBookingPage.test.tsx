@@ -5,12 +5,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@corpmeet/design/complex", () => ({
   useCreateBooking: vi.fn(),
+  useUsers: vi.fn(),
 }));
 
-import { useCreateBooking } from "@corpmeet/design/complex";
+import { useCreateBooking, useUsers } from "@corpmeet/design/complex";
 import { CreateBookingPage } from "../src/pages/CreateBookingPage";
 
 function renderPage(props: Partial<{ onBack: () => void; onCreated: () => void }> = {}) {
+  vi.mocked(useUsers).mockReturnValue({
+    data: [],
+    isLoading: false,
+    isFetching: false,
+    error: null,
+  } as any);
   return render(
     <QueryClientProvider client={new QueryClient()}>
       <CreateBookingPage
@@ -56,9 +63,10 @@ describe("CreateBookingPage", () => {
     expect(arg.title).toBe("Демо");
     expect(arg.start_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(arg.end_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(arg.guests).toEqual([]);
   });
 
-  it("parses guests by commas, trims, filters empty", async () => {
+  it("submits guests added via GuestPicker (manual entry)", async () => {
     const mutate = vi.fn().mockResolvedValue([]);
     vi.mocked(useCreateBooking).mockReturnValue({
       mutateAsync: mutate,
@@ -69,14 +77,15 @@ describe("CreateBookingPage", () => {
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Название/i), "Z");
-    await user.type(
-      screen.getByLabelText(/Гости/i),
-      "  Иван Иванов  , Анна Смит ,, "
-    );
+
+    const guestInput = screen.getByPlaceholderText("Добавь гостя");
+    await user.type(guestInput, "Иван Иванов{enter}");
+    await user.type(guestInput, "все PM{enter}");
+
     await user.click(screen.getByRole("button", { name: "Создать" }));
 
     await waitFor(() => expect(mutate).toHaveBeenCalled());
-    expect(mutate.mock.calls[0][0].guests).toEqual(["Иван Иванов", "Анна Смит"]);
+    expect(mutate.mock.calls[0][0].guests).toEqual(["Иван Иванов", "все PM"]);
   });
 
   it("shows error from server", async () => {
