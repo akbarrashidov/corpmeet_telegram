@@ -9,7 +9,9 @@ vi.mock("@corpmeet/design/complex", () => ({
 import { useUsers } from "@corpmeet/design/complex";
 import { GuestPicker } from "../src/components/GuestPicker";
 
-function mockUsers(users: Array<{ id: number; display_name: string }>) {
+function mockUsers(
+  users: Array<{ id: number; display_name: string; position?: string | null }>
+) {
   vi.mocked(useUsers).mockReturnValue({
     data: users.map((u) => ({
       id: u.id,
@@ -19,6 +21,7 @@ function mockUsers(users: Array<{ id: number; display_name: string }>) {
       last_name: u.display_name.split(" ")[1] ?? null,
       role: "user",
       display_name: u.display_name,
+      position: u.position ?? null,
     })),
     isLoading: false,
     isFetching: false,
@@ -97,5 +100,62 @@ describe("GuestPicker", () => {
     input.focus();
     await user.keyboard("{Backspace}");
     expect(onChange).toHaveBeenCalledWith(["Иван Иванов"]);
+  });
+
+  // ---------- position filter chips ----------
+
+  it("adds all users of a position when position chip clicked", async () => {
+    mockUsers([
+      { id: 1, display_name: "Alisher Rakhimov", position: "PM" },
+      { id: 2, display_name: "Anna Smirnova", position: "PM" },
+      { id: 3, display_name: "Boris Petrov", position: "Аналитик" },
+    ]);
+    const onChange = vi.fn();
+    render(<GuestPicker value={[]} onChange={onChange} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "+ PM" }));
+
+    expect(onChange).toHaveBeenCalledWith(["Alisher Rakhimov", "Anna Smirnova"]);
+  });
+
+  it("position chip skips already-selected users", async () => {
+    mockUsers([
+      { id: 1, display_name: "Alisher Rakhimov", position: "PM" },
+      { id: 2, display_name: "Anna Smirnova", position: "PM" },
+    ]);
+    const onChange = vi.fn();
+    render(<GuestPicker value={["Alisher Rakhimov"]} onChange={onChange} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "+ PM" }));
+
+    expect(onChange).toHaveBeenCalledWith(["Alisher Rakhimov", "Anna Smirnova"]);
+  });
+
+  it("position chip with no matches does nothing", async () => {
+    mockUsers([{ id: 1, display_name: "Boris Petrov", position: "Аналитик" }]);
+    const onChange = vi.fn();
+    render(<GuestPicker value={[]} onChange={onChange} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "+ Дизайнеры" }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("position chip filters by exact api-value (Программист и др.)", async () => {
+    mockUsers([
+      { id: 1, display_name: "Dev One", position: "Программист и др." },
+      { id: 2, display_name: "Dev Two", position: "Программист и др." },
+      { id: 3, display_name: "Other Person", position: "PM" },
+    ]);
+    const onChange = vi.fn();
+    render(<GuestPicker value={[]} onChange={onChange} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "+ Программисты и др." }));
+
+    expect(onChange).toHaveBeenCalledWith(["Dev One", "Dev Two"]);
   });
 });
