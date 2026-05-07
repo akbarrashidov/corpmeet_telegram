@@ -64,6 +64,12 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "register.error.last_name_format": "Familiya — lotin alifbosi, katta harf bilan (masalan, Rakhimov).",
   "register.error.position_required": "Lavozimni tanlang.",
   "register.submit": "Ro'yxatdan o'tish",
+  
+  "position.label.heads": "Bo'lim/departament boshlig'i",
+  "position.label.pm": "PM",
+  "position.label.analyst": "Analitik",
+  "position.label.dev": "Dasturchi va b.",
+  "position.label.designer": "Dizayner",
 
   "profile.title": "Profilni tahrirlash",
   "profile.position.none": "Ko'rsatilmagan",

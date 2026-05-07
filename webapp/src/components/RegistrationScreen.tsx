@@ -1,14 +1,14 @@
 import { FormEvent, useState } from "react";
-import { useTranslation } from "../i18n";
+import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "./LangToggle";
 
-const POSITION_OPTIONS = [
-  "Начальник департамента/отдела",
-  "PM",
-  "Аналитик",
-  "Программист и др.",
-  "Дизайнер",
-] as const;
+const POSITION_OPTIONS: { apiValue: string; labelKey: TranslationKey }[] = [
+  { apiValue: "Начальник департамента/отдела", labelKey: "position.label.heads" },
+  { apiValue: "PM", labelKey: "position.label.pm" },
+  { apiValue: "Аналитик", labelKey: "position.label.analyst" },
+  { apiValue: "Программист и др.", labelKey: "position.label.dev" },
+  { apiValue: "Дизайнер", labelKey: "position.label.designer" },
+];
 
 const NAME_REGEX = /^[A-Z][a-z]+$/;
 
@@ -119,12 +119,12 @@ export function RegistrationScreen({
         <legend className="text-sm">{t("register.field.position")}</legend>
         <div className="flex flex-wrap gap-2">
           {POSITION_OPTIONS.map((opt) => {
-            const selected = position === opt;
+            const selected = position === opt.apiValue;
             return (
               <button
-                key={opt}
+                key={opt.apiValue}
                 type="button"
-                onClick={() => setPosition(opt)}
+                onClick={() => setPosition(opt.apiValue)}
                 disabled={submitting}
                 aria-pressed={selected}
                 className="px-3 py-2 rounded-full text-sm font-medium transition"
@@ -136,7 +136,7 @@ export function RegistrationScreen({
                   }`,
                 }}
               >
-                {opt}
+                {t(opt.labelKey)}
               </button>
             );
           })}
