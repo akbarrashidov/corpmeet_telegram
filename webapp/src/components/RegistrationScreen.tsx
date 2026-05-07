@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useTranslation } from "../i18n";
 
 const POSITION_OPTIONS = [
   "Начальник департамента/отдела",
@@ -23,6 +24,7 @@ export function RegistrationScreen({
   defaultPosition = null,
   onSubmit,
 }: Props) {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [lastName, setLastName] = useState(defaultLastName);
   const [position, setPosition] = useState<string | null>(defaultPosition);
@@ -32,15 +34,9 @@ export function RegistrationScreen({
   function validate(): string | null {
     const fn = firstName.trim();
     const ln = lastName.trim();
-    if (!NAME_REGEX.test(fn)) {
-      return "Имя — латиница, с большой буквы (например, Alisher).";
-    }
-    if (!NAME_REGEX.test(ln)) {
-      return "Фамилия — латиница, с большой буквы (например, Rakhimov).";
-    }
-    if (!position) {
-      return "Выбери должность.";
-    }
+    if (!NAME_REGEX.test(fn)) return t("register.error.first_name_format");
+    if (!NAME_REGEX.test(ln)) return t("register.error.last_name_format");
+    if (!position) return t("register.error.position_required");
     return null;
   }
 
@@ -84,39 +80,37 @@ export function RegistrationScreen({
       className="min-h-screen flex flex-col p-6 gap-4"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <h1 className="font-heading text-2xl">Регистрация</h1>
-      <p style={{ color: "var(--text-sec)" }}>
-        Чтобы пользоваться CorpMeet, укажи имя, фамилию и должность.
-      </p>
+      <h1 className="font-heading text-2xl">{t("register.title")}</h1>
+      <p style={{ color: "var(--text-sec)" }}>{t("register.subtitle")}</p>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm">Имя</span>
+        <span className="text-sm">{t("register.field.first_name")}</span>
         <input
           type="text"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           disabled={submitting}
-          placeholder="Alisher"
+          placeholder={t("register.placeholder.first_name")}
           className="rounded-lg p-3 outline-none"
           style={inputStyle}
         />
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm">Фамилия</span>
+        <span className="text-sm">{t("register.field.last_name")}</span>
         <input
           type="text"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           disabled={submitting}
-          placeholder="Rakhimov"
+          placeholder={t("register.placeholder.last_name")}
           className="rounded-lg p-3 outline-none"
           style={inputStyle}
         />
       </label>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm">Должность</legend>
+        <legend className="text-sm">{t("register.field.position")}</legend>
         <div className="flex flex-wrap gap-2">
           {POSITION_OPTIONS.map((opt) => {
             const selected = position === opt;
@@ -159,7 +153,7 @@ export function RegistrationScreen({
           opacity: submitting ? 0.5 : 1,
         }}
       >
-        {submitting ? "..." : "Зарегистрироваться"}
+        {submitting ? "..." : t("register.submit")}
       </button>
     </form>
   );

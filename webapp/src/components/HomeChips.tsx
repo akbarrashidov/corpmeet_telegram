@@ -1,3 +1,5 @@
+import { useTranslation, type TranslationKey } from "../i18n";
+
 export type HomeTab = "today" | "mine" | "invited";
 
 interface Props {
@@ -5,13 +7,14 @@ interface Props {
   onChange: (tab: HomeTab) => void;
 }
 
-const TABS: { id: HomeTab; label: string }[] = [
-  { id: "today", label: "День" },
-  { id: "mine", label: "Мои" },
-  { id: "invited", label: "Приглашён" },
+const TABS: { id: HomeTab; key: TranslationKey }[] = [
+  { id: "today", key: "home.tab.day" },
+  { id: "mine", key: "home.tab.mine" },
+  { id: "invited", key: "home.tab.invited" },
 ];
 
 export function HomeChips({ active, onChange }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
       {TABS.map((tab) => {
@@ -28,7 +31,7 @@ export function HomeChips({ active, onChange }: Props) {
               border: `1px solid ${isActive ? "var(--primary)" : "var(--border)"}`,
             }}
           >
-            {tab.label}
+            {t(tab.key)}
           </button>
         );
       })}

@@ -7,6 +7,7 @@ import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
+import { useTranslation } from "../i18n";
 
 interface Props {
   onBack: () => void;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
+  const { t } = useTranslation();
   const createBooking = useCreateBooking();
   const [title, setTitle] = useState("");
   const [start, setStart] = useState(defaultStartLocal(defaultDate));
@@ -28,12 +30,12 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
   async function submit() {
     if (!title.trim()) {
       hapticError();
-      setError("Назови встречу.");
+      setError(t("create.error.title_required"));
       return;
     }
     if (start >= end) {
       hapticError();
-      setError("Конец должен быть позже начала.");
+      setError(t("create.error.end_after_start"));
       return;
     }
     setError(null);
@@ -49,7 +51,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
       onCreated();
     } catch {
       hapticError();
-      setError("Не удалось создать встречу. Попробуй ещё.");
+      setError(t("create.error.failed"));
     }
   }
 
@@ -59,7 +61,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
   }
 
   useTgMainButton({
-    text: createBooking.isPending ? "..." : "Создать",
+    text: createBooking.isPending ? "..." : t("create.submit"),
     onClick: () => void submit(),
     disabled: createBooking.isPending,
   });
@@ -75,11 +77,11 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
       className="min-h-screen p-4 flex flex-col gap-4"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <PageHeader title="Новая встреча" onBack={onBack} />
+      <PageHeader title={t("create.title")} onBack={onBack} />
 
       <form onSubmit={handleHtmlSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-2">
-          <span className="text-sm">Название</span>
+          <span className="text-sm">{t("create.field.name")}</span>
           <input
             type="text"
             value={title}
@@ -91,7 +93,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm">Начало</span>
+          <span className="text-sm">{t("create.field.start")}</span>
           <input
             type="datetime-local"
             value={start}
@@ -103,7 +105,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm">Конец</span>
+          <span className="text-sm">{t("create.field.end")}</span>
           <input
             type="datetime-local"
             value={end}
@@ -137,7 +139,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
               opacity: createBooking.isPending ? 0.5 : 1,
             }}
           >
-            {createBooking.isPending ? "..." : "Создать"}
+            {createBooking.isPending ? "..." : t("create.submit")}
           </button>
         )}
       </form>

@@ -1,5 +1,6 @@
 import type { Booking } from "@corpmeet/design/complex";
 import { formatTime } from "../lib/datetime";
+import { useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function BookingCard({ booking, invitedBadge, onClick }: Props) {
+  const { t } = useTranslation();
   const organizerName =
     booking.user.display_name ??
     [booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ");
@@ -46,7 +48,7 @@ export function BookingCard({ booking, invitedBadge, onClick }: Props) {
           className="mt-2 inline-flex self-start text-xs px-2 py-0.5 rounded-full"
           style={{ background: "var(--primary-light)", color: "var(--primary)" }}
         >
-          Ты в гостях
+          {t("booking.guest_badge")}
         </div>
       )}
     </article>

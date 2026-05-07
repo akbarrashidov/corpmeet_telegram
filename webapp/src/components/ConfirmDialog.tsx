@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from "react";
+import { useTranslation } from "../i18n";
 
 interface Props {
   open: boolean;
@@ -15,12 +16,14 @@ export function ConfirmDialog({
   open,
   title,
   body,
-  confirmLabel = "Подтвердить",
-  cancelLabel = "Отмена",
+  confirmLabel,
+  cancelLabel,
   variant = "primary",
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -32,8 +35,9 @@ export function ConfirmDialog({
 
   if (!open) return null;
 
-  const confirmBg =
-    variant === "danger" ? "var(--danger)" : "var(--primary)";
+  const confirmBg = variant === "danger" ? "var(--danger)" : "var(--primary)";
+  const finalConfirmLabel = confirmLabel ?? t("common.confirm");
+  const finalCancelLabel = cancelLabel ?? t("common.cancel");
 
   return (
     <div
@@ -65,7 +69,7 @@ export function ConfirmDialog({
               border: "1px solid var(--border)",
             }}
           >
-            {cancelLabel}
+            {finalCancelLabel}
           </button>
           <button
             type="button"
@@ -73,7 +77,7 @@ export function ConfirmDialog({
             className="flex-1 rounded-lg p-2.5 font-semibold"
             style={{ background: confirmBg, color: "white" }}
           >
-            {confirmLabel}
+            {finalConfirmLabel}
           </button>
         </div>
       </div>

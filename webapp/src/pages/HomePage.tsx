@@ -9,6 +9,7 @@ import { todayIso } from "../lib/datetime";
 import { sortByStart } from "../lib/booking-filter";
 import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
+import { useTranslation } from "../i18n";
 
 interface Props {
   tab: HomeTab;
@@ -30,6 +31,7 @@ export function HomePage({
   onProfile,
 }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const today = todayIso();
   const inTg = !!getTelegram();
 
@@ -37,7 +39,6 @@ export function HomePage({
   const mineQuery = useActiveBookings();
   const invitedQuery = useInvitedBookings(user);
 
-  // На Home — back ничего не делает (это корневой экран)
   useTgBackButton(null);
 
   const handleCreate = () => {
@@ -45,7 +46,7 @@ export function HomePage({
     onCreate();
   };
 
-  useTgMainButton({ text: "Забронировать", onClick: handleCreate });
+  useTgMainButton({ text: t("home.fab.book"), onClick: handleCreate });
 
   const handleSelect = (b: Booking) => {
     haptic();
@@ -58,9 +59,7 @@ export function HomePage({
   };
 
   const dayEmptyMessage =
-    selectedDate === today
-      ? "Сегодня встреч не запланировано."
-      : "На этот день встреч нет.";
+    selectedDate === today ? t("home.empty.today") : t("home.empty.day");
 
   const renderList = () => {
     switch (tab) {
@@ -78,7 +77,7 @@ export function HomePage({
           <BookingsList
             bookings={mineQuery.data ? sortByStart(mineQuery.data) : undefined}
             isLoading={mineQuery.isLoading}
-            emptyMessage="У тебя нет ближайших встреч."
+            emptyMessage={t("home.empty.mine")}
             onSelect={handleSelect}
           />
         );
@@ -87,7 +86,7 @@ export function HomePage({
           <BookingsList
             bookings={invitedQuery.data}
             isLoading={invitedQuery.isLoading}
-            emptyMessage="Тебя пока никуда не зовут."
+            emptyMessage={t("home.empty.invited")}
             invitedBadge
             onSelect={handleSelect}
           />
@@ -101,11 +100,11 @@ export function HomePage({
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
       <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">CorpMeet</h1>
+        <h1 className="font-heading text-2xl">{t("home.title")}</h1>
         <button
           type="button"
           onClick={handleProfile}
-          aria-label="Редактировать профиль"
+          aria-label={t("home.profile_button")}
           className="text-2xl leading-none px-2"
         >
           👤
@@ -122,7 +121,7 @@ export function HomePage({
         <button
           type="button"
           onClick={handleCreate}
-          aria-label="Забронировать"
+          aria-label={t("home.fab.book")}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full text-2xl font-bold shadow-lg"
           style={{ background: "var(--primary)", color: "white" }}
         >

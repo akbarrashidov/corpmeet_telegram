@@ -17,6 +17,7 @@ import {
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
+import { useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -32,6 +33,7 @@ export function BookingDetailPage({
   onReschedule,
 }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const deleteBooking = useDeleteBooking();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [rescheduleBusy, setRescheduleBusy] = useState(false);
@@ -60,7 +62,7 @@ export function BookingDetailPage({
       onDeleted();
     } catch {
       hapticError();
-      setError("Не удалось отменить. Попробуй ещё.");
+      setError(t("booking.error.cancel_failed"));
     }
   }
 
@@ -80,13 +82,13 @@ export function BookingDetailPage({
       const plan = findNextFreeSlot(slots, originalDurationMs);
       if (!plan) {
         hapticError();
-        setError("На сегодня нет свободных слотов :(");
+        setError(t("booking.error.no_slots_today"));
         return;
       }
       onReschedule(isoToLocalInput(plan.start), isoToLocalInput(plan.end));
     } catch {
       hapticError();
-      setError("Не удалось получить занятость. Попробуй ещё.");
+      setError(t("booking.error.slots_failed"));
     } finally {
       setRescheduleBusy(false);
     }
@@ -97,7 +99,7 @@ export function BookingDetailPage({
       className="min-h-screen p-4 flex flex-col gap-4"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <PageHeader title="Встреча" onBack={onBack} />
+      <PageHeader title={t("booking.title")} onBack={onBack} />
 
       <h2 className="font-heading text-2xl">{booking.title}</h2>
 
@@ -105,7 +107,7 @@ export function BookingDetailPage({
         <div>
           🕐 {dayLabel} · {formatTime(booking.start_time)} — {formatTime(booking.end_time)}
         </div>
-        <div>👤 {organizerName}{isOrganizer && " (это ты)"}</div>
+        <div>👤 {organizerName}{isOrganizer && ` ${t("booking.organizer_self")}`}</div>
         {booking.guests.length > 0 && (
           <div>👥 {booking.guests.join(", ")}</div>
         )}
@@ -114,7 +116,7 @@ export function BookingDetailPage({
       {booking.description && (
         <div>
           <div className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>
-            Описание
+            {t("booking.description_label")}
           </div>
           <p>{booking.description}</p>
         </div>
@@ -139,7 +141,7 @@ export function BookingDetailPage({
               opacity: rescheduleBusy ? 0.5 : 1,
             }}
           >
-            Перенести встречу
+            {t("booking.reschedule_button")}
           </button>
         )}
 
@@ -155,17 +157,17 @@ export function BookingDetailPage({
               opacity: deleteBooking.isPending ? 0.5 : 1,
             }}
           >
-            Отменить встречу
+            {t("booking.cancel_button")}
           </button>
         )}
       </div>
 
       <ConfirmDialog
         open={confirmDeleteOpen}
-        title="Отменить встречу?"
-        body={`«${booking.title}» — встреча будет удалена.`}
-        confirmLabel="Отменить"
-        cancelLabel="Назад"
+        title={t("booking.confirm.cancel_title")}
+        body={t("booking.confirm.cancel_body", { title: booking.title })}
+        confirmLabel={t("booking.confirm.cancel")}
+        cancelLabel={t("common.back")}
         variant="danger"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDeleteOpen(false)}

@@ -1,4 +1,5 @@
 import { getTelegram } from "../lib/telegram";
+import { useTranslation } from "../i18n";
 
 interface Props {
   title: string;
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function PageHeader({ title, onBack }: Props) {
+  const { t } = useTranslation();
   const inTg = !!getTelegram();
   const showHtmlBack = onBack && !inTg;
 
@@ -15,7 +17,7 @@ export function PageHeader({ title, onBack }: Props) {
         <button
           type="button"
           onClick={onBack}
-          aria-label="Назад"
+          aria-label={t("common.back")}
           className="text-2xl leading-none"
           style={{ color: "var(--text)" }}
         >

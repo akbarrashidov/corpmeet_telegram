@@ -25,86 +25,78 @@ def format_time_range(b: BookingBotInfo, tz: ZoneInfo) -> str:
 
 
 def _description_block(b: BookingBotInfo) -> str:
-    """Блок с повесткой/описанием встречи. Пусто если description не задан.
-
-    Telegram сам распарсит URL внутри текста — экранировать не нужно.
-    """
+    """Блок повестки. Пусто если description не задан/пуст."""
     if not b.description or not b.description.strip():
         return ""
-    return f"\n\n📎 Повестка:\n{b.description.strip()}"
+    return f"\n\n📎 Повестка / Tavsif:\n{b.description.strip()}"
+
+
+def _bilingual(uz: str, ru: str) -> str:
+    """Узбекский сверху, русский снизу, разделитель."""
+    return f"{uz}\n———\n{ru}"
 
 
 # ── Тексты для DM (owner / guests) ───────────────────────────────────────────
 
 
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"📌 Новая встреча «{b.title}»\n"
-        f"{format_time_range(b, tz)}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}"
+    ru = f"📌 Новая встреча «{b.title}»\n{time}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"✏️ Встреча «{b.title}» перенесена\n"
-        f"Стало: {format_time_range(b, tz)}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    uz = f"✏️ «{b.title}» uchrashuvi ko'chirildi\nEndi: {time}"
+    ru = f"✏️ Встреча «{b.title}» перенесена\nСтало: {time}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"❌ Встреча «{b.title}» отменена\n"
-        f"{format_time_range(b, tz)}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    uz = f"❌ «{b.title}» uchrashuvi bekor qilindi\n{time}"
+    ru = f"❌ Встреча «{b.title}» отменена\n{time}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"⏰ Через 15 минут: «{b.title}»\n"
-        f"{format_time_range(b, tz)}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    uz = f"⏰ 15 daqiqadan keyin: «{b.title}»\n{time}"
+    ru = f"⏰ Через 15 минут: «{b.title}»\n{time}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 # ── Тексты для группы (с organizer и guests) ─────────────────────────────────
 
 
 def _guests_line(b: BookingBotInfo) -> str:
-    """', '.join гостей. Используется только в group-сообщениях, где нужны имена."""
     return ", ".join(g.name for g in b.guests)
 
 
 def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    text = (
-        f"📌 Новая встреча «{b.title}»\n"
-        f"{format_time_range(b, tz)}\n"
-        f"👤 {b.user.display_name}"
-    )
-    if b.guests:
-        text += f"\n👥 {_guests_line(b)}"
-    text += _description_block(b)
-    return text
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    guests_part = f"\n👥 {_guests_line(b)}" if b.guests else ""
+    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
+    ru = f"📌 Новая встреча «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"✏️ «{b.title}» перенесена\n"
-        f"Стало: {format_time_range(b, tz)}\n"
-        f"👤 {b.user.display_name}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz = f"✏️ «{b.title}» ko'chirildi\nEndi: {time}\n👤 {organizer}"
+    ru = f"✏️ «{b.title}» перенесена\nСтало: {time}\n👤 {organizer}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return (
-        f"❌ «{b.title}» отменена\n"
-        f"{format_time_range(b, tz)}\n"
-        f"👤 {b.user.display_name}"
-        f"{_description_block(b)}"
-    )
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz = f"❌ «{b.title}» bekor qilindi\n{time}\n👤 {organizer}"
+    ru = f"❌ «{b.title}» отменена\n{time}\n👤 {organizer}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 class Poller:
@@ -117,12 +109,9 @@ class Poller:
         self._group_id = settings.group_id
         self._api = ApiClient(settings)
         self._task: Optional[asyncio.Task] = None
-        # Курсоры стартуют с now — нет бэкфила старых событий после рестарта
         now = datetime.now(timezone.utc)
         self._cursor_updated = now
         self._cursor_deleted = now
-        # Локальный дедуп: backend может возвращать одну и ту же встречу повторно
-        # из-за SQLAlchemy commit-trigger'а. Шлём DM только при реальных изменениях.
         self._notified_state: dict[int, tuple[datetime, datetime]] = {}
         self._notified_deletions: set[int] = set()
 
@@ -265,7 +254,6 @@ class Poller:
             logger.exception("send_message to group %s failed", self._group_id)
 
     async def _notify_guests(self, b: BookingBotInfo, text: str) -> None:
-        """Шлёт DM каждому гостю с известным telegram_id."""
         for g in b.guests:
             if g.telegram_id is None:
                 logger.debug(
