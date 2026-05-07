@@ -6,7 +6,7 @@ import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
-import { useTranslation } from "./i18n";
+import { setLang as setI18nLang, useTranslation } from "./i18n";
 
 const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 
@@ -32,6 +32,18 @@ export default function App() {
     if (tg) {
       tg.ready();
       tg.expand();
+    }
+
+    // Для новых юзеров (заходят через Telegram, ещё не выбирали язык)
+    // дефолт — узбекский. Существующий выбор не трогаем.
+    if (tg) {
+      try {
+        if (window.localStorage.getItem("corpmeet_lang") === null) {
+          setI18nLang("uz");
+        }
+      } catch {
+        // ignore
+      }
     }
 
     const dev = getDevice();
