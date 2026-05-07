@@ -1,63 +1,164 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RegistrationScreen } from "../src/components/RegistrationScreen";
 
-function setTelegramUser(user?: { first_name?: string; last_name?: string }) {
-  (window as any).Telegram = {
-    WebApp: {
-      platform: "ios",
-      initData: "init",
-      initDataUnsafe: { user: user ? { id: 1, ...user } : undefined },
-      ready: () => {},
-      expand: () => {},
-      close: () => {},
-      openLink: () => {},
-    },
-  };
-}
-
 describe("RegistrationScreen", () => {
-  beforeEach(() => setTelegramUser({ first_name: "Иван", last_name: "Иванов" }));
-  afterEach(() => delete (window as any).Telegram);
-
-  it("prefills name from Telegram initData", () => {
-    render(<RegistrationScreen onSubmit={vi.fn()} />);
-    expect(screen.getByLabelText(/Имя/i)).toHaveValue("Иван");
-    expect(screen.getByLabelText(/Фамилия/i)).toHaveValue("Иванов");
+  it("uses default values from props", () => {
+    render(
+      <RegistrationScreen
+        defaultFirstName="Alisher"
+        defaultLastName="Rakhimov"
+        onSubmit={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText(/Имя/i)).toHaveValue("Alisher");
+    expect(screen.getByLabelText(/Фамилия/i)).toHaveValue("Rakhimov");
   });
 
-  it("calls onSubmit with trimmed values", async () => {
+  it("submits with three fields when all valid", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
-    setTelegramUser({ first_name: "  Анна  ", last_name: "  Смит " });
     render(<RegistrationScreen onSubmit={onSubmit} />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
+    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
 
-    expect(onSubmit).toHaveBeenCalledWith("Анна", "Смит");
+    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov", "PM");
   });
 
-  it("blocks submit if either field is empty", async () => {
-    const onSubmit = vi.fn();
-    setTelegramUser({ first_name: "", last_name: "" });
+  it("trims whitespace before validating", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<RegistrationScreen onSubmit={onSubmit} />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
+    await user.type(screen.getByLabelText(/Имя/i), "  Alisher  ");
+    await user.type(screen.getByLabelText(/Фамилия/i), "  Rakhimov  ");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
+
+    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov", "PM");
+  });
+
+  it("rejects lowercase first name", async () => {
+    const onSubmit = vi.fn();
+    render(<RegistrationScreen onSubmit={onSubmit} />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Имя/i), "alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText(/Заполни оба поля/i)).toBeInTheDocument();
+    expect(screen.getByText(/Имя — латиница/i)).toBeInTheDocument();
   });
 
-  it("shows error if onSubmit throws (422 from server)", async () => {
-    const onSubmit = vi.fn().mockRejectedValue(new Error("422"));
+  it("rejects all-caps first name", async () => {
+    const onSubmit = vi.fn();
     render(<RegistrationScreen onSubmit={onSubmit} />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
+    await user.type(screen.getByLabelText(/Имя/i), "ALISHER");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
 
-    // wait for re-render
-    await screen.findByText(/Сеть: 422/i);
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/Имя — латиница/i)).toBeInTheDocument();
+  });
+
+  it("rejects cyrillic first name", async () => {
+    const onSubmit = vi.fn();
+    render(<RegistrationScreen onSubmit={onSubmit} />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Имя/i), "Алишер");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/Имя — латиница/i)).toBeInTheDocument();
+  });
+
+  it("rejects invalid last name", async () => {
+    const onSubmit = vi.fn();
+    render(<RegistrationScreen onSubmit={onSubmit} />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/Фамилия — латиница/i)).toBeInTheDocument();
+  });
+
+  it("requires position to be picked", async () => {
+    const onSubmit = vi.fn();
+    render(<RegistrationScreen onSubmit={onSubmit} />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/Выбери должность/i)).toBeInTheDocument();
+  });
+
+  it("highlights only the most recently selected position", async () => {
+    render(<RegistrationScreen onSubmit={vi.fn()} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    expect(screen.getByRole("button", { name: "PM" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await user.click(screen.getByRole("button", { name: "Дизайнер" }));
+    expect(screen.getByRole("button", { name: "PM" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Дизайнер" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+  });
+
+  it("shows server error if onSubmit throws", async () => {
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValue({ response: { status: 422, data: { detail: "boom" } } });
+    render(<RegistrationScreen onSubmit={onSubmit} />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
+    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.click(
+      screen.getByRole("button", { name: /Зарегистрироваться/i })
+    );
+
+    await screen.findByText(/\[422\] boom/i);
   });
 });

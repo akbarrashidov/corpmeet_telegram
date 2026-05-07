@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { authApi, storage } from "@corpmeet/design/complex";
+import { apiClient, authApi, storage, type User } from "@corpmeet/design/complex";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
@@ -11,7 +11,7 @@ const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 
 type Phase =
   | { kind: "init" }
-  | { kind: "needs_registration" }
+  | { kind: "needs_registration"; alreadyAuthed: boolean; prefill: { firstName: string; lastName: string } }
   | { kind: "redirecting" }
   | { kind: "ready" }
   | { kind: "error"; error: string };
@@ -52,28 +52,68 @@ export default function App() {
       );
       const { access_token } = await Promise.race([loginPromise, timeoutPromise]);
       storage.setToken(access_token);
+
+      // Проверяем, заполнена ли должность. Если нет — экран регистрации с prefilled.
+      const me = await authApi.getMe();
+      if (!me.position) {
+        setPhase({
+          kind: "needs_registration",
+          alreadyAuthed: true,
+          prefill: {
+            firstName: me.first_name ?? "",
+            lastName: me.last_name ?? "",
+          },
+        });
+        return;
+      }
+
       await onAuthSuccess(dev);
     } catch (e: any) {
       if (axios.isAxiosError(e) && e.response?.status === 404) {
-        setPhase({ kind: "needs_registration" });
+        setPhase({
+          kind: "needs_registration",
+          alreadyAuthed: false,
+          prefill: { firstName: "", lastName: "" },
+        });
       } else {
         const status = axios.isAxiosError(e) ? e.response?.status ?? "?" : "?";
         const detail = axios.isAxiosError(e) ? e.response?.data?.detail : null;
-        const msg = typeof detail === "string"
-          ? `[${status}] ${detail}`
-          : detail !== undefined
-            ? `[${status}] ${JSON.stringify(detail).slice(0, 200)}`
-            : `Сеть/Таймаут: ${e?.message ?? "unknown"}`;
+        const msg =
+          typeof detail === "string"
+            ? `[${status}] ${detail}`
+            : detail !== undefined
+              ? `[${status}] ${JSON.stringify(detail).slice(0, 200)}`
+              : `Сеть/Таймаут: ${e?.message ?? "unknown"}`;
         setPhase({ kind: "error", error: msg });
       }
     }
   }
 
-  async function handleRegister(firstName: string, lastName: string) {
+  async function handleRegister(
+    firstName: string,
+    lastName: string,
+    position: string,
+  ) {
     const tg = getTelegram();
     if (!tg) return;
-    const { access_token } = await authApi.register(tg.initData, firstName, lastName);
-    storage.setToken(access_token);
+
+    const alreadyAuthed = phase.kind === "needs_registration" && phase.alreadyAuthed;
+
+    if (!alreadyAuthed) {
+      const { access_token } = await authApi.register(
+        tg.initData,
+        firstName,
+        lastName,
+      );
+      storage.setToken(access_token);
+    }
+
+    await apiClient.patch<User>("/api/v1/auth/me", {
+      first_name: firstName,
+      last_name: lastName,
+      position,
+    });
+
     await onAuthSuccess(device);
   }
 
@@ -106,7 +146,13 @@ export default function App() {
   if (phase.kind === "redirecting")
     return <LoadingScreen message="Открываем CorpMeet в браузере…" />;
   if (phase.kind === "needs_registration")
-    return <RegistrationScreen onSubmit={handleRegister} />;
+    return (
+      <RegistrationScreen
+        defaultFirstName={phase.prefill.firstName}
+        defaultLastName={phase.prefill.lastName}
+        onSubmit={handleRegister}
+      />
+    );
   if (phase.kind === "error") {
     return (
       <div

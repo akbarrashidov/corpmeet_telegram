@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from bot.config import Settings
 
-
 class UserBotInfo(BaseModel):
     """Минимальная инфа о пользователе для контекста бота."""
 
@@ -16,13 +15,11 @@ class UserBotInfo(BaseModel):
     username: Optional[str] = None
     display_name: str
 
-
 class GuestInfo(BaseModel):
     """Гость встречи. Backend сам резолвит имя в telegram_id."""
 
     name: str
     telegram_id: Optional[int] = None
-
 
 class BookingBotInfo(BaseModel):
     """Минимальная инфа о бронировании для уведомлений."""
@@ -39,15 +36,6 @@ class BookingBotInfo(BaseModel):
     created_at: datetime
     updated_at: datetime
     user: UserBotInfo
-
-
-class EnsureUserResponse(BaseModel):
-    """Ответ /internal/users/ensure."""
-
-    ok: bool
-    created: bool
-    has_position: bool
-
 
 class ApiClient:
     """Async client to backend API.
@@ -94,41 +82,6 @@ class ApiClient:
         )
         resp.raise_for_status()
         return resp.json()
-
-    async def ensure_user(
-        self,
-        telegram_id: int,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        username: Optional[str] = None,
-        full_name: Optional[str] = None,
-    ) -> EnsureUserResponse:
-        """Создать/обновить пользователя из Telegram. Возвращает has_position."""
-        body: dict[str, Any] = {"telegram_id": telegram_id}
-        if first_name is not None:
-            body["first_name"] = first_name
-        if last_name is not None:
-            body["last_name"] = last_name
-        if username is not None:
-            body["username"] = username
-        if full_name is not None:
-            body["full_name"] = full_name
-        resp = await self.client.post(
-            "/api/v1/internal/users/ensure",
-            json=body,
-            headers=self._internal_headers(),
-        )
-        resp.raise_for_status()
-        return EnsureUserResponse.model_validate(resp.json())
-
-    async def set_position(self, telegram_id: int, position: str) -> None:
-        """Сохранить должность пользователя."""
-        resp = await self.client.post(
-            "/api/v1/internal/users/position",
-            json={"telegram_id": telegram_id, "position": position},
-            headers=self._internal_headers(),
-        )
-        resp.raise_for_status()
 
     async def bookings_since(self, updated_at: datetime) -> list[BookingBotInfo]:
         """Bookings with updated_at >= the given datetime."""

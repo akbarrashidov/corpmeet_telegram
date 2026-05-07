@@ -6,6 +6,7 @@ export interface User {
   last_name: string | null;
   role: "user" | "admin" | "superadmin";
   display_name: string;
+  position: string | null;
 }
 
 export interface Booking {
@@ -41,6 +42,12 @@ export interface BookingUpdate {
   start_time?: string;
   end_time?: string;
   guests?: string[];
+}
+
+export interface UpdateMePayload {
+  first_name?: string;
+  last_name?: string | null;
+  position?: string | null;
 }
 
 export interface TokenResponse {

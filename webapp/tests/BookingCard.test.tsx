@@ -19,6 +19,7 @@ function makeBooking(over: Partial<Booking> = {}): Booking {
       last_name: "Иванов",
       role: "user",
       display_name: "Иван Иванов",
+      position: null,      
     },
     created_at: "",
     guests: [],

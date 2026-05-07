@@ -58,6 +58,7 @@ const baseUser = {
   last_name: "Иванов",
   role: "user" as const,
   display_name: "Иван Иванов",
+  position: null,
 };
 
 const baseBooking = {
