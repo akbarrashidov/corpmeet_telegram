@@ -1,5 +1,6 @@
 import { getTelegram } from "../lib/telegram";
 import { useTranslation } from "../i18n";
+import { LangToggle } from "./LangToggle";
 
 interface Props {
   title: string;
@@ -24,7 +25,8 @@ export function PageHeader({ title, onBack }: Props) {
           ←
         </button>
       )}
-      <h1 className="font-heading text-xl">{title}</h1>
+      <h1 className="font-heading text-xl flex-1">{title}</h1>
+      <LangToggle />
     </header>
   );
 }

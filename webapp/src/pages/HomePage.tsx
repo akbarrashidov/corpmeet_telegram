@@ -10,6 +10,7 @@ import { sortByStart } from "../lib/booking-filter";
 import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
 import { useTranslation } from "../i18n";
+import { LangToggle } from "../components/LangToggle";
 
 interface Props {
   tab: HomeTab;
@@ -99,16 +100,19 @@ export function HomePage({
       className="min-h-screen p-4 flex flex-col gap-4 relative"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <header className="flex items-center justify-between">
+       <header className="flex items-center justify-between">
         <h1 className="font-heading text-2xl">{t("home.title")}</h1>
-        <button
-          type="button"
-          onClick={handleProfile}
-          aria-label={t("home.profile_button")}
-          className="text-2xl leading-none px-2"
-        >
-          👤
-        </button>
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <button
+            type="button"
+            onClick={handleProfile}
+            aria-label={t("home.profile_button")}
+            className="text-2xl leading-none px-2"
+          >
+            👤
+          </button>
+        </div>
       </header>
 
       <DateStrip selectedDate={selectedDate} onChange={onDateChange} />

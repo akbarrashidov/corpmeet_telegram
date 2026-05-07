@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useTranslation } from "../i18n";
+import { LangToggle } from "./LangToggle";
 
 const POSITION_OPTIONS = [
   "Начальник департамента/отдела",
@@ -80,8 +81,13 @@ export function RegistrationScreen({
       className="min-h-screen flex flex-col p-6 gap-4"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <h1 className="font-heading text-2xl">{t("register.title")}</h1>
-      <p style={{ color: "var(--text-sec)" }}>{t("register.subtitle")}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2 flex-1">
+          <h1 className="font-heading text-2xl">{t("register.title")}</h1>
+          <p style={{ color: "var(--text-sec)" }}>{t("register.subtitle")}</p>
+        </div>
+        <LangToggle />
+      </div>
 
       <label className="flex flex-col gap-2">
         <span className="text-sm">{t("register.field.first_name")}</span>

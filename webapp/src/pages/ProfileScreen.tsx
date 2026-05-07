@@ -5,7 +5,8 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
-import { useTranslation, type Lang } from "../i18n";
+import { useTranslation } from "../i18n";
+import { LangToggle } from "../components/LangToggle";
 
 const POSITION_OPTIONS = [
   "Начальник департамента/отдела",
@@ -25,7 +26,7 @@ interface Props {
 export function ProfileScreen({ onBack, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { t, lang, setLang } = useTranslation();
+  const { t } = useTranslation();
   const inTg = !!getTelegram();
 
   const [firstName, setFirstName] = useState(user?.first_name ?? "");
@@ -102,11 +103,6 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     ...POSITION_OPTIONS.map((p) => ({ value: p, label: p })),
   ];
 
-  const langItems: { value: Lang; label: string }[] = [
-    { value: "ru", label: t("profile.language.ru") },
-    { value: "uz", label: t("profile.language.uz") },
-  ];
-
   return (
     <form
       onSubmit={handleHtmlSubmit}
@@ -115,15 +111,18 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     >
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl">{t("profile.title")}</h1>
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label={t("common.close")}
-          className="text-2xl leading-none px-2"
-          style={{ color: "var(--text-sec)" }}
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t("common.close")}
+            className="text-2xl leading-none px-2"
+            style={{ color: "var(--text-sec)" }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <label className="flex flex-col gap-2">
@@ -165,33 +164,6 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
                 disabled={submitting}
                 aria-pressed={selected}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-left transition"
-                style={{
-                  background: selected ? "var(--primary)" : "var(--input-bg)",
-                  color: selected ? "white" : "var(--text)",
-                  border: `1px solid ${
-                    selected ? "var(--primary)" : "var(--input-border)"
-                  }`,
-                }}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm">{t("profile.language.label")}</legend>
-        <div className="flex gap-2">
-          {langItems.map((item) => {
-            const selected = lang === item.value;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setLang(item.value)}
-                aria-pressed={selected}
-                className="rounded-lg px-4 py-2 text-sm font-medium transition"
                 style={{
                   background: selected ? "var(--primary)" : "var(--input-bg)",
                   color: selected ? "white" : "var(--text)",

@@ -107,6 +107,15 @@ function axiosError(status: number) {
 
 describe("App", () => {
   beforeEach(() => {
+    // App.init ставит "uz" если localStorage пустой; тесты ассертят русские строки.
+    try {
+      window.localStorage.setItem("corpmeet_lang", "ru");
+      // Также bare localStorage — иногда это разные объекты в jsdom
+      // eslint-disable-next-line no-undef
+      (globalThis as any).localStorage?.setItem?.("corpmeet_lang", "ru");
+    } catch {
+      // localStorage may be unavailable in some test environments
+    }
     vi.mocked(storage.getToken).mockReturnValue(null);
     vi.mocked(storage.setToken).mockClear();
     vi.mocked(authApi.login).mockReset();
