@@ -9,7 +9,7 @@ import { todayIso } from "../lib/datetime";
 import { sortByStart } from "../lib/booking-filter";
 import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
-import { useTranslation } from "../i18n";
+import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
 
 interface Props {
@@ -35,7 +35,13 @@ export function HomePage({
   const { t } = useTranslation();
   const today = todayIso();
   const inTg = !!getTelegram();
-
+  const monthKeys: TranslationKey[] = [
+    "month.january", "month.february", "month.march", "month.april",
+    "month.may", "month.june", "month.july", "month.august",
+    "month.september", "month.october", "month.november", "month.december",
+  ];
+  const monthIndex = parseInt(selectedDate.slice(5, 7), 10) - 1;
+  const monthLabel = t(monthKeys[monthIndex]);
   const dayQuery = useBookings(selectedDate);
   const mineQuery = useActiveBookings();
   const invitedQuery = useInvitedBookings(user);
@@ -115,7 +121,12 @@ export function HomePage({
         </div>
       </header>
 
-      <DateStrip selectedDate={selectedDate} onChange={onDateChange} />
+      <div>
+        <p className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>
+          {monthLabel}
+        </p>
+        <DateStrip selectedDate={selectedDate} onChange={onDateChange} />
+      </div>
 
       <HomeChips active={tab} onChange={onTabChange} />
 
