@@ -5,16 +5,16 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
-import { useTranslation } from "../i18n";
+import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
 
-const POSITION_OPTIONS = [
-  "Начальник департамента/отдела",
-  "PM",
-  "Аналитик",
-  "Программист и др.",
-  "Дизайнер",
-] as const;
+const POSITION_OPTIONS: { apiValue: string; labelKey: TranslationKey }[] = [
+  { apiValue: "Начальник департамента/отдела", labelKey: "position.label.heads" },
+  { apiValue: "PM", labelKey: "position.label.pm" },
+  { apiValue: "Аналитик", labelKey: "position.label.analyst" },
+  { apiValue: "Программист и др.", labelKey: "position.label.dev" },
+  { apiValue: "Дизайнер", labelKey: "position.label.designer" },
+];
 
 const NAME_REGEX = /^[A-Z][a-z]+$/;
 
@@ -99,7 +99,7 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
   };
 
   const positionItems: { value: string; label: string }[] = POSITION_OPTIONS.map(
-    (p) => ({ value: p, label: p }),
+    (p) => ({ value: p.apiValue, label: t(p.labelKey) }),
   );
 
   return (

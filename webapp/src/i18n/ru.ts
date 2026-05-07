@@ -69,6 +69,13 @@ export const ru = {
   "register.error.position_required": "Выбери должность.",
   "register.submit": "Зарегистрироваться",
 
+  // Position labels (singular, used in registration & profile)
+  "position.label.heads": "Начальник департамента/отдела",
+  "position.label.pm": "PM",
+  "position.label.analyst": "Аналитик",
+  "position.label.dev": "Программист и др.",
+  "position.label.designer": "Дизайнер",
+
   // Profile
   "profile.title": "Редактировать профиль",
   "profile.position.none": "Не указана",
