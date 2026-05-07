@@ -30,6 +30,62 @@ def _description_block(b: BookingBotInfo) -> str:
         return ""
     return f"\n\n📎 Повестка / Tavsif:\n{b.description.strip()}"
 
+# ── Серийные встречи: форматирование паттерна повторения ─────────────────────
+
+
+_DAY_LABELS_RU = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+_DAY_LABELS_UZ = ("Du", "Se", "Cho", "Pa", "Ju", "Sha", "Yak")
+
+
+def _format_recurrence(b: BookingBotInfo) -> tuple[str, str]:
+    """Возвращает (uz, ru) описание паттерна повторения для серийной встречи.
+
+    Используется в группе/DM при первом создании серии.
+    """
+    days = b.recurrence_days or []
+
+    if b.recurrence == "daily":
+        uz = "Har kuni"
+        ru = "Каждый день"
+    elif b.recurrence == "weekly":
+        if days:
+            ru_days = ", ".join(_DAY_LABELS_RU[d] for d in days if 0 <= d <= 6)
+            uz_days = ", ".join(_DAY_LABELS_UZ[d] for d in days if 0 <= d <= 6)
+            uz = f"Har hafta: {uz_days}"
+            ru = f"Каждую неделю: {ru_days}"
+        else:
+            uz = "Har hafta"
+            ru = "Каждую неделю"
+    elif b.recurrence == "custom":
+        if days:
+            ru_days = ", ".join(_DAY_LABELS_RU[d] for d in days if 0 <= d <= 6)
+            uz_days = ", ".join(_DAY_LABELS_UZ[d] for d in days if 0 <= d <= 6)
+            uz = f"Tanlangan kunlarda: {uz_days}"
+            ru = f"По выбранным дням: {ru_days}"
+        else:
+            uz = "Tanlangan kunlarda"
+            ru = "По выбранным дням"
+    else:
+        # recurrence == "none" — не должно сюда попадать, но safe-guard
+        return ("", "")
+
+    if b.recurrence_until is not None:
+        until = b.recurrence_until.strftime("%d.%m.%Y")
+        uz = f"{uz} ({until} gacha)"
+        ru = f"{ru} (до {until})"
+
+    return (uz, ru)
+
+
+def _series_block(b: BookingBotInfo) -> str:
+    """Двуязычный блок 🔁 для серийных встреч. Пусто для одиночных."""
+    if b.recurrence == "none" or b.recurrence_group_id is None:
+        return ""
+    uz, ru = _format_recurrence(b)
+    if not uz and not ru:
+        return ""
+    return f"\n🔁 {uz} / {ru}"
+
 
 def _bilingual(uz: str, ru: str) -> str:
     """Узбекский сверху, русский снизу, разделитель."""
@@ -43,7 +99,7 @@ def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}"
     ru = f"📌 Новая встреча «{b.title}»\n{time}"
-    return _bilingual(uz, ru) + _description_block(b)
+    return _bilingual(uz, ru) + _series_block(b) + _description_block(b)
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
@@ -80,7 +136,7 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     guests_part = f"\n👥 {_guests_line(b)}" if b.guests else ""
     uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
     ru = f"📌 Новая встреча «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
-    return _bilingual(uz, ru) + _description_block(b)
+    return _bilingual(uz, ru) + _series_block(b) + _description_block(b)
 
 
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
@@ -112,8 +168,13 @@ class Poller:
         now = datetime.now(timezone.utc)
         self._cursor_updated = now
         self._cursor_deleted = now
+        # Локальный дедуп: backend может возвращать одну и ту же встречу повторно
+        # из-за SQLAlchemy commit-trigger'а. Шлём DM только при реальных изменениях.
         self._notified_state: dict[int, tuple[datetime, datetime]] = {}
         self._notified_deletions: set[int] = set()
+        # Дедуп для серийных встреч: одно уведомление на recurrence_group_id
+        self._notified_groups: set[int] = set()
+        self._cancelled_groups: set[int] = set()
 
     async def start(self) -> None:
         await self._api.__aenter__()
@@ -171,6 +232,24 @@ class Poller:
 
             if cached is None:
                 is_change = b.prev_start_time is not None or b.prev_end_time is not None
+                is_series_create = (
+                    not is_change
+                    and b.recurrence != "none"
+                    and b.recurrence_group_id is not None
+                )
+
+                if is_series_create and b.recurrence_group_id in self._notified_groups:
+                    # Sibling occurrence уже известной серии — шлём silent.
+                    # State обновим, чтобы детектить будущие индивидуальные изменения.
+                    logger.debug(
+                        "Skip series sibling %s (group %s already notified)",
+                        b.id, b.recurrence_group_id,
+                    )
+                    self._notified_state[b.id] = current
+                    if b.updated_at > self._cursor_updated:
+                        self._cursor_updated = b.updated_at
+                    continue
+
                 if is_change:
                     dm_text = msg_changed_booking(b, self._tz)
                     group_text = msg_changed_booking_group(b, self._tz)
@@ -181,6 +260,8 @@ class Poller:
                 await self._notify_guests(b, dm_text)
                 await self._notify_group(group_text)
                 self._notified_state[b.id] = current
+                if is_series_create and b.recurrence_group_id is not None:
+                    self._notified_groups.add(b.recurrence_group_id)
             elif cached != current:
                 dm_text = msg_changed_booking(b, self._tz)
                 group_text = msg_changed_booking_group(b, self._tz)
@@ -222,10 +303,21 @@ class Poller:
                 return
             raise
         for b in bookings:
+            is_series = (
+                b.recurrence != "none" and b.recurrence_group_id is not None
+            )
+
             if b.id in self._notified_deletions:
                 logger.debug(
                     "Skip duplicate cancellation for booking %s", b.id
                 )
+            elif is_series and b.recurrence_group_id in self._cancelled_groups:
+                # Один из siblings серии уже отменён, не спамим
+                logger.debug(
+                    "Skip series sibling cancellation %s (group %s already)",
+                    b.id, b.recurrence_group_id,
+                )
+                self._notified_deletions.add(b.id)
             else:
                 dm_text = msg_deleted_booking(b, self._tz)
                 group_text = msg_deleted_booking_group(b, self._tz)
@@ -233,9 +325,12 @@ class Poller:
                 await self._notify_guests(b, dm_text)
                 await self._notify_group(group_text)
                 self._notified_deletions.add(b.id)
+                if is_series and b.recurrence_group_id is not None:
+                    self._cancelled_groups.add(b.recurrence_group_id)
 
             if b.updated_at > self._cursor_deleted:
                 self._cursor_deleted = b.updated_at
+
 
     async def _notify_owner(self, b: BookingBotInfo, text: str) -> None:
         if b.user.telegram_id is None:

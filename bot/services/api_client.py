@@ -1,5 +1,5 @@
 """HTTP client to backend API."""
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 
 import httpx
@@ -36,6 +36,11 @@ class BookingBotInfo(BaseModel):
     created_at: datetime
     updated_at: datetime
     user: UserBotInfo
+    # Recurrence (для дедупа уведомлений серийных встреч)
+    recurrence: str = "none"  # "none" | "daily" | "weekly" | "custom"
+    recurrence_until: Optional[date] = None
+    recurrence_group_id: Optional[int] = None
+    recurrence_days: Optional[list[int]] = None  # 0=Mon … 6=Sun
 
 class ApiClient:
     """Async client to backend API.

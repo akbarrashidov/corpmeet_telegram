@@ -29,6 +29,10 @@ def make_booking(
     prev_start: dt.datetime | None = None,
     guests: list[GuestInfo] | None = None,
     description: str | None = None,
+    recurrence: str = "none",
+    recurrence_group_id: int | None = None,
+    recurrence_until: dt.date | None = None,
+    recurrence_days: list[int] | None = None,
 ) -> BookingBotInfo:
     now = dt.datetime.now(dt.timezone.utc)
     return BookingBotInfo(
@@ -46,6 +50,10 @@ def make_booking(
         user=UserBotInfo(
             id=1, telegram_id=telegram_id, username=None, display_name="Anna"
         ),
+        recurrence=recurrence,
+        recurrence_group_id=recurrence_group_id,
+        recurrence_until=recurrence_until,
+        recurrence_days=recurrence_days,
     )
 
 
@@ -577,3 +585,159 @@ def test_description_block_strips_outer_whitespace() -> None:
     assert "https://zoom.us/j/1" in text
     # no double blank lines from leftover whitespace
     assert "\n\n\n\n" not in text
+
+# ---------- Recurrence dedup ----------
+
+
+async def test_series_first_occurrence_notifies_with_pattern() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, recurrence="daily", recurrence_group_id=42, telegram_id=999
+        )
+    ]
+
+    await p._tick()
+
+    # group + owner DM = 2 calls
+    assert bot.send_message.await_count == 2
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    text = group_call.args[1]
+    assert "🔁" in text
+    assert "Каждый день" in text
+    assert "Har kuni" in text
+
+
+async def test_series_sibling_occurrence_silent() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [
+        make_booking(id=1, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=2, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=3, recurrence="daily", recurrence_group_id=42),
+    ]
+
+    await p._tick()
+
+    # Only the first booking triggers notifications: 1 group + 1 owner DM = 2 calls.
+    assert bot.send_message.await_count == 2
+
+
+async def test_series_weekly_with_days_renders_uz_and_ru_labels() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1,
+            recurrence="weekly",
+            recurrence_group_id=7,
+            recurrence_days=[0, 2],  # Mon, Wed
+        )
+    ]
+
+    await p._tick()
+
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    text = group_call.args[1]
+    assert "Каждую неделю" in text
+    assert "Пн" in text and "Ср" in text
+    assert "Har hafta" in text
+    assert "Du" in text and "Cho" in text
+
+
+async def test_series_until_renders_in_both_languages() -> None:
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1,
+            recurrence="weekly",
+            recurrence_group_id=7,
+            recurrence_days=[0],
+            recurrence_until=dt.date(2026, 12, 31),
+        )
+    ]
+
+    await p._tick()
+
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    text = group_call.args[1]
+    assert "до 31.12.2026" in text
+    assert "31.12.2026 gacha" in text
+
+
+async def test_series_individual_occurrence_reschedule_still_notifies() -> None:
+    """Перенос одной occurrence в уже известной серии — обычное «✏️ перенесена»."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    # Первый poll: создаются 2 occurrences серии — одна нотификация
+    p._api.bookings_since.return_value = [
+        make_booking(id=1, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=2, recurrence="daily", recurrence_group_id=42),
+    ]
+    await p._tick()
+    initial_count = bot.send_message.await_count
+    assert initial_count == 2  # group + owner
+
+    # Второй poll: occurrence id=2 перенесена (другие start/end)
+    later = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5)
+    rescheduled = make_booking(
+        id=2, recurrence="daily", recurrence_group_id=42, telegram_id=999,
+    )
+    rescheduled.start_time = later
+    rescheduled.end_time = later + dt.timedelta(hours=1)
+    p._api.bookings_since.return_value = [rescheduled]
+    await p._tick()
+
+    # 2 новых уведомления (group + owner) о переносе
+    assert bot.send_message.await_count == initial_count + 2
+    last_text = bot.send_message.await_args_list[-1].args[1]
+    assert "✏️" in last_text
+    assert "перенесена" in last_text
+
+
+async def test_series_deletion_dedup_by_group() -> None:
+    """Удаление серии: backend вернёт все occurrences, шлём один cancellation."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_deleted_since.return_value = [
+        make_booking(id=1, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=2, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=3, recurrence="daily", recurrence_group_id=42),
+    ]
+
+    await p._tick()
+
+    # Только одно уведомление: group + owner = 2 calls
+    assert bot.send_message.await_count == 2
+    text = bot.send_message.await_args_list[0].args[1]
+    assert "❌" in text
+
+
+async def test_one_off_booking_unchanged_behavior() -> None:
+    """Регрессия: одиночные встречи без recurrence работают как раньше."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [make_booking(id=1)]
+
+    await p._tick()
+
+    # group + owner
+    assert bot.send_message.await_count == 2
+    text = bot.send_message.await_args_list[0].args[1]
+    # Не должно быть series-блока
+    assert "🔁" not in text
+
+
+async def test_series_reminder_per_occurrence_not_deduped() -> None:
+    """15-мин reminder per-occurrence: каждой instance шлём отдельно."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_reminders.return_value = [
+        make_booking(id=1, recurrence="daily", recurrence_group_id=42),
+        make_booking(id=2, recurrence="daily", recurrence_group_id=42),
+    ]
+
+    await p._tick()
+
+    # 2 reminder DMs (per-occurrence) — series dedup тут не применяется
+    assert bot.send_message.await_count == 2
