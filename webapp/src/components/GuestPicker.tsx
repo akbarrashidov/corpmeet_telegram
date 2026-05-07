@@ -7,6 +7,14 @@ interface Props {
   disabled?: boolean;
 }
 
+const POSITION_FILTERS: { label: string; apiValue: string }[] = [
+  { label: "Начальники", apiValue: "Начальник департамента/отдела" },
+  { label: "PM", apiValue: "PM" },
+  { label: "Аналитики", apiValue: "Аналитик" },
+  { label: "Программисты и др.", apiValue: "Программист и др." },
+  { label: "Дизайнеры", apiValue: "Дизайнер" },
+];
+
 export function GuestPicker({ value, onChange, disabled }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -14,6 +22,8 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: users = [], isLoading } = useUsers(query);
+  // Полный список (≤50) — для фильтра по должности; кешируется отдельно.
+  const { data: allUsers = [] } = useUsers("");
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -38,6 +48,15 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
     onChange([...value, clean]);
     setQuery("");
     inputRef.current?.focus();
+  }
+
+  function addAllByPosition(apiValue: string) {
+    const namesToAdd = allUsers
+      .filter((u) => u.position === apiValue)
+      .map((u) => u.display_name)
+      .filter((name) => !value.includes(name));
+    if (namesToAdd.length === 0) return;
+    onChange([...value, ...namesToAdd]);
   }
 
   function remove(name: string) {
@@ -66,6 +85,25 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
   return (
     <div ref={rootRef} className="flex flex-col gap-2 relative">
       <span className="text-sm">Гости</span>
+
+      <div className="flex flex-wrap gap-2">
+        {POSITION_FILTERS.map((f) => (
+          <button
+            key={f.apiValue}
+            type="button"
+            onClick={() => addAllByPosition(f.apiValue)}
+            disabled={disabled}
+            className="px-3 py-1.5 rounded-full text-xs font-medium transition"
+            style={{
+              background: "var(--input-bg)",
+              color: "var(--text)",
+              border: "1px solid var(--input-border)",
+            }}
+          >
+            + {f.label}
+          </button>
+        ))}
+      </div>
 
       <div
         className="rounded-lg p-2 flex flex-wrap gap-2 min-h-[3rem] cursor-text"
