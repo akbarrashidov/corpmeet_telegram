@@ -5,7 +5,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@corpmeet/design/complex", () => ({
   useAuth: vi.fn(() => ({
-    user: { id: 1, telegram_id: 100, username: null, first_name: "Иван", last_name: "Иванов", role: "user", display_name: "Иван Иванов" },
+    user: {
+      id: 1,
+      telegram_id: 100,
+      username: null,
+      first_name: "Иван",
+      last_name: "Иванов",
+      role: "user",
+      display_name: "Иван Иванов",
+      position: "PM",
+    },
     isLoading: false,
     isAuthenticated: true,
     setToken: vi.fn(),
@@ -61,5 +70,16 @@ describe("HomeContainer navigation", () => {
 
     const start = screen.getByLabelText(/Начало/i) as HTMLInputElement;
     expect(start.value).toBe(`${tomorrow}T09:00`);
+  });
+
+  it("opens profile screen on 👤 click and closes on ✕", async () => {
+    renderApp();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Редактировать профиль" }));
+    expect(screen.getByText(/Редактировать профиль/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Закрыть" }));
+    expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
   });
 });

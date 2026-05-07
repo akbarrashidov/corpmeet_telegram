@@ -17,6 +17,7 @@ interface Props {
   onDateChange: (date: string) => void;
   onCreate: () => void;
   onSelect: (booking: Booking) => void;
+  onProfile: () => void;
 }
 
 export function HomePage({
@@ -26,6 +27,7 @@ export function HomePage({
   onDateChange,
   onCreate,
   onSelect,
+  onProfile,
 }: Props) {
   const { user } = useAuth();
   const today = todayIso();
@@ -48,6 +50,11 @@ export function HomePage({
   const handleSelect = (b: Booking) => {
     haptic();
     onSelect(b);
+  };
+
+  const handleProfile = () => {
+    haptic();
+    onProfile();
   };
 
   const dayEmptyMessage =
@@ -93,8 +100,16 @@ export function HomePage({
       className="min-h-screen p-4 flex flex-col gap-4 relative"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <header>
+      <header className="flex items-center justify-between">
         <h1 className="font-heading text-2xl">CorpMeet</h1>
+        <button
+          type="button"
+          onClick={handleProfile}
+          aria-label="Редактировать профиль"
+          className="text-2xl leading-none px-2"
+        >
+          👤
+        </button>
       </header>
 
       <DateStrip selectedDate={selectedDate} onChange={onDateChange} />

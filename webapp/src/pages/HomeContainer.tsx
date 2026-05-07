@@ -4,12 +4,14 @@ import { HomePage } from "./HomePage";
 import { CreateBookingPage } from "./CreateBookingPage";
 import { BookingDetailPage } from "./BookingDetailPage";
 import { ReschedulePage } from "./ReschedulePage";
+import { ProfileScreen } from "./ProfileScreen";
 import type { HomeTab } from "../components/HomeChips";
 import { todayIso } from "../lib/datetime";
 
 type View =
   | { kind: "list" }
   | { kind: "create" }
+  | { kind: "profile" }
   | { kind: "detail"; booking: Booking }
   | {
       kind: "reschedule";
@@ -32,6 +34,7 @@ export function HomeContainer() {
         onDateChange={setSelectedDate}
         onCreate={() => setView({ kind: "create" })}
         onSelect={(b) => setView({ kind: "detail", booking: b })}
+        onProfile={() => setView({ kind: "profile" })}
       />
     );
   }
@@ -41,6 +44,14 @@ export function HomeContainer() {
         defaultDate={selectedDate}
         onBack={() => setView({ kind: "list" })}
         onCreated={() => setView({ kind: "list" })}
+      />
+    );
+  }
+  if (view.kind === "profile") {
+    return (
+      <ProfileScreen
+        onBack={() => setView({ kind: "list" })}
+        onSaved={() => setView({ kind: "list" })}
       />
     );
   }
