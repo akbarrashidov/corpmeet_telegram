@@ -92,24 +92,6 @@ describe("ProfileScreen", () => {
     });
   });
 
-  it("submits position=null when 'Не указана' picked", async () => {
-    setupAuth();
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} } as any);
-    renderScreen();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Не указана" }));
-    await user.click(screen.getByRole("button", { name: "Сохранить" }));
-
-    await waitFor(() => {
-      expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/auth/me", {
-        first_name: "Alisher",
-        last_name: "Rakhimov",
-        position: null,
-      });
-    });
-  });
-
   it("rejects lowercase first name", async () => {
     setupAuth({ first_name: "alisher" });
     vi.mocked(apiClient.patch).mockClear();

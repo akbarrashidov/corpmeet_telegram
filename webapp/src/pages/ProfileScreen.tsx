@@ -98,10 +98,9 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     color: "var(--text)",
   };
 
-  const positionItems: { value: string | null; label: string }[] = [
-    { value: null, label: t("profile.position.none") },
-    ...POSITION_OPTIONS.map((p) => ({ value: p, label: p })),
-  ];
+  const positionItems: { value: string; label: string }[] = POSITION_OPTIONS.map(
+    (p) => ({ value: p, label: p }),
+  );
 
   return (
     <form
