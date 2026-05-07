@@ -24,23 +24,49 @@ def format_time_range(b: BookingBotInfo, tz: ZoneInfo) -> str:
     return f"{start:%d.%m} {start:%H:%M}–{end:%H:%M}"
 
 
+def _description_block(b: BookingBotInfo) -> str:
+    """Блок с повесткой/описанием встречи. Пусто если description не задан.
+
+    Telegram сам распарсит URL внутри текста — экранировать не нужно.
+    """
+    if not b.description or not b.description.strip():
+        return ""
+    return f"\n\n📎 Повестка:\n{b.description.strip()}"
+
+
 # ── Тексты для DM (owner / guests) ───────────────────────────────────────────
 
 
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return f"📌 Новая встреча «{b.title}»\n{format_time_range(b, tz)}"
+    return (
+        f"📌 Новая встреча «{b.title}»\n"
+        f"{format_time_range(b, tz)}"
+        f"{_description_block(b)}"
+    )
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return f"✏️ Встреча «{b.title}» перенесена\nСтало: {format_time_range(b, tz)}"
+    return (
+        f"✏️ Встреча «{b.title}» перенесена\n"
+        f"Стало: {format_time_range(b, tz)}"
+        f"{_description_block(b)}"
+    )
 
 
 def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return f"❌ Встреча «{b.title}» отменена\n{format_time_range(b, tz)}"
+    return (
+        f"❌ Встреча «{b.title}» отменена\n"
+        f"{format_time_range(b, tz)}"
+        f"{_description_block(b)}"
+    )
 
 
 def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
-    return f"⏰ Через 15 минут: «{b.title}»\n{format_time_range(b, tz)}"
+    return (
+        f"⏰ Через 15 минут: «{b.title}»\n"
+        f"{format_time_range(b, tz)}"
+        f"{_description_block(b)}"
+    )
 
 
 # ── Тексты для группы (с organizer и guests) ─────────────────────────────────
@@ -59,6 +85,7 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     )
     if b.guests:
         text += f"\n👥 {_guests_line(b)}"
+    text += _description_block(b)
     return text
 
 
@@ -67,6 +94,7 @@ def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
         f"✏️ «{b.title}» перенесена\n"
         f"Стало: {format_time_range(b, tz)}\n"
         f"👤 {b.user.display_name}"
+        f"{_description_block(b)}"
     )
 
 
@@ -75,6 +103,7 @@ def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
         f"❌ «{b.title}» отменена\n"
         f"{format_time_range(b, tz)}\n"
         f"👤 {b.user.display_name}"
+        f"{_description_block(b)}"
     )
 
 
@@ -152,10 +181,8 @@ class Poller:
             current = (b.start_time, b.end_time)
 
             if cached is None:
-                # Никогда не видели в этой сессии бота
                 is_change = b.prev_start_time is not None or b.prev_end_time is not None
                 if is_change:
-                    # Backend сигнализирует — это перенос (мы пропустили его создание)
                     dm_text = msg_changed_booking(b, self._tz)
                     group_text = msg_changed_booking_group(b, self._tz)
                 else:
@@ -166,7 +193,6 @@ class Poller:
                 await self._notify_group(group_text)
                 self._notified_state[b.id] = current
             elif cached != current:
-                # Время реально изменилось — перенос
                 dm_text = msg_changed_booking(b, self._tz)
                 group_text = msg_changed_booking_group(b, self._tz)
                 await self._notify_owner(b, dm_text)
@@ -174,7 +200,6 @@ class Poller:
                 await self._notify_group(group_text)
                 self._notified_state[b.id] = current
             else:
-                # Та же встреча, то же время — backend-спам, скипаем
                 logger.debug(
                     "Skip duplicate notification for booking %s (no time change)",
                     b.id,
@@ -240,12 +265,7 @@ class Poller:
             logger.exception("send_message to group %s failed", self._group_id)
 
     async def _notify_guests(self, b: BookingBotInfo, text: str) -> None:
-        """Шлёт DM каждому гостю с известным telegram_id.
-
-        Backend резолвит name → telegram_id при сборке /since и др.
-        Гости с telegram_id=None — это либо незарегистрированные люди,
-        либо свободный текст («все PM»). Их пропускаем.
-        """
+        """Шлёт DM каждому гостю с известным telegram_id."""
         for g in b.guests:
             if g.telegram_id is None:
                 logger.debug(
