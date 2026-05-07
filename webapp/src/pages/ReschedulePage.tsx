@@ -7,6 +7,7 @@ import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
+import { useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -23,6 +24,7 @@ export function ReschedulePage({
   onBack,
   onSaved,
 }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [start, setStart] = useState(defaultStart);
   const [end, setEnd] = useState(defaultEnd);
@@ -35,7 +37,7 @@ export function ReschedulePage({
   async function submit() {
     if (start >= end) {
       hapticError();
-      setError("Конец должен быть позже начала.");
+      setError(t("create.error.end_after_start"));
       return;
     }
     setError(null);
@@ -51,7 +53,7 @@ export function ReschedulePage({
       onSaved();
     } catch {
       hapticError();
-      setError("Не удалось перенести. Попробуй ещё.");
+      setError(t("reschedule.error.failed"));
     } finally {
       setBusy(false);
     }
@@ -63,7 +65,7 @@ export function ReschedulePage({
   }
 
   useTgMainButton({
-    text: busy ? "..." : "Перенести",
+    text: busy ? "..." : t("reschedule.submit_short"),
     onClick: () => void submit(),
     disabled: busy,
   });
@@ -79,13 +81,13 @@ export function ReschedulePage({
       className="min-h-screen p-4 flex flex-col gap-4"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <PageHeader title="Перенести встречу" onBack={onBack} />
+      <PageHeader title={t("reschedule.title")} onBack={onBack} />
 
       <h2 className="font-heading text-2xl">{booking.title}</h2>
 
       <form onSubmit={handleHtmlSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-2">
-          <span className="text-sm">Начало</span>
+          <span className="text-sm">{t("create.field.start")}</span>
           <input
             type="datetime-local"
             value={start}
@@ -97,7 +99,7 @@ export function ReschedulePage({
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm">Конец</span>
+          <span className="text-sm">{t("create.field.end")}</span>
           <input
             type="datetime-local"
             value={end}
@@ -125,7 +127,7 @@ export function ReschedulePage({
               opacity: busy ? 0.5 : 1,
             }}
           >
-            {busy ? "..." : "Перенести"}
+            {busy ? "..." : t("reschedule.submit_short")}
           </button>
         )}
       </form>

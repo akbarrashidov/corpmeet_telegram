@@ -515,59 +515,59 @@ async def test_deletion_after_creation_still_notifies() -> None:
 def test_msg_new_booking_dm_includes_description() -> None:
     booking = make_booking(description="Zoom: https://zoom.us/j/123\nПовестка: ...")
     text = poller_module.msg_new_booking(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
     assert "https://zoom.us/j/123" in text
 
 
 def test_msg_new_booking_dm_omits_block_when_no_description() -> None:
     booking = make_booking(description=None)
     text = poller_module.msg_new_booking(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" not in text
+    assert "📎 Повестка" not in text
 
 
 def test_msg_new_booking_dm_omits_block_when_whitespace_only() -> None:
     booking = make_booking(description="   \n  \t ")
     text = poller_module.msg_new_booking(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" not in text
+    assert "📎 Повестка" not in text
 
 
 def test_msg_changed_booking_includes_description() -> None:
     booking = make_booking(description="https://meet.google.com/abc-defg-hij")
     text = poller_module.msg_changed_booking(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
     assert "https://meet.google.com/abc-defg-hij" in text
 
 
 def test_msg_deleted_booking_includes_description() -> None:
     booking = make_booking(description="ссылка отменилась")
     text = poller_module.msg_deleted_booking(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
 
 
 def test_msg_reminder_includes_description() -> None:
     booking = make_booking(description="https://zoom.us/j/123")
     text = poller_module.msg_reminder(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
     assert "https://zoom.us/j/123" in text
 
 
 def test_msg_new_booking_group_includes_description() -> None:
     booking = make_booking(description="https://zoom.us/j/123")
     text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
     assert "https://zoom.us/j/123" in text
 
 
 def test_msg_changed_booking_group_includes_description() -> None:
     booking = make_booking(description="ссылка")
     text = poller_module.msg_changed_booking_group(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
 
 
 def test_msg_deleted_booking_group_includes_description() -> None:
     booking = make_booking(description="ссылка")
     text = poller_module.msg_deleted_booking_group(booking, ZoneInfo("UTC"))
-    assert "📎 Повестка:" in text
+    assert "📎 Повестка" in text
 
 
 def test_description_block_strips_outer_whitespace() -> None:

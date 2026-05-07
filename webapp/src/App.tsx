@@ -6,6 +6,7 @@ import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
+import { useTranslation } from "./i18n";
 
 const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 
@@ -17,6 +18,7 @@ type Phase =
   | { kind: "error"; error: string };
 
 export default function App() {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>({ kind: "init" });
   const [device, setDevice] = useState<Device>("non-telegram");
 
@@ -41,7 +43,7 @@ export default function App() {
     }
 
     if (!tg!.initData) {
-      setPhase({ kind: "error", error: "Откройте через Telegram" });
+        setPhase({ kind: "error", error: t("app.error.open_via_telegram") });
       return;
     }
 
@@ -142,9 +144,9 @@ export default function App() {
     }
   }
 
-  if (phase.kind === "init") return <LoadingScreen message="Подключаемся…" />;
+  if (phase.kind === "init") return <LoadingScreen message={t("app.connecting")} />;
   if (phase.kind === "redirecting")
-    return <LoadingScreen message="Открываем CorpMeet в браузере…" />;
+    return <LoadingScreen message={t("app.opening_browser")} />;
   if (phase.kind === "needs_registration")
     return (
       <RegistrationScreen

@@ -5,6 +5,7 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
+import { useTranslation, type Lang } from "../i18n";
 
 const POSITION_OPTIONS = [
   "Начальник департамента/отдела",
@@ -24,6 +25,7 @@ interface Props {
 export function ProfileScreen({ onBack, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { t, lang, setLang } = useTranslation();
   const inTg = !!getTelegram();
 
   const [firstName, setFirstName] = useState(user?.first_name ?? "");
@@ -38,10 +40,10 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     const fn = firstName.trim();
     const ln = lastName.trim();
     if (!NAME_REGEX.test(fn)) {
-      return "Имя — латиница, с большой буквы (например, Alisher).";
+      return t("register.error.first_name_format");
     }
     if (!NAME_REGEX.test(ln)) {
-      return "Фамилия — латиница, с большой буквы (например, Rakhimov).";
+      return t("register.error.last_name_format");
     }
     return null;
   }
@@ -72,7 +74,7 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
       const msg =
         typeof detail === "string"
           ? `[${status}] ${detail}`
-          : "Не удалось сохранить. Попробуй ещё.";
+          : t("profile.error.failed");
       setError(msg);
       setSubmitting(false);
     }
@@ -84,7 +86,7 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
   }
 
   useTgMainButton({
-    text: submitting ? "..." : "Сохранить",
+    text: submitting ? "..." : t("profile.submit"),
     onClick: () => void submit(),
     disabled: submitting,
   });
@@ -96,8 +98,13 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
   };
 
   const positionItems: { value: string | null; label: string }[] = [
-    { value: null, label: "Не указана" },
+    { value: null, label: t("profile.position.none") },
     ...POSITION_OPTIONS.map((p) => ({ value: p, label: p })),
+  ];
+
+  const langItems: { value: Lang; label: string }[] = [
+    { value: "ru", label: t("profile.language.ru") },
+    { value: "uz", label: t("profile.language.uz") },
   ];
 
   return (
@@ -107,11 +114,11 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">Редактировать профиль</h1>
+        <h1 className="font-heading text-2xl">{t("profile.title")}</h1>
         <button
           type="button"
           onClick={onBack}
-          aria-label="Закрыть"
+          aria-label={t("common.close")}
           className="text-2xl leading-none px-2"
           style={{ color: "var(--text-sec)" }}
         >
@@ -120,33 +127,33 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm">Имя</span>
+        <span className="text-sm">{t("register.field.first_name")}</span>
         <input
           type="text"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           disabled={submitting}
-          placeholder="Alisher"
+          placeholder={t("register.placeholder.first_name")}
           className="rounded-lg p-3 outline-none"
           style={inputStyle}
         />
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm">Фамилия</span>
+        <span className="text-sm">{t("register.field.last_name")}</span>
         <input
           type="text"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           disabled={submitting}
-          placeholder="Rakhimov"
+          placeholder={t("register.placeholder.last_name")}
           className="rounded-lg p-3 outline-none"
           style={inputStyle}
         />
       </label>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm">Должность</legend>
+        <legend className="text-sm">{t("register.field.position")}</legend>
         <div className="flex flex-col gap-2">
           {positionItems.map((item) => {
             const selected = position === item.value;
@@ -158,6 +165,33 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
                 disabled={submitting}
                 aria-pressed={selected}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-left transition"
+                style={{
+                  background: selected ? "var(--primary)" : "var(--input-bg)",
+                  color: selected ? "white" : "var(--text)",
+                  border: `1px solid ${
+                    selected ? "var(--primary)" : "var(--input-border)"
+                  }`,
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm">{t("profile.language.label")}</legend>
+        <div className="flex gap-2">
+          {langItems.map((item) => {
+            const selected = lang === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setLang(item.value)}
+                aria-pressed={selected}
+                className="rounded-lg px-4 py-2 text-sm font-medium transition"
                 style={{
                   background: selected ? "var(--primary)" : "var(--input-bg)",
                   color: selected ? "white" : "var(--text)",
@@ -190,7 +224,7 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
             opacity: submitting ? 0.5 : 1,
           }}
         >
-          {submitting ? "..." : "Сохранить"}
+          {submitting ? "..." : t("profile.submit")}
         </button>
       )}
     </form>

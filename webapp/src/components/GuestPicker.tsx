@@ -1,5 +1,6 @@
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useUsers, type User } from "@corpmeet/design/complex";
+import { useTranslation, type TranslationKey } from "../i18n";
 
 interface Props {
   value: string[];
@@ -7,22 +8,22 @@ interface Props {
   disabled?: boolean;
 }
 
-const POSITION_FILTERS: { label: string; apiValue: string }[] = [
-  { label: "Начальники", apiValue: "Начальник департамента/отдела" },
-  { label: "PM", apiValue: "PM" },
-  { label: "Аналитики", apiValue: "Аналитик" },
-  { label: "Программисты и др.", apiValue: "Программист и др." },
-  { label: "Дизайнеры", apiValue: "Дизайнер" },
+const POSITION_FILTERS: { labelKey: TranslationKey; apiValue: string }[] = [
+  { labelKey: "create.position_filter.heads", apiValue: "Начальник департамента/отдела" },
+  { labelKey: "create.position_filter.pm", apiValue: "PM" },
+  { labelKey: "create.position_filter.analysts", apiValue: "Аналитик" },
+  { labelKey: "create.position_filter.devs", apiValue: "Программист и др." },
+  { labelKey: "create.position_filter.designers", apiValue: "Дизайнер" },
 ];
 
 export function GuestPicker({ value, onChange, disabled }: Props) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: users = [], isLoading } = useUsers(query);
-  // Полный список (≤50) — для фильтра по должности; кешируется отдельно.
   const { data: allUsers = [] } = useUsers("");
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
 
   return (
     <div ref={rootRef} className="flex flex-col gap-2 relative">
-      <span className="text-sm">Гости</span>
+      <span className="text-sm">{t("create.guests")}</span>
 
       <div className="flex flex-wrap gap-2">
         {POSITION_FILTERS.map((f) => (
@@ -100,7 +101,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
               border: "1px solid var(--input-border)",
             }}
           >
-            + {f.label}
+            + {t(f.labelKey)}
           </button>
         ))}
       </div>
@@ -127,7 +128,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
                 remove(name);
               }}
               disabled={disabled}
-              aria-label={`Удалить ${name}`}
+              aria-label={`${t("common.remove")} ${name}`}
               className="ml-1 leading-none"
             >
               ✕
@@ -143,7 +144,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder={value.length === 0 ? "Добавь гостя" : ""}
+          placeholder={value.length === 0 ? t("create.guests.placeholder") : ""}
           className="flex-1 min-w-[120px] bg-transparent outline-none p-1"
         />
       </div>
@@ -157,7 +158,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
           }}
         >
           {isLoading && (
-            <li className="p-3 text-sm opacity-70">Загрузка...</li>
+            <li className="p-3 text-sm opacity-70">{t("create.guests.loading")}</li>
           )}
 
           {!isLoading &&
@@ -177,12 +178,12 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
               style={{ color: "var(--primary)" }}
               onClick={() => add(trimmed)}
             >
-              + добавить «{trimmed}»
+              {t("create.guests.add_manual", { value: trimmed })}
             </li>
           )}
 
           {!isLoading && available.length === 0 && !canAddManual && (
-            <li className="p-3 text-sm opacity-70">Нет пользователей</li>
+            <li className="p-3 text-sm opacity-70">{t("create.guests.no_users")}</li>
           )}
         </ul>
       )}
