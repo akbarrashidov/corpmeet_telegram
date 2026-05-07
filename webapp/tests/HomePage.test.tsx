@@ -24,9 +24,11 @@ import type { HomeTab } from "../src/components/HomeChips";
 function HomePageWrapper({
   onCreate = vi.fn(),
   onSelect = vi.fn(),
+  onProfile = vi.fn(),
 }: {
   onCreate?: () => void;
   onSelect?: (b: any) => void;
+  onProfile?: () => void;
 }) {
   const [tab, setTab] = useState<HomeTab>("today");
   const [selectedDate, setSelectedDate] = useState<string>(todayIso());
@@ -38,6 +40,7 @@ function HomePageWrapper({
       onDateChange={setSelectedDate}
       onCreate={onCreate}
       onSelect={onSelect}
+      onProfile={onProfile}
     />
   );
 }
