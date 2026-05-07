@@ -84,6 +84,20 @@ export const ru = {
   "profile.language.uz": "O'zbek",
   "profile.submit": "Сохранить",
   "profile.error.failed": "Не удалось сохранить. Попробуй ещё.",
+  
+  // Month names (nominative, capitalized)
+  "month.january": "Январь",
+  "month.february": "Февраль",
+  "month.march": "Март",
+  "month.april": "Апрель",
+  "month.may": "Май",
+  "month.june": "Июнь",
+  "month.july": "Июль",
+  "month.august": "Август",
+  "month.september": "Сентябрь",
+  "month.october": "Октябрь",
+  "month.november": "Ноябрь",
+  "month.december": "Декабрь",
 
   // Common
   "common.close": "Закрыть",
