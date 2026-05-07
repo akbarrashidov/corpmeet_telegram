@@ -11,6 +11,7 @@ function makeUser(over: Partial<User> = {}): User {
     last_name: "Иванов",
     role: "user",
     display_name: "Иван Иванов",
+    position: null,    
     ...over,
   };
 }

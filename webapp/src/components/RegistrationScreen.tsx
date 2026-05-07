@@ -1,31 +1,60 @@
 import { FormEvent, useState } from "react";
-import { getTelegram } from "../lib/telegram";
+
+const POSITION_OPTIONS = [
+  "Начальник департамента/отдела",
+  "PM",
+  "Аналитик",
+  "Программист и др.",
+  "Дизайнер",
+] as const;
+
+const NAME_REGEX = /^[A-Z][a-z]+$/;
 
 interface Props {
-  onSubmit: (firstName: string, lastName: string) => Promise<void>;
+  defaultFirstName?: string;
+  defaultLastName?: string;
+  defaultPosition?: string | null;
+  onSubmit: (firstName: string, lastName: string, position: string) => Promise<void>;
 }
 
-export function RegistrationScreen({ onSubmit }: Props) {
-  const tg = getTelegram();
-  const tgUser = tg?.initDataUnsafe?.user;
-
-  const [firstName, setFirstName] = useState(tgUser?.first_name ?? "");
-  const [lastName, setLastName] = useState(tgUser?.last_name ?? "");
+export function RegistrationScreen({
+  defaultFirstName = "",
+  defaultLastName = "",
+  defaultPosition = null,
+  onSubmit,
+}: Props) {
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [lastName, setLastName] = useState(defaultLastName);
+  const [position, setPosition] = useState<string | null>(defaultPosition);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  function validate(): string | null {
     const fn = firstName.trim();
     const ln = lastName.trim();
-    if (!fn || !ln) {
-      setError("Заполни оба поля");
+    if (!NAME_REGEX.test(fn)) {
+      return "Имя — латиница, с большой буквы (например, Alisher).";
+    }
+    if (!NAME_REGEX.test(ln)) {
+      return "Фамилия — латиница, с большой буквы (например, Rakhimov).";
+    }
+    if (!position) {
+      return "Выбери должность.";
+    }
+    return null;
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const err = validate();
+    if (err) {
+      setError(err);
       return;
     }
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit(fn, ln);
+      await onSubmit(firstName.trim(), lastName.trim(), position!);
     } catch (e: any) {
       const status = e?.response?.status;
       const data = e?.response?.data;
@@ -43,6 +72,12 @@ export function RegistrationScreen({ onSubmit }: Props) {
     }
   }
 
+  const inputStyle = {
+    background: "var(--input-bg)",
+    border: "1px solid var(--input-border)",
+    color: "var(--text)",
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -51,7 +86,7 @@ export function RegistrationScreen({ onSubmit }: Props) {
     >
       <h1 className="font-heading text-2xl">Регистрация</h1>
       <p style={{ color: "var(--text-sec)" }}>
-        Чтобы пользоваться CorpMeet, укажи имя и фамилию.
+        Чтобы пользоваться CorpMeet, укажи имя, фамилию и должность.
       </p>
 
       <label className="flex flex-col gap-2">
@@ -61,12 +96,9 @@ export function RegistrationScreen({ onSubmit }: Props) {
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           disabled={submitting}
+          placeholder="Alisher"
           className="rounded-lg p-3 outline-none"
-          style={{
-            background: "var(--input-bg)",
-            border: "1px solid var(--input-border)",
-            color: "var(--text)",
-          }}
+          style={inputStyle}
         />
       </label>
 
@@ -77,14 +109,39 @@ export function RegistrationScreen({ onSubmit }: Props) {
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           disabled={submitting}
+          placeholder="Rakhimov"
           className="rounded-lg p-3 outline-none"
-          style={{
-            background: "var(--input-bg)",
-            border: "1px solid var(--input-border)",
-            color: "var(--text)",
-          }}
+          style={inputStyle}
         />
       </label>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm">Должность</legend>
+        <div className="flex flex-wrap gap-2">
+          {POSITION_OPTIONS.map((opt) => {
+            const selected = position === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setPosition(opt)}
+                disabled={submitting}
+                aria-pressed={selected}
+                className="px-3 py-2 rounded-full text-sm font-medium transition"
+                style={{
+                  background: selected ? "var(--primary)" : "var(--input-bg)",
+                  color: selected ? "white" : "var(--text)",
+                  border: `1px solid ${
+                    selected ? "var(--primary)" : "var(--input-border)"
+                  }`,
+                }}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       {error && (
         <p className="text-sm" style={{ color: "var(--danger)" }}>

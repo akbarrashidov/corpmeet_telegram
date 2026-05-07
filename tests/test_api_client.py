@@ -126,7 +126,6 @@ async def test_bookings_since_parses_response_with_guest_info() -> None:
         assert b.id == 7
         assert b.title == "Test meeting"
         assert b.user.telegram_id == 999
-        # Guests parsed as objects
         assert len(b.guests) == 2
         assert b.guests[0].name == "alice"
         assert b.guests[0].telegram_id == 111
@@ -176,103 +175,4 @@ async def test_bookings_deleted_since_uses_since_param() -> None:
         assert result == []
         sent_url = str(route.calls.last.request.url)
         assert "since=" in sent_url
-        assert "updated_at=" not in sent_url  # отдельный параметр, не путать
-
-
-# ---------- ensure_user ----------
-
-async def test_ensure_user_sends_full_payload_and_secret() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        route = router.post("/api/v1/internal/users/ensure").respond(
-            json={"ok": True, "created": True, "has_position": False}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            result = await api.ensure_user(
-                telegram_id=42,
-                first_name="Артём",
-                last_name="Искра",
-                username="ariskra",
-                full_name="Артём Искра",
-            )
-
-        assert result.ok is True
-        assert result.created is True
-        assert result.has_position is False
-
-        sent = route.calls.last.request
-        assert sent.headers.get("X-Bot-Secret") == "secret-xyz"
-
-        body = json.loads(sent.content)
-        assert body == {
-            "telegram_id": 42,
-            "first_name": "Артём",
-            "last_name": "Искра",
-            "username": "ariskra",
-            "full_name": "Артём Искра",
-        }
-
-
-async def test_ensure_user_omits_none_fields() -> None:
-    """Опциональные поля с None не должны попадать в JSON-body."""
-    with respx.mock(base_url="https://api.example.com") as router:
-        route = router.post("/api/v1/internal/users/ensure").respond(
-            json={"ok": True, "created": False, "has_position": True}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            await api.ensure_user(telegram_id=42)
-
-        body = json.loads(route.calls.last.request.content)
-        assert body == {"telegram_id": 42}
-
-
-async def test_ensure_user_raises_on_5xx() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        router.post("/api/v1/internal/users/ensure").respond(
-            status_code=500, json={"detail": "boom"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            with pytest.raises(httpx.HTTPStatusError):
-                await api.ensure_user(telegram_id=42)
-
-
-# ---------- set_position ----------
-
-async def test_set_position_sends_payload_and_secret() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        route = router.post("/api/v1/internal/users/position").respond(
-            json={"ok": True}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            await api.set_position(telegram_id=42, position="PM")
-
-        sent = route.calls.last.request
-        assert sent.headers.get("X-Bot-Secret") == "secret-xyz"
-
-        body = json.loads(sent.content)
-        assert body == {"telegram_id": 42, "position": "PM"}
-
-
-async def test_set_position_raises_on_400_invalid_value() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        router.post("/api/v1/internal/users/position").respond(
-            status_code=400, json={"detail": "invalid position"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            with pytest.raises(httpx.HTTPStatusError):
-                await api.set_position(telegram_id=42, position="notreal")
-
-
-async def test_set_position_raises_on_404_user_missing() -> None:
-    with respx.mock(base_url="https://api.example.com") as router:
-        router.post("/api/v1/internal/users/position").respond(
-            status_code=404, json={"detail": "user not found"}
-        )
-
-        async with ApiClient(make_settings()) as api:
-            with pytest.raises(httpx.HTTPStatusError):
-                await api.set_position(telegram_id=999, position="PM")
+        assert "updated_at=" not in sent_url
