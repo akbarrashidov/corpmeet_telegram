@@ -1,8 +1,8 @@
 import { useTranslation, type Lang } from "../i18n";
 
 const FLAGS: { lang: Lang; emoji: string; label: string }[] = [
-  { lang: "ru", emoji: "🇷🇺", label: "Русский" },
   { lang: "uz", emoji: "🇺🇿", label: "O'zbek" },
+  { lang: "ru", emoji: "🇷🇺", label: "Русский" },
 ];
 
 export function LangToggle() {
