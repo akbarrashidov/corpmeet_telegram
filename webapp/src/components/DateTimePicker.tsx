@@ -66,26 +66,17 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
     if (sm) setViewMonth(sm - 1);
   }, [sy, sm]);
 
-  // Position popup: full-width on narrow screens, anchored under trigger.
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0, above: false });
+  // Centered modal-style popup — фиксированная позиция вне зависимости от trigger'а.
+  const [pos, setPos] = useState({ width: 0 });
 
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
+    if (!open) return;
     const margin = 8;
     const maxWidth = 360;
     const screenW = window.innerWidth;
-    const width = Math.min(maxWidth, screenW - margin * 2);
-    const left = Math.max(margin, Math.min(rect.left, screenW - width - margin));
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const above = spaceBelow < 380;
-    setPos({
-      top: above ? rect.top - 4 : rect.bottom + 6,
-      left,
-      width,
-      above,
-    });
+    setPos({ width: Math.min(maxWidth, screenW - margin * 2) });
   }, [open]);
+
 
   useEffect(() => {
     if (!open) return;
@@ -222,19 +213,20 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
           {open && (
             <motion.div
               ref={dropdownRef}
-              initial={{ opacity: 0, y: pos.above ? 8 : -8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: pos.above ? 8 : -8, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.15, type: "spring", stiffness: 400, damping: 28 }}
               style={{
                 position: "fixed",
-                top: pos.above ? "auto" : pos.top,
-                bottom: pos.above ? window.innerHeight - pos.top : "auto",
-                left: pos.left,
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
                 width: pos.width,
+                maxHeight: "calc(100vh - 32px)",
+                overflowY: "auto",
                 zIndex: 9999,
                 borderRadius: 16,
-                overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
                 background: isDark ? "#1a1625" : "#ffffff",
