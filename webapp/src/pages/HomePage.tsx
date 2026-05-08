@@ -11,6 +11,8 @@ import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
+import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
+import { addDaysIso } from "../lib/datetime";
 
 interface Props {
   tab: HomeTab;
@@ -34,6 +36,9 @@ export function HomePage({
   const { user } = useAuth();
   const { t } = useTranslation();
   const today = todayIso();
+  const stripFrom = addDaysIso(today, -3);
+  const stripTo = addDaysIso(today, 30);
+  const { data: markedDates } = useDatesWithBookings(stripFrom, stripTo);  
   const inTg = !!getTelegram();
   const monthKeys: TranslationKey[] = [
     "month.january", "month.february", "month.march", "month.april",
@@ -125,7 +130,11 @@ export function HomePage({
         <p className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>
           {monthLabel}
         </p>
-        <DateStrip selectedDate={selectedDate} onChange={onDateChange} />
+        <DateStrip
+        selectedDate={selectedDate}
+        onChange={onDateChange}
+        markedDates={markedDates}
+      />
       </div>
 
       <HomeChips active={tab} onChange={onTabChange} />
