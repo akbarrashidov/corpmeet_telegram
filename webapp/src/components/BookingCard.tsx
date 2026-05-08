@@ -44,7 +44,10 @@ export function BookingCard({ booking, invitedBadge, showDate, onClick }: Props)
         {dayLabel && <span>{dayLabel} · </span>}
         {formatTime(booking.start_time)} — {formatTime(booking.end_time)}
       </div>
-      <h3 className="font-semibold text-base">{booking.title}</h3>
+      <h3 className="font-semibold text-base">
+        {booking.recurrence !== "none" && <span className="mr-1">🔁</span>}
+        {booking.title}
+      </h3>
       <div className="text-sm" style={{ color: "var(--text-sec)" }}>
         👤 {organizerName}
       </div>

@@ -20,11 +20,18 @@ export function useInvitedBookings(user: User | undefined) {
       const res = await apiClient.get<Booking[]>("/api/v1/bookings", {
         params: { date_from: from, date_to: to },
       });
+      // DEBUG: убрать после проверки
+      console.log("[invited-debug]", {
+        total: res.data.length,
+        recurring: res.data.filter((b) => b.recurrence !== "none").length,
+        sample: res.data.slice(0, 3).map((b) => ({
+          id: b.id,
+          title: b.title,
+          recurrence: b.recurrence,
+          group: b.recurrence_group_id,
+          guests: b.guests,
+          organizer: b.user.display_name,
+        })),
+      });
       return res.data;
     },
-    enabled: !!user?.first_name && !!user?.last_name,
-    staleTime: 60_000,
-    select: (bookings) =>
-      user ? sortByStart(filterInvited(bookings, user)) : [],
-  });
-}
