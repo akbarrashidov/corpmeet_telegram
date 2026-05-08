@@ -28,7 +28,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "booking.confirm.keep": "Qoldirish",
   "booking.error.cancel_failed": "Bekor qilinmadi. Qayta urinib ko'ring.",
   "booking.error.no_slots_today": "Bugun bo'sh vaqt qolmagan :(",
-  "booking.error.slots_failed": "Bo'sh vaqtlarni yuklashda xatolik. Qayta urinib ko'ring.,
+  "booking.error.slots_failed": "Bo'sh vaqtlarni yuklashda xatolik. Qayta urinib ko'ring.",
 
   "create.title": "Yangi uchrashuv",
   "create.field.name": "Nomi",
