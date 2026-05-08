@@ -10,14 +10,13 @@ import { PageHeader } from "../components/PageHeader";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   formatTime,
-  formatDayMonth,
   todayIso,
   isoToLocalInput,
 } from "../lib/datetime";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
-import { useTranslation } from "../i18n";
+import { useFormatDayMonth, useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -34,6 +33,7 @@ export function BookingDetailPage({
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const formatDayMonth = useFormatDayMonth();  
   const deleteBooking = useDeleteBooking();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [rescheduleBusy, setRescheduleBusy] = useState(false);

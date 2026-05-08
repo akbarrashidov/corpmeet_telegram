@@ -1,6 +1,6 @@
 import type { Booking } from "@corpmeet/design/complex";
-import { formatDayMonth, formatTime } from "../lib/datetime";
-import { useTranslation } from "../i18n";
+import { formatTime } from "../lib/datetime";
+import { useFormatDayMonth, useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -11,6 +11,7 @@ interface Props {
 
 export function BookingCard({ booking, invitedBadge, showDate, onClick }: Props) {
   const { t } = useTranslation();
+  const formatDayMonth = useFormatDayMonth();  
   const organizerName =
     booking.user.display_name ??
     [booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ");

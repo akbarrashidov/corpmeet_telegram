@@ -5,6 +5,12 @@ import { uz } from "./uz";
 export type { TranslationKey } from "./ru";
 export type Lang = "ru" | "uz";
 
+const MONTH_GEN_KEYS: TranslationKey[] = [
+  "month.gen.january", "month.gen.february", "month.gen.march", "month.gen.april",
+  "month.gen.may", "month.gen.june", "month.gen.july", "month.gen.august",
+  "month.gen.september", "month.gen.october", "month.gen.november", "month.gen.december",
+];
+
 const STORAGE_KEY = "corpmeet_lang";
 const DEFAULT_LANG: Lang = "ru";
 const VALID_LANGS: Lang[] = ["ru", "uz"];
@@ -72,5 +78,17 @@ export function useTranslation(): {
     t: (key, vars) => translate(lang, key, vars),
     lang,
     setLang,
+  };
+}
+
+/**
+ * Возвращает строку «5 мая» / «5 May» для отображения даты в текущем языке.
+ * Принимает ISO-дату или ISO-datetime.
+ */
+export function useFormatDayMonth(): (iso: string) => string {
+  const { t } = useTranslation();
+  return (iso: string) => {
+    const d = new Date(iso.length === 10 ? iso + "T00:00:00" : iso);
+    return `${d.getDate()} ${t(MONTH_GEN_KEYS[d.getMonth()])}`;
   };
 }
