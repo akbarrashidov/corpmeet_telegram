@@ -38,7 +38,8 @@ export function HomePage({
   const today = todayIso();
   const stripFrom = addDaysIso(today, -3);
   const stripTo = addDaysIso(today, 30);
-  const { data: markedDates } = useDatesWithBookings(stripFrom, stripTo);  
+  const { data: markedDates } = useDatesWithBookings(stripFrom, stripTo);
+  console.log("[debug] markedDates:", Array.from(markedDates), "from", stripFrom, "to", stripTo);    
   const inTg = !!getTelegram();
   const monthKeys: TranslationKey[] = [
     "month.january", "month.february", "month.march", "month.april",
@@ -112,6 +113,9 @@ export function HomePage({
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
        <header className="flex items-center justify-between">
+      <p className="text-xs" style={{ color: "var(--text-sec)" }}>
+        debug: {markedDates.size} marked dates ({stripFrom} → {stripTo})
+      </p>        
         <h1 className="font-heading text-2xl">{t("home.title")}</h1>
         <div className="flex items-center gap-2">
           <LangToggle />
