@@ -11,7 +11,7 @@ function makeUser(over: Partial<User> = {}): User {
     last_name: "Иванов",
     role: "user",
     display_name: "Иван Иванов",
-    position: null,    
+    position: null,
     ...over,
   };
 }
@@ -73,6 +73,51 @@ describe("filterInvited", () => {
 
   it("doesn't match partial substrings", () => {
     const bookings = [makeBooking({ id: 1, guests: ["Иван Ивановский"] })];
+    expect(filterInvited(bookings, user)).toEqual([]);
+  });
+
+  it("recurring: matches sibling occurrences when guests stored only on one", () => {
+    const bookings = [
+      makeBooking({
+        id: 10,
+        recurrence: "daily",
+        recurrence_group_id: 42,
+        guests: ["Иван Иванов"],
+      }),
+      makeBooking({
+        id: 11,
+        recurrence: "daily",
+        recurrence_group_id: 42,
+        guests: [],
+        start_time: "2026-05-02T09:00:00+05:00",
+      }),
+      makeBooking({
+        id: 12,
+        recurrence: "daily",
+        recurrence_group_id: 42,
+        guests: [],
+        start_time: "2026-05-03T09:00:00+05:00",
+      }),
+    ];
+    const result = filterInvited(bookings, user);
+    expect(result.map((b) => b.id).sort()).toEqual([10, 11, 12]);
+  });
+
+  it("recurring: does not match other groups", () => {
+    const bookings = [
+      makeBooking({
+        id: 20,
+        recurrence: "daily",
+        recurrence_group_id: 1,
+        guests: ["Сидор Сидоров"],
+      }),
+      makeBooking({
+        id: 21,
+        recurrence: "daily",
+        recurrence_group_id: 1,
+        guests: [],
+      }),
+    ];
     expect(filterInvited(bookings, user)).toEqual([]);
   });
 });
