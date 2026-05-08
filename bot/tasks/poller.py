@@ -77,14 +77,18 @@ def _format_recurrence(b: BookingBotInfo) -> tuple[str, str]:
     return (uz, ru)
 
 
-def _series_block(b: BookingBotInfo) -> str:
-    """Двуязычный блок 🔁 для серийных встреч. Пусто для одиночных."""
+def _series_blocks_split(b: BookingBotInfo) -> tuple[str, str]:
+    """Разделённый блок 🔁 для серийных встреч: (uz_part, ru_part).
+
+    Каждый кусок включается в свою языковую секцию сообщения. Пустые строки
+    для одиночных встреч.
+    """
     if b.recurrence == "none" or b.recurrence_group_id is None:
-        return ""
+        return ("", "")
     uz, ru = _format_recurrence(b)
     if not uz and not ru:
-        return ""
-    return f"\n🔁 {uz} / {ru}"
+        return ("", "")
+    return (f"\n🔁 {uz}", f"\n🔁 {ru}")
 
 
 def _bilingual(uz: str, ru: str) -> str:
@@ -97,9 +101,10 @@ def _bilingual(uz: str, ru: str) -> str:
 
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
-    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}"
-    ru = f"📌 Новая встреча «{b.title}»\n{time}"
-    return _bilingual(uz, ru) + _series_block(b) + _description_block(b)
+    uz_series, ru_series = _series_blocks_split(b)
+    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}{uz_series}"
+    ru = f"📌 Новая встреча «{b.title}»\n{time}{ru_series}"
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
@@ -134,9 +139,16 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     organizer = b.user.display_name
     guests_part = f"\n👥 {_guests_line(b)}" if b.guests else ""
-    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
-    ru = f"📌 Новая встреча «{b.title}»\n{time}\n👤 {organizer}{guests_part}"
-    return _bilingual(uz, ru) + _series_block(b) + _description_block(b)
+    uz_series, ru_series = _series_blocks_split(b)
+    uz = (
+        f"📌 Yangi uchrashuv «{b.title}»\n{time}\n"
+        f"👤 {organizer}{guests_part}{uz_series}"
+    )
+    ru = (
+        f"📌 Новая встреча «{b.title}»\n{time}\n"
+        f"👤 {organizer}{guests_part}{ru_series}"
+    )
+    return _bilingual(uz, ru) + _description_block(b)
 
 
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
