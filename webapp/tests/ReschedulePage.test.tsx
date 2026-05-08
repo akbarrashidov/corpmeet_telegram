@@ -11,6 +11,19 @@ vi.mock("@corpmeet/design/complex", () => ({
   },
 }));
 
+vi.mock("@corpmeet/design/components", () => ({
+  DateTimePicker: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+    <label>
+      <span>{label}</span>
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  ),
+}));
+
 import { apiClient } from "@corpmeet/design/complex";
 import { ReschedulePage } from "../src/pages/ReschedulePage";
 

@@ -8,6 +8,19 @@ vi.mock("@corpmeet/design/complex", () => ({
   useUsers: vi.fn(),
 }));
 
+vi.mock("@corpmeet/design/components", () => ({
+  DateTimePicker: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+    <label>
+      <span>{label}</span>
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  ),
+}));
+
 import { useCreateBooking, useUsers } from "@corpmeet/design/complex";
 import { CreateBookingPage } from "../src/pages/CreateBookingPage";
 

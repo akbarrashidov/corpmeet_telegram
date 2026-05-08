@@ -8,6 +8,7 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
+import { DateTimePicker } from "@corpmeet/design/components";
 
 interface Props {
   booking: Booking;
@@ -70,12 +71,6 @@ export function ReschedulePage({
     disabled: busy,
   });
 
-  const inputStyle = {
-    background: "var(--input-bg)",
-    border: "1px solid var(--input-border)",
-    color: "var(--text)",
-  };
-
   return (
     <div
       className="min-h-screen p-4 flex flex-col gap-4"
@@ -86,29 +81,17 @@ export function ReschedulePage({
       <h2 className="font-heading text-2xl">{booking.title}</h2>
 
       <form onSubmit={handleHtmlSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">{t("create.field.start")}</span>
-          <input
-            type="datetime-local"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            disabled={busy}
-            className="rounded-lg p-3 outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <DateTimePicker
+          label={t("create.field.start")}
+          value={start}
+          onChange={setStart}
+        />
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">{t("create.field.end")}</span>
-          <input
-            type="datetime-local"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            disabled={busy}
-            className="rounded-lg p-3 outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <DateTimePicker
+          label={t("create.field.end")}
+          value={end}
+          onChange={setEnd}
+        />
 
         {error && (
           <p className="text-sm" style={{ color: "var(--danger)" }}>

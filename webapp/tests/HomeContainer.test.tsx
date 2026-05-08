@@ -28,6 +28,19 @@ vi.mock("@corpmeet/design/complex", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
+vi.mock("@corpmeet/design/components", () => ({
+  DateTimePicker: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+    <label>
+      <span>{label}</span>
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  ),
+}));
+
 vi.mock("../src/hooks/useInvitedBookings", () => ({
   useInvitedBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
 }));
