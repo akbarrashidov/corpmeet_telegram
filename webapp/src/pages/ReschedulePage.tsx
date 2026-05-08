@@ -8,7 +8,7 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
-import { DateTimePicker } from "@corpmeet/design/components";
+import { DateTimePicker } from "../components/DateTimePicker";
 
 interface Props {
   booking: Booking;

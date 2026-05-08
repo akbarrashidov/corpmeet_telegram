@@ -28,7 +28,7 @@ vi.mock("@corpmeet/design/complex", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
-vi.mock("@corpmeet/design/components", () => ({
+vi.mock("../src/components/DateTimePicker", () => ({
   DateTimePicker: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
     <label>
       <span>{label}</span>

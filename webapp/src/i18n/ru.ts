@@ -105,6 +105,38 @@ export const ru = {
   "common.remove": "Удалить",
   "common.confirm": "Подтвердить",
   "common.cancel": "Отмена",
+
+    // Picker (DateTimePicker)
+  "picker.clear": "Удалить",
+  "picker.today": "Сегодня",
+  "picker.ok": "OK",
+  "dow.short.mon": "Пн",
+  "dow.short.tue": "Вт",
+  "dow.short.wed": "Ср",
+  "dow.short.thu": "Чт",
+  "dow.short.fri": "Пт",
+  "dow.short.sat": "Сб",
+  "dow.short.sun": "Вс",
+  "dow.long.mon": "Понедельник",
+  "dow.long.tue": "Вторник",
+  "dow.long.wed": "Среда",
+  "dow.long.thu": "Четверг",
+  "dow.long.fri": "Пятница",
+  "dow.long.sat": "Суббота",
+  "dow.long.sun": "Воскресенье",
+  "month.gen.january": "января",
+  "month.gen.february": "февраля",
+  "month.gen.march": "марта",
+  "month.gen.april": "апреля",
+  "month.gen.may": "мая",
+  "month.gen.june": "июня",
+  "month.gen.july": "июля",
+  "month.gen.august": "августа",
+  "month.gen.september": "сентября",
+  "month.gen.october": "октября",
+  "month.gen.november": "ноября",
+  "month.gen.december": "декабря",
+
 } as const;
 
 export type TranslationKey = keyof typeof ru;
