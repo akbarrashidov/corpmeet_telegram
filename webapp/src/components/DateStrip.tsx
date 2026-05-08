@@ -6,6 +6,8 @@ interface Props {
   onChange: (next: string) => void;
   daysBack?: number;
   daysForward?: number;
+  /** ISO-даты (YYYY-MM-DD), на которые есть бронирования — отмечаются точкой. */
+  markedDates?: Set<string>;
 }
 
 export function DateStrip({
@@ -13,6 +15,7 @@ export function DateStrip({
   onChange,
   daysBack = 3,
   daysForward = 30,
+  markedDates,
 }: Props) {
   const today = todayIso();
   const selectedRef = useRef<HTMLButtonElement>(null);
@@ -38,6 +41,7 @@ export function DateStrip({
       {dates.map((date) => {
         const isSelected = date === selectedDate;
         const isToday = date === today;
+        const isMarked = markedDates?.has(date) ?? false;
         const dayNumber = Number(date.slice(8, 10));
         const style = isSelected
           ? { background: "var(--primary)", color: "white" }
@@ -61,6 +65,15 @@ export function DateStrip({
             >
               <span className="text-xs opacity-80">{formatDayShort(date)}</span>
               <span className="text-lg font-bold leading-tight">{dayNumber}</span>
+              <span
+                aria-hidden="true"
+                className="block w-1.5 h-1.5 rounded-full mt-0.5"
+                style={{
+                  background: isMarked
+                    ? isSelected ? "white" : "var(--primary)"
+                    : "transparent",
+                }}
+              />
             </button>
           </li>
         );
