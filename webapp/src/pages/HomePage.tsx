@@ -90,6 +90,7 @@ export function HomePage({
             bookings={mineQuery.data ? sortByStart(mineQuery.data) : undefined}
             isLoading={mineQuery.isLoading}
             emptyMessage={t("home.empty.mine")}
+            showDate
             onSelect={handleSelect}
           />
         );
@@ -100,6 +101,7 @@ export function HomePage({
             isLoading={invitedQuery.isLoading}
             emptyMessage={t("home.empty.invited")}
             invitedBadge
+            showDate
             onSelect={handleSelect}
           />
         );

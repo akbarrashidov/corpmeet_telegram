@@ -1,18 +1,21 @@
 import type { Booking } from "@corpmeet/design/complex";
-import { formatTime } from "../lib/datetime";
+import { formatDayMonth, formatTime } from "../lib/datetime";
 import { useTranslation } from "../i18n";
 
 interface Props {
   booking: Booking;
   invitedBadge?: boolean;
+  showDate?: boolean;
   onClick?: () => void;
 }
 
-export function BookingCard({ booking, invitedBadge, onClick }: Props) {
+export function BookingCard({ booking, invitedBadge, showDate, onClick }: Props) {
   const { t } = useTranslation();
   const organizerName =
     booking.user.display_name ??
     [booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ");
+
+  const dayLabel = showDate ? formatDayMonth(booking.start_time.split("T")[0]) : null;
 
   return (
     <article
@@ -37,6 +40,7 @@ export function BookingCard({ booking, invitedBadge, onClick }: Props) {
       }}
     >
       <div className="text-sm font-medium" style={{ color: "var(--text-sec)" }}>
+        {dayLabel && <span>{dayLabel} · </span>}
         {formatTime(booking.start_time)} — {formatTime(booking.end_time)}
       </div>
       <h3 className="font-semibold text-base">{booking.title}</h3>
