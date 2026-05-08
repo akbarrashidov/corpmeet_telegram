@@ -10,13 +10,33 @@ export function userFullName(user: Pick<User, "first_name" | "last_name">): stri
   return `${user.first_name} ${user.last_name}`;
 }
 
-/** Фильтр «встречи где я приглашён». Нечувствителен к лишним пробелам в guests. */
+/** Фильтр «встречи где я приглашён». Нечувствителен к лишним пробелам в guests.
+ *
+ * Для серийных встреч backend может хранить `guests` только на одной occurrence
+ * (parent), а sibling'и приходят с пустым массивом. Поэтому собираем "эффективных
+ * гостей" по `recurrence_group_id`: если хотя бы у одной occurrence группы
+ * есть guests — считаем, что вся серия имеет тех же гостей.
+ */
 export function filterInvited(bookings: Booking[], user: Pick<User, "first_name" | "last_name">): Booking[] {
   const fullName = userFullName(user);
   if (!fullName) return [];
-  return bookings.filter((b) =>
-    b.guests.some((g) => g.trim() === fullName)
-  );
+
+  const groupGuests = new Map<number, string[]>();
+  for (const b of bookings) {
+    if (b.recurrence_group_id !== null && b.guests.length > 0) {
+      groupGuests.set(b.recurrence_group_id, b.guests);
+    }
+  }
+
+  return bookings.filter((b) => {
+    const ownHas = b.guests.length > 0;
+    const effective = ownHas
+      ? b.guests
+      : b.recurrence_group_id !== null
+        ? groupGuests.get(b.recurrence_group_id) ?? []
+        : [];
+    return effective.some((g) => g.trim() === fullName);
+  });
 }
 
 /** Сортировка: по start_time ascending. */

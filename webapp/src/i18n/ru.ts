@@ -8,7 +8,7 @@ export const ru = {
   "home.title": "CorpMeet",
   "home.tab.day": "День",
   "home.tab.mine": "Мои",
-  "home.tab.invited": "Приглашён",
+  "home.tab.invited": "Пригласили",
   "home.empty.today": "Сегодня встреч не запланировано.",
   "home.empty.day": "На этот день встреч нет.",
   "home.empty.mine": "У тебя нет ближайших встреч.",

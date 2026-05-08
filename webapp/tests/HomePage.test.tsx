@@ -135,7 +135,7 @@ describe("HomePage", () => {
     setupHooks({ invitedBookings: [{ ...baseBooking, id: 3, title: "Зовут" }] });
     renderPage();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Приглашён" }));
+    await user.click(screen.getByRole("button", { name: "Пригласили" }));
     expect(screen.getByText("Ты в гостях")).toBeInTheDocument();
   });
 
