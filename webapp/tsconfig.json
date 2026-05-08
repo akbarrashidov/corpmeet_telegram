@@ -24,7 +24,8 @@
     "paths": {
       "@corpmeet/design/theme": ["./src/types/shims/corpmeet-theme"],
       "@corpmeet/design/animations": ["./src/types/shims/corpmeet-animations"],
-      "@corpmeet/design/complex": ["./src/types/shims/corpmeet-complex"]
+      "@corpmeet/design/complex": ["./src/types/shims/corpmeet-complex"],
+      "@corpmeet/design/components": ["./src/types/shims/corpmeet-components"]
     }
   },
   "include": ["src", "tests"]

@@ -8,6 +8,7 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
+import { DateTimePicker } from "@corpmeet/design/components";
 
 interface Props {
   onBack: () => void;
@@ -92,29 +93,17 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
           />
         </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">{t("create.field.start")}</span>
-          <input
-            type="datetime-local"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            disabled={createBooking.isPending}
-            className="rounded-lg p-3 outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <DateTimePicker
+          label={t("create.field.start")}
+          value={start}
+          onChange={setStart}
+        />
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm">{t("create.field.end")}</span>
-          <input
-            type="datetime-local"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            disabled={createBooking.isPending}
-            className="rounded-lg p-3 outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <DateTimePicker
+          label={t("create.field.end")}
+          value={end}
+          onChange={setEnd}
+        />
 
         <GuestPicker
           value={guests}
