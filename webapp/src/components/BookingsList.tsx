@@ -6,6 +6,7 @@ interface Props {
   isLoading: boolean;
   emptyMessage: string;
   invitedBadge?: boolean;
+  showDate?: boolean;
   onSelect?: (booking: Booking) => void;
 }
 
@@ -14,6 +15,7 @@ export function BookingsList({
   isLoading,
   emptyMessage,
   invitedBadge,
+  showDate,
   onSelect,
 }: Props) {
   if (isLoading) {
@@ -46,6 +48,7 @@ export function BookingsList({
           key={b.id}
           booking={b}
           invitedBadge={invitedBadge}
+          showDate={showDate}
           onClick={onSelect ? () => onSelect(b) : undefined}
         />
       ))}
