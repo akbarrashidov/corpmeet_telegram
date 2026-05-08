@@ -6,8 +6,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "app.error.open_via_telegram": "Telegram orqali oching",
 
   "home.title": "CorpMeet",
-  "home.tab.day": "Kun",
-  "home.tab.mine": "Mening",
+  "home.tab.day": "Bugun",
+  "home.tab.mine": "Mening uchrashuvlarim",
   "home.tab.invited": "Taklif qilingan",
   "home.empty.today": "Bugun rejalashtirilgan uchrashuvlar yo'q.",
   "home.empty.day": "Bu kunda uchrashuvlar yo'q.",
