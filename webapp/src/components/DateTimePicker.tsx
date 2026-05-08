@@ -211,31 +211,38 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
       {createPortal(
         <AnimatePresence>
           {open && (
-            <motion.div
-              ref={dropdownRef}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.15, type: "spring", stiffness: 400, damping: 28 }}
+            <div
               style={{
                 position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: pos.width,
-                maxHeight: "calc(100vh - 32px)",
-                overflowY: "auto",
-                zIndex: 9999,
-                borderRadius: 16,
+                inset: 0,
                 display: "flex",
-                flexDirection: "column",
-                background: isDark ? "#1a1625" : "#ffffff",
-                border: isDark ? "1px solid rgba(139,92,246,0.25)" : "1px solid #e5e7eb",
-                boxShadow: isDark
-                  ? "0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(139,92,246,0.1), 0 0 48px rgba(124,58,237,0.12)"
-                  : "0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(124,58,237,0.06)",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 9999,
+                pointerEvents: "none",
               }}
             >
+              <motion.div
+                ref={dropdownRef}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.15, type: "spring", stiffness: 400, damping: 28 }}
+                style={{
+                  pointerEvents: "auto",
+                  width: pos.width,
+                  maxHeight: "calc(100vh - 32px)",
+                  overflowY: "auto",
+                  borderRadius: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  background: isDark ? "#1a1625" : "#ffffff",
+                  border: isDark ? "1px solid rgba(139,92,246,0.25)" : "1px solid #e5e7eb",
+                  boxShadow: isDark
+                    ? "0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(139,92,246,0.1), 0 0 48px rgba(124,58,237,0.12)"
+                    : "0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(124,58,237,0.06)",
+                }}
+              >
               <div
                 style={{
                   height: 2,
@@ -602,7 +609,8 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                   {t("picker.ok")} ✓
                 </motion.button>
               </div>
-            </motion.div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>,
         document.body,
