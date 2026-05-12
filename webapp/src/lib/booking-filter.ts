@@ -50,6 +50,15 @@ export function filterInvited(
   });
 }
 
+/** Фильтр «мои встречи» — где я создатель (owner).
+ *
+ * Используется как обход падающего GET /api/v1/bookings/active (HTTP 500
+ * на бэке). Берём диапазонный /bookings и фильтруем клиентом по user.id.
+ */
+export function filterMine(bookings: Booking[], user: Pick<User, "id">): Booking[] {
+  return bookings.filter((b) => b.user_id === user.id);
+}
+
 /** Сортировка: по start_time ascending. */
 export function sortByStart(bookings: Booking[]): Booking[] {
   return [...bookings].sort((a, b) => a.start_time.localeCompare(b.start_time));

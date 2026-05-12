@@ -45,6 +45,10 @@ vi.mock("../src/hooks/useInvitedBookings", () => ({
   useInvitedBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
 }));
 
+vi.mock("../src/hooks/useMyBookings", () => ({
+  useMyBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
+}));
+
 import { HomeContainer } from "../src/pages/HomeContainer";
 import { addDaysIso, formatDayMonth, todayIso } from "../src/lib/datetime";
 
