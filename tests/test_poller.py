@@ -776,3 +776,109 @@ async def test_series_reminder_per_occurrence_not_deduped() -> None:
 
     # 2 reminder DMs (per-occurrence) — series dedup тут не применяется
     assert bot.send_message.await_count == 2
+
+
+# ---------- Guest DM содержит имя организатора ----------
+
+
+async def test_guest_dm_new_booking_includes_organizer() -> None:
+    """Гость получает DM с 👤 {organizer.display_name}."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1,
+            telegram_id=999,
+            guests=[GuestInfo(name="Иван Иванов", telegram_id=555)],
+        )
+    ]
+
+    await p._tick()
+
+    guest_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 555
+    )
+    text = guest_call.args[1]
+    assert "👤 Anna" in text
+    owner_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 999
+    )
+    assert owner_call.args[1] != text
+
+
+async def test_guest_dm_changed_booking_includes_organizer() -> None:
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Иван", telegram_id=555)],
+        )
+    ]
+    await p._tick()
+
+    later = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5)
+    moved = make_booking(
+        id=1, telegram_id=999,
+        guests=[GuestInfo(name="Иван", telegram_id=555)],
+    )
+    moved.start_time = later
+    moved.end_time = later + dt.timedelta(hours=1)
+    p._api.bookings_since.return_value = [moved]
+    await p._tick()
+
+    guest_calls = [
+        c for c in bot.send_message.await_args_list if c.args[0] == 555
+    ]
+    last_guest_text = guest_calls[-1].args[1]
+    assert "✏️" in last_guest_text
+    assert "👤 Anna" in last_guest_text
+
+
+async def test_guest_dm_deleted_booking_includes_organizer() -> None:
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_deleted_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Иван", telegram_id=555)],
+        )
+    ]
+    await p._tick()
+
+    guest_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 555
+    )
+    text = guest_call.args[1]
+    assert "❌" in text
+    assert "👤 Anna" in text
+
+
+async def test_guest_dm_reminder_includes_organizer() -> None:
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_reminders.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Иван", telegram_id=555)],
+        )
+    ]
+    await p._tick()
+
+    guest_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 555
+    )
+    text = guest_call.args[1]
+    assert "⏰" in text
+    assert "👤 Anna" in text
+
+
+async def test_owner_dm_does_not_include_organizer_line() -> None:
+    """У owner'а в DM нет 👤 — он сам организатор."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(id=1, telegram_id=999, guests=[])
+    ]
+    await p._tick()
+
+    owner_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 999
+    )
+    text = owner_call.args[1]
+    assert "👤" not in text

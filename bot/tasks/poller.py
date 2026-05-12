@@ -96,7 +96,7 @@ def _bilingual(uz: str, ru: str) -> str:
     return f"{uz}\n———\n{ru}"
 
 
-# ── Тексты для DM (owner / guests) ───────────────────────────────────────────
+# ── Тексты для DM owner ──────────────────────────────────────────────────────
 
 
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
@@ -125,6 +125,42 @@ def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     uz = f"⏰ 15 daqiqadan keyin: «{b.title}»\n{time}"
     ru = f"⏰ Через 15 минут: «{b.title}»\n{time}"
+    return _bilingual(uz, ru) + _description_block(b)
+
+
+# ── Тексты для DM гостей (с именем организатора) ─────────────────────────────
+
+
+def msg_new_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz_series, ru_series = _series_blocks_split(b)
+    uz = f"📌 Yangi uchrashuv «{b.title}»\n{time}\n👤 {organizer}{uz_series}"
+    ru = f"📌 Новая встреча «{b.title}»\n{time}\n👤 {organizer}{ru_series}"
+    return _bilingual(uz, ru) + _description_block(b)
+
+
+def msg_changed_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz = f"✏️ «{b.title}» uchrashuvi ko'chirildi\nEndi: {time}\n👤 {organizer}"
+    ru = f"✏️ Встреча «{b.title}» перенесена\nСтало: {time}\n👤 {organizer}"
+    return _bilingual(uz, ru) + _description_block(b)
+
+
+def msg_deleted_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz = f"❌ «{b.title}» uchrashuvi bekor qilindi\n{time}\n👤 {organizer}"
+    ru = f"❌ Встреча «{b.title}» отменена\n{time}\n👤 {organizer}"
+    return _bilingual(uz, ru) + _description_block(b)
+
+
+def msg_reminder_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
+    time = format_time_range(b, tz)
+    organizer = b.user.display_name
+    uz = f"⏰ 15 daqiqadan keyin: «{b.title}»\n{time}\n👤 {organizer}"
+    ru = f"⏰ Через 15 минут: «{b.title}»\n{time}\n👤 {organizer}"
     return _bilingual(uz, ru) + _description_block(b)
 
 
@@ -267,22 +303,25 @@ class Poller:
                     continue
 
                 if is_change:
-                    dm_text = msg_changed_booking(b, self._tz)
+                    owner_text = msg_changed_booking(b, self._tz)
+                    guest_text = msg_changed_booking_guest(b, self._tz)
                     group_text = msg_changed_booking_group(b, self._tz)
                 else:
-                    dm_text = msg_new_booking(b, self._tz)
+                    owner_text = msg_new_booking(b, self._tz)
+                    guest_text = msg_new_booking_guest(b, self._tz)
                     group_text = msg_new_booking_group(b, self._tz)
-                await self._notify_owner(b, dm_text)
-                await self._notify_guests(b, dm_text)
+                await self._notify_owner(b, owner_text)
+                await self._notify_guests(b, guest_text)
                 await self._notify_group(group_text)
                 self._notified_state[b.id] = current
                 if is_series_create and b.recurrence_group_id is not None:
                     self._notified_groups.add(b.recurrence_group_id)
             elif cached != current:
-                dm_text = msg_changed_booking(b, self._tz)
+                owner_text = msg_changed_booking(b, self._tz)
+                guest_text = msg_changed_booking_guest(b, self._tz)
                 group_text = msg_changed_booking_group(b, self._tz)
-                await self._notify_owner(b, dm_text)
-                await self._notify_guests(b, dm_text)
+                await self._notify_owner(b, owner_text)
+                await self._notify_guests(b, guest_text)
                 await self._notify_group(group_text)
                 self._notified_state[b.id] = current
             else:
@@ -297,9 +336,10 @@ class Poller:
     async def _poll_reminders(self) -> None:
         bookings = await self._api.bookings_reminders()
         for b in bookings:
-            text = msg_reminder(b, self._tz)
-            await self._notify_owner(b, text)
-            await self._notify_guests(b, text)
+            owner_text = msg_reminder(b, self._tz)
+            guest_text = msg_reminder_guest(b, self._tz)
+            await self._notify_owner(b, owner_text)
+            await self._notify_guests(b, guest_text)
             try:
                 await self._api.mark_reminded(b.id)
             except Exception:  # noqa: BLE001
@@ -337,10 +377,11 @@ class Poller:
                 )
                 self._notified_deletions.add(b.id)
             else:
-                dm_text = msg_deleted_booking(b, self._tz)
+                owner_text = msg_deleted_booking(b, self._tz)
+                guest_text = msg_deleted_booking_guest(b, self._tz)
                 group_text = msg_deleted_booking_group(b, self._tz)
-                await self._notify_owner(b, dm_text)
-                await self._notify_guests(b, dm_text)
+                await self._notify_owner(b, owner_text)
+                await self._notify_guests(b, guest_text)
                 await self._notify_group(group_text)
                 self._notified_deletions.add(b.id)
                 if is_series and b.recurrence_group_id is not None:
