@@ -160,8 +160,8 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
         className="w-full rounded-xl px-3 py-2.5 transition-all"
         style={{
           border: open ? "1.5px solid var(--primary)" : "1.5px solid var(--input-border)",
-          background: open ? (isDark ? "rgba(168,85,247,0.08)" : "#faf9ff") : "var(--input-bg)",
-          boxShadow: open ? "0 0 0 3px rgba(124,58,237,0.12)" : "none",
+          background: open ? (isDark ? "rgba(64,144,208,0.08)" : "#eef5fb") : "var(--input-bg)",
+          boxShadow: open ? "0 0 0 3px rgba(21,101,168,0.12)" : "none",
         }}
       >
         <div className="flex items-center gap-2">
@@ -237,16 +237,16 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                   display: "flex",
                   flexDirection: "column",
                   background: isDark ? "#1a1625" : "#ffffff",
-                  border: isDark ? "1px solid rgba(139,92,246,0.25)" : "1px solid #e5e7eb",
+                  border: isDark ? "1px solid rgba(21,101,168,0.25)" : "1px solid #e5e7eb",
                   boxShadow: isDark
-                    ? "0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(139,92,246,0.1), 0 0 48px rgba(124,58,237,0.12)"
-                    : "0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(124,58,237,0.06)",
+                    ? "0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(21,101,168,0.1), 0 0 48px rgba(21,101,168,0.12)"
+                    : "0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(21,101,168,0.06)",
                 }}
               >
               <div
                 style={{
                   height: 2,
-                  background: "linear-gradient(90deg,#7c3aed,#06b6d4,#a855f7)",
+                  background: "linear-gradient(90deg,#1565a8,#4090d0,#1565a8)",
                   flexShrink: 0,
                 }}
               />
@@ -259,7 +259,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                     flex: 1,
                     minWidth: 0,
                     borderRight: isDark
-                      ? "1px solid rgba(139,92,246,0.15)"
+                      ? "1px solid rgba(21,101,168,0.15)"
                       : "1px solid #f0f0f0",
                   }}
                 >
@@ -343,8 +343,8 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                           letterSpacing: "0.03em",
                           color: isWeekend(i)
                             ? isDark
-                              ? "rgba(168,85,247,0.7)"
-                              : "#a855f7"
+                              ? "rgba(64,144,208,0.7)"
+                              : "#4090d0"
                             : "var(--text-muted)",
                           paddingBottom: 2,
                         }}
@@ -387,10 +387,10 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                             fontSize: 12,
                             fontWeight: isSelected ? 800 : isToday ? 700 : 400,
                             background: isSelected
-                              ? "linear-gradient(135deg,#7c3aed,#a855f7)"
+                              ? "linear-gradient(135deg,#1565a8,#4090d0)"
                               : isToday
                                 ? isDark
-                                  ? "rgba(124,58,237,0.2)"
+                                  ? "rgba(21,101,168,0.2)"
                                   : "#f0ebff"
                                 : "transparent",
                             color: isSelected
@@ -399,14 +399,14 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                                 ? "var(--primary)"
                                 : wknd
                                   ? isDark
-                                    ? "rgba(168,85,247,0.7)"
-                                    : "#a855f7"
+                                    ? "rgba(64,144,208,0.7)"
+                                    : "#4090d0"
                                   : "var(--text)",
                             cursor: "pointer",
                             border: "none",
                             transition: "all 0.1s",
                             boxShadow: isSelected
-                              ? "0 2px 10px rgba(124,58,237,0.5)"
+                              ? "0 2px 10px rgba(21,101,168,0.5)"
                               : "none",
                           }}
                         >
@@ -468,7 +468,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                           fontSize: 18,
                           fontWeight: 900,
                           letterSpacing: "-0.02em",
-                          background: "linear-gradient(90deg,#7c3aed,#06b6d4)",
+                          background: "linear-gradient(90deg,#1565a8,#4090d0)",
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                         }}
@@ -497,7 +497,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                               fontWeight: h === sh ? 800 : 400,
                               background:
                                 h === sh
-                                  ? "linear-gradient(135deg,#7c3aed,#a855f7)"
+                                  ? "linear-gradient(135deg,#1565a8,#4090d0)"
                                   : "transparent",
                               color: h === sh ? "#fff" : "var(--text)",
                               borderRadius: 8,
@@ -506,7 +506,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                               textAlign: "center",
                               transition: "all 0.1s",
                               boxShadow:
-                                h === sh ? "0 2px 8px rgba(124,58,237,0.4)" : "none",
+                                h === sh ? "0 2px 8px rgba(21,101,168,0.4)" : "none",
                             }}
                           >
                             {pad(h)}
@@ -541,7 +541,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                               fontWeight: m === smin ? 800 : 400,
                               background:
                                 m === smin
-                                  ? "linear-gradient(135deg,#7c3aed,#a855f7)"
+                                  ? "linear-gradient(135deg,#1565a8,#4090d0)"
                                   : "transparent",
                               color: m === smin ? "#fff" : "var(--text)",
                               borderRadius: 8,
@@ -550,7 +550,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                               textAlign: "center",
                               transition: "all 0.1s",
                               boxShadow:
-                                m === smin ? "0 2px 8px rgba(124,58,237,0.4)" : "none",
+                                m === smin ? "0 2px 8px rgba(21,101,168,0.4)" : "none",
                             }}
                           >
                             :{pad(m)}
@@ -593,7 +593,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                   whileHover={{ scale: 1.06 }}
                   whileTap={{ scale: 0.94 }}
                   style={{
-                    background: "linear-gradient(135deg,#7c3aed,#a855f7)",
+                    background: "linear-gradient(135deg,#1565a8,#4090d0)",
                     color: "#fff",
                     border: "none",
                     borderRadius: 8,
@@ -601,7 +601,7 @@ export function DateTimePicker({ label, value, onChange, dateOnly }: DateTimePic
                     fontSize: 12,
                     fontWeight: 800,
                     cursor: "pointer",
-                    boxShadow: "0 2px 10px rgba(124,58,237,0.45)",
+                    boxShadow: "0 2px 10px rgba(21,101,168,0.45)",
                     letterSpacing: "0.02em",
                     flexShrink: 0,
                   }}

@@ -8,7 +8,7 @@ interface Options {
   disabled?: boolean;
 }
 
-const FALLBACK_PRIMARY = "#6d28d9";
+const FALLBACK_PRIMARY = "#1565a8";
 
 function readPrimaryColor(): string {
   if (typeof document === "undefined") return FALLBACK_PRIMARY;
@@ -37,7 +37,7 @@ export function useTgMainButton({ text, onClick, visible = true, disabled = fals
 
     const handler = () => handlerRef.current();
     tg.MainButton.setText(text);
-    // Match brand --primary (фиолетовый), а не дефолтный синий тематики Telegram.
+    // Match brand --primary (корпоративный синий), а не дефолтный тематики Telegram.
     tg.MainButton.setParams?.({
       color: readPrimaryColor(),
       text_color: "#ffffff",
