@@ -161,8 +161,8 @@ describe("filterInvited — edge cases", () => {
   });
 });
 
-describe("filterMine", () => {
-  const user = makeUser({ id: 30 });
+describe("filterMine — match by id", () => {
+  const user = makeUser({ id: 30, username: "tardigradi" });
 
   it("returns bookings where user.id === booking.user_id", () => {
     const bookings = [
@@ -173,13 +173,53 @@ describe("filterMine", () => {
     expect(filterMine(bookings, user).map((b) => b.id)).toEqual([1, 3]);
   });
 
-  it("returns empty when none owned", () => {
-    const bookings = [makeBooking({ user_id: 25 }), makeBooking({ user_id: 99 })];
+  it("returns empty when none owned and no username overlap", () => {
+    const bookings = [
+      makeBooking({ id: 1, user_id: 25, user: { ...makeUser(), id: 25, username: "other" } }),
+      makeBooking({ id: 2, user_id: 99, user: { ...makeUser(), id: 99, username: "nobody" } }),
+    ];
     expect(filterMine(bookings, user)).toEqual([]);
   });
 
   it("returns empty for empty input", () => {
     expect(filterMine([], user)).toEqual([]);
+  });
+});
+
+describe("filterMine — username fallback (defensive, Bug B)", () => {
+  it("matches by username when id differs", () => {
+    const user = makeUser({ id: 999, username: "tardigradi" });
+    const bookings = [
+      makeBooking({
+        id: 1,
+        user_id: 30,
+        user: { ...makeUser(), id: 30, username: "tardigradi" },
+      }),
+      makeBooking({
+        id: 2,
+        user_id: 30,
+        user: { ...makeUser(), id: 30, username: "other" },
+      }),
+    ];
+    expect(filterMine(bookings, user).map((b) => b.id)).toEqual([1]);
+  });
+
+  it("username match is case-insensitive", () => {
+    const user = makeUser({ id: 999, username: "Tardigradi" });
+    const bookings = [
+      makeBooking({
+        id: 1,
+        user_id: 30,
+        user: { ...makeUser(), id: 30, username: "TARDIGRADI" },
+      }),
+    ];
+    expect(filterMine(bookings, user)).toHaveLength(1);
+  });
+
+  it("id match still works when username is missing on user", () => {
+    const user = makeUser({ id: 30, username: null });
+    const bookings = [makeBooking({ id: 1, user_id: 30 })];
+    expect(filterMine(bookings, user)).toHaveLength(1);
   });
 });
 
