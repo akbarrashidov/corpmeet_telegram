@@ -623,6 +623,41 @@ async def test_series_sibling_occurrence_silent() -> None:
     # Only the first booking triggers notifications: 1 group + 1 owner DM = 2 calls.
     assert bot.send_message.await_count == 2
 
+async def test_series_uses_earliest_occurrence_as_representative() -> None:
+    """Backend может вернуть siblings в произвольном порядке (одинаковый updated_at).
+    Шлём уведомление про самую раннюю occurrence по start_time.
+    """
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+
+    base = dt.datetime(2026, 6, 4, 11, 0, tzinfo=dt.timezone.utc)
+
+    b_first = make_booking(id=282, recurrence="custom", recurrence_group_id=42)
+    b_first.start_time = base
+    b_first.end_time = base + dt.timedelta(minutes=30)
+
+    b_mid = make_booking(id=285, recurrence="custom", recurrence_group_id=42)
+    b_mid.start_time = base + dt.timedelta(days=21)  # 25.06
+    b_mid.end_time = b_mid.start_time + dt.timedelta(minutes=30)
+
+    b_late = make_booking(id=292, recurrence="custom", recurrence_group_id=42)
+    b_late.start_time = base + dt.timedelta(days=70)  # 13.08
+    b_late.end_time = b_late.start_time + dt.timedelta(minutes=30)
+
+    # Backend возвращает в "неправильном" порядке — представим, что 25.06 пришёл первым
+    p._api.bookings_since.return_value = [b_mid, b_late, b_first]
+
+    await p._tick()
+
+    group_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == -100
+    )
+    text = group_call.args[1]
+
+    # Дата 04.06 (самая ранняя) должна быть в тексте, 25.06 и 13.08 — НЕ должны
+    assert "04.06" in text
+    assert "25.06" not in text
+    assert "13.08" not in text
+
 
 async def test_series_weekly_with_days_renders_uz_and_ru_labels() -> None:
     p, bot = make_poller_with_mocked_api(group_id=-100)

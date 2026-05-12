@@ -238,6 +238,10 @@ class Poller:
                 self._cursor_updated = now
                 return
             raise
+        # Для серийных встреч backend может вернуть occurrence'ы с одинаковым
+        # updated_at в недетерминированном порядке. Сортируем по start_time, чтобы
+        # representative occurrence (первая по дате) попала в групповое уведомление.
+        bookings = sorted(bookings, key=lambda x: (x.start_time, x.id))
         for b in bookings:
             cached = self._notified_state.get(b.id)
             current = (b.start_time, b.end_time)
@@ -314,6 +318,8 @@ class Poller:
                 self._cursor_deleted = now
                 return
             raise
+        # Та же сортировка что в _poll_updates — для детерминированной серии.
+        bookings = sorted(bookings, key=lambda x: (x.start_time, x.id))
         for b in bookings:
             is_series = (
                 b.recurrence != "none" and b.recurrence_group_id is not None
