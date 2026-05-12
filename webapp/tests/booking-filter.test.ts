@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Booking, User } from "@corpmeet/design/complex";
-import { filterInvited, sortByStart, userFullName } from "../src/lib/booking-filter";
+import { filterInvited, filterMine, sortByStart, userFullName } from "../src/lib/booking-filter";
 
 function makeUser(over: Partial<User> = {}): User {
   return {
@@ -158,6 +158,28 @@ describe("filterInvited — edge cases", () => {
       }),
     ];
     expect(filterInvited(bookings, user)).toEqual([]);
+  });
+});
+
+describe("filterMine", () => {
+  const user = makeUser({ id: 30 });
+
+  it("returns bookings where user.id === booking.user_id", () => {
+    const bookings = [
+      makeBooking({ id: 1, user_id: 30 }),
+      makeBooking({ id: 2, user_id: 25 }),
+      makeBooking({ id: 3, user_id: 30 }),
+    ];
+    expect(filterMine(bookings, user).map((b) => b.id)).toEqual([1, 3]);
+  });
+
+  it("returns empty when none owned", () => {
+    const bookings = [makeBooking({ user_id: 25 }), makeBooking({ user_id: 99 })];
+    expect(filterMine(bookings, user)).toEqual([]);
+  });
+
+  it("returns empty for empty input", () => {
+    expect(filterMine([], user)).toEqual([]);
   });
 });
 

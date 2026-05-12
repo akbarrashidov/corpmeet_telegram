@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 vi.mock("@corpmeet/design/complex", () => ({
   useAuth: vi.fn(),
   useBookings: vi.fn(),
-  useActiveBookings: vi.fn(),
   apiClient: { get: vi.fn(), post: vi.fn() },
 }));
 
@@ -15,8 +14,13 @@ vi.mock("../src/hooks/useInvitedBookings", () => ({
   useInvitedBookings: vi.fn(),
 }));
 
-import { useAuth, useBookings, useActiveBookings } from "@corpmeet/design/complex";
+vi.mock("../src/hooks/useMyBookings", () => ({
+  useMyBookings: vi.fn(),
+}));
+
+import { useAuth, useBookings } from "@corpmeet/design/complex";
 import { useInvitedBookings } from "../src/hooks/useInvitedBookings";
+import { useMyBookings } from "../src/hooks/useMyBookings";
 import { HomePage } from "../src/pages/HomePage";
 import { todayIso } from "../src/lib/datetime";
 import type { HomeTab } from "../src/components/HomeChips";
@@ -99,12 +103,12 @@ function setupHooks(opts?: {
     isFetching: false,
     error: null,
   });
-  vi.mocked(useActiveBookings).mockReturnValue({
+  vi.mocked(useMyBookings).mockReturnValue({
     data: opts?.mineBookings,
     isLoading: false,
     isFetching: false,
     error: null,
-  });
+  } as any);
   vi.mocked(useInvitedBookings).mockReturnValue({
     data: opts?.invitedBookings,
     isLoading: false,
