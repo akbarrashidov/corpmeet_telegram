@@ -52,11 +52,23 @@ export function filterInvited(
 
 /** Фильтр «мои встречи» — где я создатель (owner).
  *
- * Используется как обход падающего GET /api/v1/bookings/active (HTTP 500
- * на бэке). Берём диапазонный /bookings и фильтруем клиентом по user.id.
+ * Defensive match: `b.user_id === user.id` ИЛИ `b.user.username === user.username`
+ * (case-insensitive). Резерв по username — на случай, если useAuth в Mini App
+ * возвращает id, не совпадающий с backend user_id (тот же паттерн что и для
+ * filterInvited — Bug A).
+ *
+ * Используется как обход падающего GET /api/v1/bookings/active (HTTP 500).
  */
-export function filterMine(bookings: Booking[], user: Pick<User, "id">): Booking[] {
-  return bookings.filter((b) => b.user_id === user.id);
+export function filterMine(
+  bookings: Booking[],
+  user: Pick<User, "id" | "username">,
+): Booking[] {
+  const uname = user.username?.toLowerCase() ?? null;
+  return bookings.filter((b) => {
+    if (b.user_id === user.id) return true;
+    if (uname !== null && b.user?.username?.toLowerCase() === uname) return true;
+    return false;
+  });
 }
 
 /** Сортировка: по start_time ascending. */
