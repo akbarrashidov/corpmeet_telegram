@@ -8,6 +8,16 @@ interface Options {
   disabled?: boolean;
 }
 
+const FALLBACK_PRIMARY = "#6d28d9";
+
+function readPrimaryColor(): string {
+  if (typeof document === "undefined") return FALLBACK_PRIMARY;
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue("--primary")
+    .trim();
+  return v || FALLBACK_PRIMARY;
+}
+
 /**
  * Управляет TG MainButton: показывает, ставит текст, подписывает onClick.
  * Гарантирует cleanup на unmount и при смене onClick — без дублирования подписок.
@@ -27,6 +37,11 @@ export function useTgMainButton({ text, onClick, visible = true, disabled = fals
 
     const handler = () => handlerRef.current();
     tg.MainButton.setText(text);
+    // Match brand --primary (фиолетовый), а не дефолтный синий тематики Telegram.
+    tg.MainButton.setParams?.({
+      color: readPrimaryColor(),
+      text_color: "#ffffff",
+    });
     tg.MainButton.onClick(handler);
     if (visible) tg.MainButton.show();
     else tg.MainButton.hide();

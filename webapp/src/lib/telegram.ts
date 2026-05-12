@@ -18,6 +18,13 @@ export interface TelegramMainButton {
   offClick(cb: () => void): void;
   enable(): void;
   disable(): void;
+  setParams?(params: {
+    text?: string;
+    color?: string;
+    text_color?: string;
+    is_active?: boolean;
+    is_visible?: boolean;
+  }): void;
   showProgress?: (leaveActive?: boolean) => void;
   hideProgress?: () => void;
 }
