@@ -1,28 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@corpmeet/design/complex";
 import type { Booking, User } from "@corpmeet/design/complex";
-import { addDaysIso, todayIso } from "../lib/datetime";
 import { filterInvited, sortByStart } from "../lib/booking-filter";
-
-const HORIZON_DAYS = 30;
 
 /**
  * Встречи на ближайшие 30 дней, где текущий пользователь — гость.
- * Запрос диапазона на бэк + клиентская фильтрация по guests.
+ * Backend GET /api/v1/bookings/active возвращает upcoming (30d) — owner + guest
+ * вперемешку. Клиент фильтрует по guest matching (username ИЛИ fullName).
+ *
+ * Делит queryKey с useMyBookings — один сетевой запрос на обе вкладки.
  */
 export function useInvitedBookings(user: User | undefined) {
-  const from = todayIso();
-  const to = addDaysIso(from, HORIZON_DAYS);
-
   return useQuery<Booking[]>({
-    queryKey: ["bookings", "range", from, to],
+    queryKey: ["bookings", "active"],
     queryFn: async () => {
-      const res = await apiClient.get<Booking[]>("/api/v1/bookings", {
-        params: { date_from: from, date_to: to },
-      });
+      const res = await apiClient.get<Booking[]>("/api/v1/bookings/active");
       return res.data;
     },
-    enabled: !!user?.first_name && !!user?.last_name,
+    enabled: !!user,
     staleTime: 60_000,
     select: (bookings) =>
       user ? sortByStart(filterInvited(bookings, user)) : [],
