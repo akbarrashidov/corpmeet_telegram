@@ -882,3 +882,119 @@ async def test_owner_dm_does_not_include_organizer_line() -> None:
     )
     text = owner_call.args[1]
     assert "👤" not in text
+
+
+# ---------- Guest decline detection ----------
+
+
+async def test_guest_decline_dms_organizer() -> None:
+    """Когда гость убирает себя из guests (PATCH /bookings/{id}), poller диффит
+    и шлёт DM организатору."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[
+                GuestInfo(name="Alice", telegram_id=555),
+                GuestInfo(name="Bob", telegram_id=556),
+            ],
+        )
+    ]
+    await p._tick()
+    initial_calls = bot.send_message.await_count
+
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Bob", telegram_id=556)],
+        )
+    ]
+    await p._tick()
+
+    decline_calls = [
+        c for c in bot.send_message.await_args_list[initial_calls:]
+        if c.args[0] == 999 and "🚫" in c.args[1]
+    ]
+    assert len(decline_calls) == 1
+    decline_text = decline_calls[0].args[1]
+    assert "Alice" in decline_text
+
+
+async def test_guest_decline_series_dedup() -> None:
+    """Series decline (N PATCH'ей одного username в группе) →
+    organizer получает 1 DM, а не N."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=i, telegram_id=999,
+            recurrence="daily", recurrence_group_id=42,
+            guests=[GuestInfo(name="Alice", telegram_id=555)],
+        )
+        for i in (1, 2, 3)
+    ]
+    await p._tick()
+    initial_calls = bot.send_message.await_count
+
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=i, telegram_id=999,
+            recurrence="daily", recurrence_group_id=42,
+            guests=[],
+        )
+        for i in (1, 2, 3)
+    ]
+    await p._tick()
+
+    decline_calls = [
+        c for c in bot.send_message.await_args_list[initial_calls:]
+        if c.args[0] == 999 and "🚫" in c.args[1]
+    ]
+    assert len(decline_calls) == 1
+
+
+async def test_guest_addition_does_not_dm() -> None:
+    """Если гостей добавили (не убрали) — никаких decline DM."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Alice", telegram_id=555)],
+        )
+    ]
+    await p._tick()
+    initial_calls = bot.send_message.await_count
+
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[
+                GuestInfo(name="Alice", telegram_id=555),
+                GuestInfo(name="Bob", telegram_id=556),
+            ],
+        )
+    ]
+    await p._tick()
+
+    decline_calls = [
+        c for c in bot.send_message.await_args_list[initial_calls:]
+        if c.args[0] == 999 and "🚫" in c.args[1]
+    ]
+    assert decline_calls == []
+
+
+async def test_first_poll_does_not_emit_decline() -> None:
+    """Первый poll новой встречи — не должно быть decline DM (нет prev state)."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(
+            id=1, telegram_id=999,
+            guests=[GuestInfo(name="Alice", telegram_id=555)],
+        )
+    ]
+    await p._tick()
+
+    decline_calls = [
+        c for c in bot.send_message.await_args_list
+        if "🚫" in c.args[1]
+    ]
+    assert decline_calls == []

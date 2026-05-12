@@ -30,6 +30,16 @@ export const ru = {
   "booking.error.cancel_failed": "Не удалось отменить. Попробуй ещё.",
   "booking.error.no_slots_today": "На сегодня нет свободных слотов :(",
   "booking.error.slots_failed": "Не удалось получить занятость. Попробуй ещё.",
+  "booking.decline_button": "Не могу принять участие",
+  "booking.confirm.decline_title": "Не сможешь прийти?",
+  "booking.confirm.decline_body": "«{title}» — ты будешь удалён(а) из гостей.",
+  "booking.confirm.decline": "Отказаться",
+  "booking.series_choice.title": "Эта встреча в серии",
+  "booking.series_choice.body": "Что отменить?",
+  "booking.series_choice.one": "Только эту встречу",
+  "booking.series_choice.series": "Всю серию",
+  "booking.error.decline_failed": "Не удалось отказаться. Попробуй ещё.",
+  "booking.error.decline_partial": "Не все встречи отменены, попробуй ещё раз.",
 
   // Create
   "create.title": "Новая встреча",
