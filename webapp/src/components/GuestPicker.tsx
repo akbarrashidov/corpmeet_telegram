@@ -2,9 +2,16 @@ import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useUsers, type User } from "@corpmeet/design/complex";
 import { useTranslation, type TranslationKey } from "../i18n";
 
+export interface GuestEntry {
+  /** То, что показывается в chip-е (например, "Artem Iskra") */
+  label: string;
+  /** То, что отправляется на бекенд (username без @, либо fallback на label) */
+  value: string;
+}
+
 interface Props {
-  value: string[];
-  onChange: (next: string[]) => void;
+  value: GuestEntry[];
+  onChange: (next: GuestEntry[]) => void;
   disabled?: boolean;
 }
 
@@ -15,6 +22,14 @@ const POSITION_FILTERS: { labelKey: TranslationKey; apiValue: string }[] = [
   { labelKey: "create.position_filter.devs", apiValue: "Программист и др." },
   { labelKey: "create.position_filter.designers", apiValue: "Дизайнер" },
 ];
+
+/** username (если есть) — резолвится бекендом по нику. Иначе fallback на display_name. */
+function entryFromUser(u: User): GuestEntry {
+  return {
+    label: u.display_name,
+    value: u.username ?? u.display_name,
+  };
+}
 
 export function GuestPicker({ value, onChange, disabled }: Props) {
   const { t } = useTranslation();
@@ -36,39 +51,52 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
 
-  const available = users.filter((u) => !value.includes(u.display_name));
+  const valueValues = new Set(value.map((g) => g.value));
+  const valueLabels = new Set(value.map((g) => g.label));
+  const available = users.filter(
+    (u) => !valueValues.has(u.username ?? u.display_name)
+  );
   const trimmed = query.trim();
   const canAddManual =
     trimmed.length > 0 &&
-    !value.includes(trimmed) &&
+    !valueLabels.has(trimmed) &&
     !available.some((u) => u.display_name.toLowerCase() === trimmed.toLowerCase());
 
-  function add(name: string) {
-    const clean = name.trim();
-    if (!clean || value.includes(clean)) return;
-    onChange([...value, clean]);
+  function addEntry(entry: GuestEntry) {
+    if (!entry.value || valueValues.has(entry.value)) return;
+    onChange([...value, entry]);
     setQuery("");
     inputRef.current?.focus();
   }
 
-  function addAllByPosition(apiValue: string) {
-    const namesToAdd = allUsers
-      .filter((u) => u.position === apiValue)
-      .map((u) => u.display_name)
-      .filter((name) => !value.includes(name));
-    if (namesToAdd.length === 0) return;
-    onChange([...value, ...namesToAdd]);
+  function addUser(u: User) {
+    addEntry(entryFromUser(u));
   }
 
-  function remove(name: string) {
-    onChange(value.filter((g) => g !== name));
+  function addManual(text: string) {
+    const clean = text.trim();
+    if (!clean) return;
+    addEntry({ label: clean, value: clean });
+  }
+
+  function addAllByPosition(apiValue: string) {
+    const toAdd = allUsers
+      .filter((u) => u.position === apiValue)
+      .map(entryFromUser)
+      .filter((entry) => !valueValues.has(entry.value));
+    if (toAdd.length === 0) return;
+    onChange([...value, ...toAdd]);
+  }
+
+  function remove(entry: GuestEntry) {
+    onChange(value.filter((g) => g.value !== entry.value));
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (canAddManual) add(trimmed);
-      else if (available.length === 1) add(available[0].display_name);
+      if (canAddManual) addManual(trimmed);
+      else if (available.length === 1) addUser(available[0]);
     } else if (e.key === "Escape") {
       setOpen(false);
     } else if (e.key === "Backspace" && query === "" && value.length > 0) {
@@ -114,21 +142,21 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
           inputRef.current?.focus();
         }}
       >
-        {value.map((name) => (
+        {value.map((entry) => (
           <span
-            key={name}
+            key={entry.value}
             className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm"
             style={{ background: "var(--primary)", color: "white" }}
           >
-            {name}
+            {entry.label}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                remove(name);
+                remove(entry);
               }}
               disabled={disabled}
-              aria-label={`${t("common.remove")} ${name}`}
+              aria-label={`${t("common.remove")} ${entry.label}`}
               className="ml-1 leading-none"
             >
               ✕
@@ -162,11 +190,11 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
           )}
 
           {!isLoading &&
-            available.map((u: User) => (
+            available.map((u) => (
               <li
                 key={u.id}
                 className="p-3 cursor-pointer hover:opacity-70"
-                onClick={() => add(u.display_name)}
+                onClick={() => addUser(u)}
               >
                 {u.display_name}
               </li>
@@ -176,7 +204,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
             <li
               className="p-3 cursor-pointer hover:opacity-70 text-sm"
               style={{ color: "var(--primary)" }}
-              onClick={() => add(trimmed)}
+              onClick={() => addManual(trimmed)}
             >
               {t("create.guests.add_manual", { value: trimmed })}
             </li>

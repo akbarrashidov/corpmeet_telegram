@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useCreateBooking } from "@corpmeet/design/complex";
 import { PageHeader } from "../components/PageHeader";
-import { GuestPicker } from "../components/GuestPicker";
+import { GuestPicker, type GuestEntry } from "../components/GuestPicker";
 import { defaultStartLocal, defaultEndLocal, localInputToIso } from "../lib/datetime";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
@@ -22,7 +22,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
   const [title, setTitle] = useState("");
   const [start, setStart] = useState(defaultStartLocal(defaultDate));
   const [end, setEnd] = useState(defaultEndLocal(defaultDate));
-  const [guests, setGuests] = useState<string[]>([]);
+  const [guests, setGuests] = useState<GuestEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const inTg = !!getTelegram();
 
@@ -46,7 +46,7 @@ export function CreateBookingPage({ onBack, onCreated, defaultDate }: Props) {
         title: title.trim(),
         start_time: localInputToIso(start),
         end_time: localInputToIso(end),
-        guests,
+        guests: guests.map((g) => g.value),
       });
       hapticSuccess();
       onCreated();
