@@ -41,7 +41,8 @@ class BookingBotInfo(BaseModel):
     recurrence_until: Optional[date] = None
     recurrence_group_id: Optional[int] = None
     recurrence_days: Optional[list[int]] = None  # 0=Mon … 6=Sun
-
+    has_attachments: bool = False
+    
 class ApiClient:
     """Async client to backend API.
 

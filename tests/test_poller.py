@@ -998,3 +998,63 @@ async def test_first_poll_does_not_emit_decline() -> None:
         if "🚫" in c.args[1]
     ]
     assert decline_calls == []
+
+# ---------- Attachment indicator ----------
+
+
+async def test_attachment_block_appears_when_has_attachments() -> None:
+    """has_attachments=True → в DM и group сообщениях есть индикатор."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    b = make_booking(
+        id=1, telegram_id=999,
+        guests=[GuestInfo(name="Alice", telegram_id=555)],
+    )
+    b.has_attachments = True
+    p._api.bookings_since.return_value = [b]
+
+    await p._tick()
+
+    # Все 3 канала: owner DM (999), guest DM (555), group (-100)
+    for target in (999, 555, -100):
+        call = next(
+            c for c in bot.send_message.await_args_list if c.args[0] == target
+        )
+        text = call.args[1]
+        assert "📂" in text, f"target {target} missing attachment marker"
+        assert "corpmeet.uz" in text
+
+
+async def test_attachment_block_absent_by_default() -> None:
+    """has_attachments=False (дефолт) → индикатора нет."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    p._api.bookings_since.return_value = [
+        make_booking(id=1, telegram_id=999)
+    ]
+
+    await p._tick()
+
+    for call in bot.send_message.await_args_list:
+        text = call.args[1]
+        assert "📂" not in text, "attachment marker should not appear by default"
+
+
+async def test_attachment_block_in_reminder() -> None:
+    """Reminder тоже включает индикатор при has_attachments=True."""
+    p, bot = make_poller_with_mocked_api()
+    b = make_booking(
+        id=1, telegram_id=999,
+        guests=[GuestInfo(name="Alice", telegram_id=555)],
+    )
+    b.has_attachments = True
+    p._api.bookings_reminders.return_value = [b]
+
+    await p._tick()
+
+    owner_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 999
+    )
+    assert "📂" in owner_call.args[1]
+    guest_call = next(
+        c for c in bot.send_message.await_args_list if c.args[0] == 555
+    )
+    assert "📂" in guest_call.args[1]
