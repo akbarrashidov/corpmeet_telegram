@@ -117,7 +117,7 @@ def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
-    uz = f"✏️ «{b.title}» uchrashuvi ko'chirildi\nEndi: {time}"
+    uz = f"✏️ «{b.title}» uchrashuvi vaqti o'zgartirildi\nEndi: {time}"
     ru = f"✏️ Встреча «{b.title}» перенесена\nСтало: {time}"
     return _bilingual(uz, ru) + _footer(b)
 
@@ -131,7 +131,7 @@ def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
 
 def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
-    uz = f"⏰ 15 daqiqadan keyin: «{b.title}»\n{time}"
+    uz = f"⏰ 15 daqiqadan so'ng: «{b.title}»\n{time}"
     ru = f"⏰ Через 15 минут: «{b.title}»\n{time}"
     return _bilingual(uz, ru) + _footer(b)
 
@@ -151,7 +151,7 @@ def msg_new_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
 def msg_changed_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     organizer = b.user.display_name
-    uz = f"✏️ «{b.title}» uchrashuvi ko'chirildi\nEndi: {time}\n👤 {organizer}"
+    uz = f"✏️ «{b.title}» uchrashuvi vaqti o'zgartirildi\nEndi: {time}\n👤 {organizer}"
     ru = f"✏️ Встреча «{b.title}» перенесена\nСтало: {time}\n👤 {organizer}"
     return _bilingual(uz, ru) + _footer(b)
 
@@ -167,7 +167,7 @@ def msg_deleted_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
 def msg_reminder_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     organizer = b.user.display_name
-    uz = f"⏰ 15 daqiqadan keyin: «{b.title}»\n{time}\n👤 {organizer}"
+    uz = f"⏰ 15 daqiqadan so'ng: «{b.title}»\n{time}\n👤 {organizer}"
     ru = f"⏰ Через 15 минут: «{b.title}»\n{time}\n👤 {organizer}"
     return _bilingual(uz, ru) + _footer(b)
 
@@ -179,7 +179,7 @@ def msg_guest_declined(b: BookingBotInfo, declined: GuestInfo, tz: ZoneInfo) -> 
     """DM owner'у: гость X больше не сможет."""
     time = format_time_range(b, tz)
     uz = (
-        f"🚫 «{b.title}» — mehmon ishtirok eta olmaydi\n{time}\n"
+        f"🚫 «{b.title}» — ishtirokchilar ishtirok eta olmaydi\n{time}\n"
         f"🚫 {declined.name}"
     )
     ru = (
@@ -215,7 +215,7 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     time = format_time_range(b, tz)
     organizer = b.user.display_name
-    uz = f"✏️ «{b.title}» ko'chirildi\nEndi: {time}\n👤 {organizer}"
+    uz = f"✏️ «{b.title}» vaqti o'zgartirildi\nEndi: {time}\n👤 {organizer}"
     ru = f"✏️ «{b.title}» перенесена\nСтало: {time}\n👤 {organizer}"
     return _bilingual(uz, ru) + _footer(b)
 
