@@ -10,16 +10,24 @@ export function userFullName(user: Pick<User, "first_name" | "last_name">): stri
   return `${user.first_name} ${user.last_name}`;
 }
 
-/** Фильтр «встречи где я приглашён». Нечувствителен к лишним пробелам в guests.
+/** Фильтр «встречи где я приглашён».
+ *
+ * Гости теперь хранятся как `username` (фолбэк на `display_name`, если username
+ * отсутствует) — поэтому матчим по `user.username` ИЛИ по `userFullName(user)`.
+ * Сравнение case-insensitive с trim'ом.
  *
  * Для серийных встреч backend может хранить `guests` только на одной occurrence
- * (parent), а sibling'и приходят с пустым массивом. Поэтому собираем "эффективных
- * гостей" по `recurrence_group_id`: если хотя бы у одной occurrence группы
- * есть guests — считаем, что вся серия имеет тех же гостей.
+ * (parent), а sibling'и приходят с пустым массивом. Поэтому собираем
+ * "эффективных гостей" по `recurrence_group_id`: если хотя бы у одной
+ * occurrence группы есть guests — считаем, что вся серия имеет тех же гостей.
  */
-export function filterInvited(bookings: Booking[], user: Pick<User, "first_name" | "last_name">): Booking[] {
-  const fullName = userFullName(user);
-  if (!fullName) return [];
+export function filterInvited(
+  bookings: Booking[],
+  user: Pick<User, "first_name" | "last_name" | "username">,
+): Booking[] {
+  const fullName = userFullName(user)?.toLowerCase() ?? null;
+  const uname = user.username?.toLowerCase() ?? null;
+  if (!fullName && !uname) return [];
 
   const groupGuests = new Map<number, string[]>();
   for (const b of bookings) {
@@ -35,7 +43,10 @@ export function filterInvited(bookings: Booking[], user: Pick<User, "first_name"
       : b.recurrence_group_id !== null
         ? groupGuests.get(b.recurrence_group_id) ?? []
         : [];
-    return effective.some((g) => g.trim() === fullName);
+    return effective.some((g) => {
+      const s = g.trim().toLowerCase();
+      return (uname !== null && s === uname) || (fullName !== null && s === fullName);
+    });
   });
 }
 

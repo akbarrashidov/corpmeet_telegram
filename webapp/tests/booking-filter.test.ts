@@ -49,7 +49,7 @@ describe("userFullName", () => {
   });
 });
 
-describe("filterInvited", () => {
+describe("filterInvited — match by fullName (backward compat)", () => {
   const user = makeUser({ first_name: "Иван", last_name: "Иванов" });
 
   it("returns bookings where user's full name is in guests", () => {
@@ -57,8 +57,7 @@ describe("filterInvited", () => {
       makeBooking({ id: 1, guests: ["Иван Иванов", "Анна Петрова"] }),
       makeBooking({ id: 2, guests: ["Сидор Сидоров"] }),
     ];
-    const result = filterInvited(bookings, user);
-    expect(result.map((b) => b.id)).toEqual([1]);
+    expect(filterInvited(bookings, user).map((b) => b.id)).toEqual([1]);
   });
 
   it("trims whitespace in guest entries", () => {
@@ -66,44 +65,84 @@ describe("filterInvited", () => {
     expect(filterInvited(bookings, user)).toHaveLength(1);
   });
 
-  it("returns empty if user lacks first/last name", () => {
-    const incomplete = makeUser({ first_name: null });
-    expect(filterInvited([makeBooking({ guests: ["Anything"] })], incomplete)).toEqual([]);
+  it("matches case-insensitively", () => {
+    const bookings = [makeBooking({ id: 1, guests: ["иван иванов"] })];
+    expect(filterInvited(bookings, user)).toHaveLength(1);
   });
 
   it("doesn't match partial substrings", () => {
     const bookings = [makeBooking({ id: 1, guests: ["Иван Ивановский"] })];
     expect(filterInvited(bookings, user)).toEqual([]);
   });
+});
 
-  it("recurring: matches sibling occurrences when guests stored only on one", () => {
+describe("filterInvited — match by username (current backend behavior)", () => {
+  const user = makeUser({
+    first_name: "Sherzod",
+    last_name: "Tojiev",
+    username: "tmdvlpr",
+    display_name: "Sherzod Tojiev",
+  });
+
+  it("returns bookings where username is in guests", () => {
+    const bookings = [
+      makeBooking({ id: 1, guests: ["tmdvlpr"] }),
+      makeBooking({ id: 2, guests: ["other_user"] }),
+    ];
+    expect(filterInvited(bookings, user).map((b) => b.id)).toEqual([1]);
+  });
+
+  it("matches username case-insensitively", () => {
+    const bookings = [makeBooking({ id: 1, guests: ["TMDVLPR"] })];
+    expect(filterInvited(bookings, user)).toHaveLength(1);
+  });
+
+  it("trims whitespace around username", () => {
+    const bookings = [makeBooking({ id: 1, guests: ["  tmdvlpr  "] })];
+    expect(filterInvited(bookings, user)).toHaveLength(1);
+  });
+
+  it("recurring: matches sibling occurrences via group when guests stored as username", () => {
     const bookings = [
       makeBooking({
         id: 10,
-        recurrence: "daily",
+        recurrence: "custom",
         recurrence_group_id: 42,
-        guests: ["Иван Иванов"],
+        guests: ["tmdvlpr"],
       }),
       makeBooking({
         id: 11,
-        recurrence: "daily",
+        recurrence: "custom",
         recurrence_group_id: 42,
         guests: [],
         start_time: "2026-05-02T09:00:00+05:00",
       }),
       makeBooking({
         id: 12,
-        recurrence: "daily",
+        recurrence: "custom",
         recurrence_group_id: 42,
         guests: [],
         start_time: "2026-05-03T09:00:00+05:00",
       }),
     ];
-    const result = filterInvited(bookings, user);
-    expect(result.map((b) => b.id).sort()).toEqual([10, 11, 12]);
+    expect(filterInvited(bookings, user).map((b) => b.id).sort()).toEqual([10, 11, 12]);
+  });
+});
+
+describe("filterInvited — edge cases", () => {
+  it("returns empty if user has neither full name nor username", () => {
+    const incomplete = makeUser({ first_name: null, username: null });
+    expect(filterInvited([makeBooking({ guests: ["Anything"] })], incomplete)).toEqual([]);
+  });
+
+  it("matches by username even if user has no first/last name", () => {
+    const user = makeUser({ first_name: null, last_name: null, username: "tmdvlpr" });
+    const bookings = [makeBooking({ id: 1, guests: ["tmdvlpr"] })];
+    expect(filterInvited(bookings, user)).toHaveLength(1);
   });
 
   it("recurring: does not match other groups", () => {
+    const user = makeUser({ first_name: "Иван", last_name: "Иванов" });
     const bookings = [
       makeBooking({
         id: 20,
