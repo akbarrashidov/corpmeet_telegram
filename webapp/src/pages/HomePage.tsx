@@ -1,4 +1,5 @@
 import { useAuth, useBookings, type Booking } from "@corpmeet/design/complex";
+import { useQueryClient } from "@tanstack/react-query";
 import { HomeChips, type HomeTab } from "../components/HomeChips";
 import { DateStrip } from "../components/DateStrip";
 import { BookingsList } from "../components/BookingsList";
@@ -51,6 +52,11 @@ export function HomePage({
   const dayQuery = useBookings(selectedDate);
   const mineQuery = useMyBookings(user);
   const invitedQuery = useInvitedBookings(user);
+
+  // DEBUG: temporary diagnostic — remove after Bug B is confirmed
+  const queryClient = useQueryClient();
+  const rawActive = queryClient.getQueryData<Booking[]>(["bookings", "active"]);
+  const debugLine = `id=${user?.id ?? "∅"} u=${user?.username ?? "∅"} | raw=${rawActive?.length ?? "?"} mine=${mineQuery.data?.length ?? "?"} inv=${invitedQuery.data?.length ?? "?"}`;
 
   useTgBackButton(null);
 
@@ -128,6 +134,14 @@ export function HomePage({
           </button>
         </div>
       </header>
+
+      {/* DEBUG: temporary diagnostic */}
+      <p
+        className="text-xs font-mono px-2 py-1 rounded"
+        style={{ background: "#fee", color: "#900", border: "1px solid #f99" }}
+      >
+        {debugLine}
+      </p>
 
       <div>
         <p className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>
