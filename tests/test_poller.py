@@ -1058,3 +1058,50 @@ async def test_attachment_block_in_reminder() -> None:
         c for c in bot.send_message.await_args_list if c.args[0] == 555
     )
     assert "📂" in guest_call.args[1]
+
+
+# ---------- Warmup against double-notification after restart ----------
+
+
+async def test_warmup_populates_state_silently() -> None:
+    """warmup() заполняет _notified_state, но НЕ шлёт никаких уведомлений."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    existing = make_booking(id=1, telegram_id=999)
+    p._api.bookings_since.return_value = [existing]
+
+    await p.warmup()
+
+    assert 1 in p._notified_state
+    assert 1 in p._guests_state
+    bot.send_message.assert_not_awaited()
+
+
+async def test_no_new_notification_for_warmed_up_booking() -> None:
+    """После warmup повторный poll того же booking (например после mark_reminded)
+    не шлёт 'новая встреча' — start/end не менялись."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    existing = make_booking(id=1, telegram_id=999)
+
+    p._api.bookings_since.return_value = [existing]
+    await p.warmup()
+
+    # Симулируем что backend бампнул updated_at (mark_reminded effect)
+    p._api.bookings_since.return_value = [existing]
+    await p._tick()
+
+    bot.send_message.assert_not_awaited()
+
+
+async def test_warmup_preserves_series_dedup() -> None:
+    """warmup записывает recurrence_group_id в _notified_groups, чтобы после
+    рестарта sibling occurrence не считался первой в серии."""
+    p, bot = make_poller_with_mocked_api(group_id=-100)
+    sibling = make_booking(
+        id=1, telegram_id=999,
+        recurrence="daily", recurrence_group_id=42,
+    )
+    p._api.bookings_since.return_value = [sibling]
+
+    await p.warmup()
+
+    assert 42 in p._notified_groups
