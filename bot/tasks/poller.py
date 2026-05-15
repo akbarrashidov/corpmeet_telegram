@@ -250,11 +250,33 @@ class Poller:
 
     async def start(self) -> None:
         await self._api.__aenter__()
+        await self.warmup()
         self._task = asyncio.create_task(self._run(), name="bot-poller")
         logger.info(
             "Poller started (interval=%ss, group_id=%s)",
             POLL_INTERVAL, self._group_id,
         )
+
+    async def warmup(self) -> None:
+        """Подтягиваем все ранее известные upcoming bookings в dedup-состояние.
+
+        Без этого после рестарта поллера `_notified_state` пустой → любая
+        повторная активность бэка (особенно `mark_reminded`, который бампает
+        `updated_at`) воспринимается как новая встреча → юзер получает
+        двойное «📌 Новая встреча» в группу.
+        """
+        epoch = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        try:
+            bookings = await self._api.bookings_since(epoch)
+        except Exception:  # noqa: BLE001
+            logger.exception("Warmup fetch failed — будем работать без preload")
+            return
+        for b in bookings:
+            self._notified_state[b.id] = (b.start_time, b.end_time)
+            self._guests_state[b.id] = list(b.guests)
+            if b.recurrence != "none" and b.recurrence_group_id is not None:
+                self._notified_groups.add(b.recurrence_group_id)
+        logger.info("Warmup loaded %d bookings into dedup state", len(bookings))
 
     async def stop(self) -> None:
         if self._task is not None:
