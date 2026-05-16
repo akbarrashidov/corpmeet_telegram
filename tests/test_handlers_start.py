@@ -59,16 +59,19 @@ async def test_deep_link_calls_consume_session(monkeypatch: pytest.MonkeyPatch) 
         assert "подтверждён" in text.lower()
 
 
-async def test_deep_link_handles_410_with_friendly_message(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("status_code", [404, 410, 422, 500])
+async def test_deep_link_error_falls_back_to_welcome(
+    monkeypatch: pytest.MonkeyPatch, status_code: int
 ) -> None:
+    """Любая HTTP-ошибка consume_session → приветствие с кнопкой Mini App,
+    а не error-сообщение. Это улучшает UX новых пользователей."""
     setup_env(monkeypatch)
     msg = make_message()
     bot = make_bot()
 
     fake_response = MagicMock()
-    fake_response.status_code = 410
-    err = httpx.HTTPStatusError("expired", request=MagicMock(), response=fake_response)
+    fake_response.status_code = status_code
+    err = httpx.HTTPStatusError("err", request=MagicMock(), response=fake_response)
 
     with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
          patch("bot.handlers.start.ApiClient") as mock_cls:
@@ -78,10 +81,36 @@ async def test_deep_link_handles_410_with_friendly_message(
         mock_api.consume_session = AsyncMock(side_effect=err)
         mock_cls.return_value = mock_api
 
-        await cmd_start_deep_link(msg, make_command("expired-token"), bot)
+        await cmd_start_deep_link(msg, make_command("bad-token"), bot)
 
-        text = msg.answer.call_args.args[0]
-        assert "истекла" in text.lower() or "использована" in text.lower()
+        msg.answer.assert_awaited_once()
+        args, kwargs = msg.answer.call_args
+        assert "CorpMeet" in args[0]
+        assert kwargs.get("reply_markup") is not None  # welcome button attached
+
+
+async def test_deep_link_unexpected_error_falls_back_to_welcome(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Не-HTTP исключение (сетевая ошибка, etc) — тоже fallback на welcome."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
+         patch("bot.handlers.start.ApiClient") as mock_cls:
+        mock_api = MagicMock()
+        mock_api.__aenter__ = AsyncMock(return_value=mock_api)
+        mock_api.__aexit__ = AsyncMock(return_value=None)
+        mock_api.consume_session = AsyncMock(side_effect=RuntimeError("oops"))
+        mock_cls.return_value = mock_api
+
+        await cmd_start_deep_link(msg, make_command("any-token"), bot)
+
+        msg.answer.assert_awaited_once()
+        args, kwargs = msg.answer.call_args
+        assert "CorpMeet" in args[0]
+        assert kwargs.get("reply_markup") is not None
 
 
 async def test_deep_link_empty_token_does_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
