@@ -22,7 +22,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         script_stop: true
         script: |
-          cd /var/www/www-root/data/www/tg.corpmeet.uz
+          cd /var/www/www-root/data/www/tg-dev.corpmeet.uz
           git pull origin main
           docker compose build
           docker compose up -d --remove-orphans --force-recreate
