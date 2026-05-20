@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 DENY_MESSAGE = "Кажется, тебя нет в группе с доступом к переговорке."
-WELCOME_MESSAGE = "Привет! Я бот CorpMeet. Нажми кнопку, чтобы открыть приложение!"
+WELCOME_MESSAGE = "Привет! Я бот CorpMeet Dev. Нажми кнопку, чтобы открыть приложение."
 WELCOME_BUTTON = "Открыть CorpMeet"
 SESSION_OK_MESSAGE = "Вход подтверждён. Возвращайся в браузер — там уже всё!"
 
