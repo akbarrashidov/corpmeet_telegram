@@ -121,6 +121,44 @@ export const ru = {
   "bind.success_body": "Workspace «{name}» теперь привязан к этому чату.",
   "bind.no_workspace_title": "Нет workspace",
   "bind.no_workspace_body": "Тебе нужен workspace с ролью owner или admin, чтобы привязать к нему чат.",
+
+  // Onboarding
+  "onboarding.title": "Добро пожаловать в CorpMeet",
+  "onboarding.subtitle": "Чтобы начать — выбери одно из:",
+  "onboarding.create.title": "Создать пространство",
+  "onboarding.create.body": "Своя команда, свои переговорки, ты — owner",
+  "onboarding.join.title": "Войти по коду",
+  "onboarding.join.body": "Если коллега скинул invite-код",
+  "onboarding.search.title": "Найти по названию",
+  "onboarding.search.body": "Поиск пространства, заявка админам",
+
+  // Create workspace
+  "create_ws.title": "Новое пространство",
+  "create_ws.name.label": "Название",
+  "create_ws.name.placeholder": "Команда Альфа",
+  "create_ws.timezone.label": "Часовой пояс",
+  "create_ws.submit": "Создать",
+  "create_ws.error.name_required": "Введи название",
+  "create_ws.error.failed": "Не удалось создать. Попробуй ещё.",
+
+  // Join by code
+  "join_ws.title": "Войти по коду",
+  "join_ws.code.label": "Invite-код",
+  "join_ws.code.placeholder": "ABC12345",
+  "join_ws.submit": "Отправить заявку",
+  "join_ws.error.code_required": "Введи код",
+  "join_ws.error.failed": "Не удалось отправить. Попробуй ещё.",
+
+  // Search workspace
+  "search_ws.title": "Найти пространство",
+  "search_ws.placeholder": "Начни вводить название",
+  "search_ws.no_results": "Ничего не нашлось",
+  "search_ws.empty_query": "Введи хотя бы 1 символ",
+  "search_ws.submit": "Подать заявку",
+
+  // Submitted
+  "submitted.title": "Заявка отправлена",
+  "submitted.body": "Жди одобрения админов. Mini App уведомит когда вступишь.",
   
   // Common
   "common.close": "Закрыть",

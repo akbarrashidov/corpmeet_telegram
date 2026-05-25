@@ -5,6 +5,8 @@ import { LoadingScreen } from "./components/LoadingScreen";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
 import { BindChatScreen } from "./pages/BindChatScreen";
+import { OnboardingScreen } from "./pages/OnboardingScreen";
+import type { Workspace } from "@corpmeet/design/complex";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
 import { setLang as setI18nLang, useTranslation } from "./i18n";
@@ -14,6 +16,7 @@ const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 type Phase =
   | { kind: "init" }
   | { kind: "needs_registration"; alreadyAuthed: boolean; prefill: { firstName: string; lastName: string } }
+  | { kind: "needs_onboarding" }
   | { kind: "redirecting" }
   | { kind: "ready" }
   | { kind: "error"; error: string };
@@ -136,9 +139,19 @@ export default function App() {
     if (dev === "desktop") {
       setPhase({ kind: "redirecting" });
       await runDesktopRedirect();
-    } else {
-      setPhase({ kind: "ready" });
+      return;
     }
+    // Проверяем активные workspaces — если нет ни одного, идём в onboarding.
+    try {
+      const res = await apiClient.get<Workspace[]>("/api/v1/workspaces");
+      if (res.data.length === 0) {
+        setPhase({ kind: "needs_onboarding" });
+        return;
+      }
+    } catch {
+      // Если эндпоинт не отвечает — не блокируем юзера, идём в home
+    }
+    setPhase({ kind: "ready" });
   }
 
   async function runDesktopRedirect() {
@@ -182,6 +195,14 @@ export default function App() {
   const bindChat = parseBindChatParam();
   if (bindChat !== null) {
     return <BindChatScreen chatId={bindChat} />;
+  }
+
+  if (phase.kind === "needs_onboarding") {
+    return (
+      <OnboardingScreen
+        onComplete={() => setPhase({ kind: "ready" })}
+      />
+    );
   }
 
   return <HomeContainer />;
