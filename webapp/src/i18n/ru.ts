@@ -109,6 +109,19 @@ export const ru = {
   "month.november": "Ноябрь",
   "month.december": "Декабрь",
 
+  // Bind chat
+  "bind.title": "Привязать чат",
+  "bind.subtitle": "Выбери workspace, к которому привязать этот Telegram-чат. Уведомления о встречах будут приходить сюда.",
+  "bind.role.owner": "owner",
+  "bind.role.admin": "admin",
+  "bind.already_bound": "уже привязан",
+  "bind.submit": "Привязать",
+  "bind.error.failed": "Не удалось привязать. Попробуй ещё.",
+  "bind.success_title": "Готово",
+  "bind.success_body": "Workspace «{name}» теперь привязан к этому чату.",
+  "bind.no_workspace_title": "Нет workspace",
+  "bind.no_workspace_body": "Тебе нужен workspace с ролью owner или admin, чтобы привязать к нему чат.",
+  
   // Common
   "common.close": "Закрыть",
   "common.back": "Назад",
