@@ -11,3 +11,16 @@ declare module "@corpmeet/design/components" {
 
   export const DateTimePicker: FC<DateTimePickerProps>;
 }
+
+export type WorkspaceMemberRole = "owner" | "admin" | "member";
+
+export interface Workspace {
+  id: number;
+  name: string;
+  slug: string;
+  invite_code: string;
+  timezone: string;
+  telegram_chat_id: number | null;
+  created_at: string;
+  my_role: WorkspaceMemberRole | null;
+}
