@@ -1,6 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+function renderWithQuery(ui: React.ReactElement) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>
+  );
+}
+
+import React from "react";
 
 vi.mock("../src/hooks/useCurrentWorkspace", () => ({
   useCurrentWorkspace: vi.fn(),
@@ -51,8 +60,7 @@ describe("WorkspaceSelector", () => {
     render(<WorkspaceSelector />);
     expect(screen.getByText("Альфа Inc")).toBeInTheDocument();
   });
-
-  it("hides chevron when only 1 workspace", () => {
+  it("always shows chevron (clickable to create new)", () => {
     const ws = makeWs();
     vi.mocked(useCurrentWorkspace).mockReturnValue({
       current: ws,
@@ -61,7 +69,7 @@ describe("WorkspaceSelector", () => {
       isLoading: false,
     });
     render(<WorkspaceSelector />);
-    expect(screen.queryByText("▾")).not.toBeInTheDocument();
+    expect(screen.getByText("▾")).toBeInTheDocument();
   });
 
   it("shows chevron when 2+ workspaces", () => {
@@ -109,4 +117,20 @@ describe("WorkspaceSelector", () => {
     await user.click(screen.getByText("Бета"));   // pick Beta
     expect(selectWorkspace).toHaveBeenCalledWith(2);
   });
+  it("opens create form on '+ Создать новое' click", async () => {
+    const ws = makeWs();
+    vi.mocked(useCurrentWorkspace).mockReturnValue({
+      current: ws,
+      workspaces: [ws],
+      selectWorkspace: vi.fn(),
+      isLoading: false,
+    });
+    renderWithQuery(<WorkspaceSelector />);
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Альфа")); // open modal
+    await user.click(screen.getByRole("button", { name: /Создать новое/i }));
+    expect(screen.getByText("Новое пространство")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Команда Альфа/i)).toBeInTheDocument();
+  });
+
 });

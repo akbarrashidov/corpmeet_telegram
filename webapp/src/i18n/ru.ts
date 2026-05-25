@@ -164,6 +164,7 @@ export const ru = {
   // Workspace selector
   "ws_selector.title": "Выбрать пространство",
   "ws_selector.open": "Открыть выбор пространства",
+  "ws_selector.create_new": "Создать новое пространство",  
     
   // Common
   "common.close": "Закрыть",
