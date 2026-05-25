@@ -28,5 +28,3 @@ jobs:
           docker compose up -d --remove-orphans --force-recreate
           sleep 5
           docker compose ps
-
-
