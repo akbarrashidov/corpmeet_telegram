@@ -148,7 +148,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
 
   "ws_selector.title": "Makonni tanlash",
   "ws_selector.open": "Makon tanlovini ochish",
-
+  "ws_selector.create_new": "Yangi makon yaratish",
+  
   "common.close": "Yopish",
   "common.back": "Orqaga",
   "common.remove": "O'chirish",
