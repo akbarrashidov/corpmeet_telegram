@@ -12,6 +12,7 @@ import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
+import { WorkspaceSelector } from "../components/WorkspaceSelector";
 import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
 import { addDaysIso } from "../lib/datetime";
 
@@ -114,9 +115,11 @@ export function HomePage({
       className="min-h-screen p-4 flex flex-col gap-4 relative"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">{t("home.title")}</h1>
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <WorkspaceSelector />
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
           <LangToggle />
           <button
             type="button"
