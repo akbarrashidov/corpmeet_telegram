@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiClient, type Workspace } from "@corpmeet/design/complex";
 import { useWorkspaces } from "../hooks/useWorkspaces";
 import { useTranslation } from "../i18n";
+import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 
@@ -13,6 +14,7 @@ export function BindChatScreen({ chatId }: Props) {
   const { t } = useTranslation();
   const { data: workspaces, isLoading } = useWorkspaces();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [creatingMode, setCreatingMode] = useState(false);  
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Workspace | null>(null);
@@ -80,6 +82,19 @@ export function BindChatScreen({ chatId }: Props) {
     );
   }
 
+  if (creatingMode) {
+    return (
+      <div
+        className="min-h-screen p-6"
+        style={{ background: "var(--bg)", color: "var(--text)" }}
+      >
+        <CreateWorkspaceForm
+          onCreated={() => setCreatingMode(false)}
+        />
+      </div>
+    );
+  }
+
   if (adminable.length === 0) {
     return (
       <div
@@ -93,8 +108,16 @@ export function BindChatScreen({ chatId }: Props) {
         </p>
         <button
           type="button"
-          onClick={closeApp}
+          onClick={() => setCreatingMode(true)}
           className="mt-4 rounded-lg p-3 font-semibold w-full max-w-sm"
+          style={{ background: "var(--primary)", color: "white" }}
+        >
+          + {t("bind.create_workspace")}
+        </button>
+        <button
+          type="button"
+          onClick={closeApp}
+          className="rounded-lg p-3 font-medium w-full max-w-sm"
           style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" }}
         >
           {t("common.close")}

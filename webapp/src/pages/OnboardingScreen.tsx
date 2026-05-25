@@ -1,17 +1,15 @@
 import { useState } from "react";
 import { apiClient, type Workspace } from "@corpmeet/design/complex";
-import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "../i18n";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTgBackButton } from "../hooks/useTgBackButton";
+import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
 
 type Mode = "menu" | "create" | "join" | "search" | "submitted";
 
 interface Props {
   onComplete: () => void;
 }
-
-const TIMEZONES = ["Asia/Tashkent", "Europe/Moscow", "UTC"];
 
 const inputStyle = {
   background: "var(--input-bg)",
@@ -35,7 +33,17 @@ export function OnboardingScreen({ onComplete }: Props) {
   }
 
   if (mode === "menu") return <Menu onPick={(m) => { haptic(); setMode(m); }} />;
-  if (mode === "create") return <CreateForm onCreated={onComplete} />;
+  if (mode === "create") {
+    return (
+      <div
+        className="min-h-screen p-6"
+        style={{ background: "var(--bg)", color: "var(--text)" }}
+      >
+        <CreateWorkspaceForm onCreated={() => onComplete()} />
+      </div>
+    );
+  }
+
   if (mode === "join") return <JoinForm onSubmitted={showSubmitted} />;
   if (mode === "search") return <SearchForm onSubmitted={showSubmitted} />;
   return <Submitted />;
@@ -100,77 +108,6 @@ function OptionButton({
       <div className="font-semibold">{title}</div>
       <div className="text-sm" style={{ color: "var(--text-sec)" }}>{body}</div>
     </button>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Create
-// ────────────────────────────────────────────────────────────────────────────
-
-function CreateForm({ onCreated }: { onCreated: () => void }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const [timezone, setTimezone] = useState(TIMEZONES[0]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit() {
-    if (!name.trim()) {
-      hapticError();
-      setError(t("create_ws.error.name_required"));
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await apiClient.post<Workspace>("/api/v1/workspaces", {
-        name: name.trim(),
-        timezone,
-      });
-      await queryClient.invalidateQueries({ queryKey: ["workspaces", "mine"] });
-      hapticSuccess();
-      onCreated();
-    } catch {
-      hapticError();
-      setError(t("create_ws.error.failed"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <FormShell title={t("create_ws.title")}>
-      <Label text={t("create_ws.name.label")}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t("create_ws.name.placeholder")}
-          disabled={busy}
-          className="w-full rounded-lg p-3 outline-none"
-          style={inputStyle}
-        />
-      </Label>
-
-      <Label text={t("create_ws.timezone.label")}>
-        <select
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          disabled={busy}
-          className="w-full rounded-lg p-3 outline-none"
-          style={inputStyle}
-        >
-          {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
-        </select>
-      </Label>
-
-      {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
-
-      <PrimaryButton onClick={handleSubmit} disabled={busy}>
-        {busy ? "..." : t("create_ws.submit")}
-      </PrimaryButton>
-    </FormShell>
   );
 }
 

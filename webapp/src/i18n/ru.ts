@@ -121,6 +121,7 @@ export const ru = {
   "bind.success_body": "Workspace «{name}» теперь привязан к этому чату.",
   "bind.no_workspace_title": "Нет workspace",
   "bind.no_workspace_body": "Тебе нужен workspace с ролью owner или admin, чтобы привязать к нему чат.",
+  "bind.create_workspace": "Создать workspace",
 
   // Onboarding
   "onboarding.title": "Добро пожаловать в CorpMeet",
