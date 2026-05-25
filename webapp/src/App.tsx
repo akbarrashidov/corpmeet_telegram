@@ -4,6 +4,7 @@ import { apiClient, authApi, storage, type User } from "@corpmeet/design/complex
 import { LoadingScreen } from "./components/LoadingScreen";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
+import { BindChatScreen } from "./pages/BindChatScreen";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
 import { setLang as setI18nLang, useTranslation } from "./i18n";
@@ -178,5 +179,18 @@ export default function App() {
     );
   }
 
+  const bindChat = parseBindChatParam();
+  if (bindChat !== null) {
+    return <BindChatScreen chatId={bindChat} />;
+  }
+
   return <HomeContainer />;
+}
+
+function parseBindChatParam(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("bind_chat");
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
 }
