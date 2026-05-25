@@ -23,10 +23,10 @@ jobs:
         script_stop: true
         script: |
           cd /var/www/www-root/data/www/tg-dev.corpmeet.uz
-          git fetch origin
-          git reset --hard origin/main
+          git pull origin main
           docker compose build
           docker compose up -d --remove-orphans --force-recreate
           sleep 5
           docker compose ps
+
 
