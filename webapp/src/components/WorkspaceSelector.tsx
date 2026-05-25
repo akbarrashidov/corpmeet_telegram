@@ -1,0 +1,100 @@
+import { useState } from "react";
+import { useCurrentWorkspace } from "../hooks/useCurrentWorkspace";
+import { useTranslation } from "../i18n";
+import { haptic } from "../lib/haptic";
+
+export function WorkspaceSelector() {
+  const { t } = useTranslation();
+  const { current, workspaces, selectWorkspace } = useCurrentWorkspace();
+  const [open, setOpen] = useState(false);
+
+  if (current === null) return null;
+
+  function openModal() {
+    haptic();
+    setOpen(true);
+  }
+
+  function pick(id: number) {
+    haptic();
+    selectWorkspace(id);
+    setOpen(false);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={openModal}
+        className="font-heading text-2xl flex items-center gap-1.5 min-w-0"
+        aria-label={t("ws_selector.open")}
+      >
+        <span className="truncate">{current.name}</span>
+        {workspaces.length > 1 && (
+          <span className="text-sm opacity-70">▾</span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+          onClick={() => setOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-2xl p-4 w-full max-w-sm flex flex-col gap-2"
+            style={{
+              background: "var(--modal)",
+              color: "var(--text)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h2 className="font-semibold text-lg mb-1">
+              {t("ws_selector.title")}
+            </h2>
+            <ul className="flex flex-col gap-1">
+              {workspaces.map((w) => {
+                const isSelected = w.id === current.id;
+                return (
+                  <li key={w.id}>
+                    <button
+                      type="button"
+                      onClick={() => pick(w.id)}
+                      className="w-full text-left p-3 rounded-lg flex items-center justify-between gap-2"
+                      style={{
+                        background: isSelected
+                          ? "var(--primary-light)"
+                          : "var(--surface)",
+                        border: `1px solid ${
+                          isSelected ? "var(--primary)" : "var(--border)"
+                        }`,
+                      }}
+                    >
+                      <span className="truncate">{w.name}</span>
+                      {isSelected && <span>✓</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg p-2.5 font-medium mt-1"
+              style={{
+                background: "var(--surface)",
+                color: "var(--text)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              {t("common.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

@@ -160,7 +160,11 @@ export const ru = {
   // Submitted
   "submitted.title": "Заявка отправлена",
   "submitted.body": "Жди одобрения админов. Mini App уведомит когда вступишь.",
-  
+
+  // Workspace selector
+  "ws_selector.title": "Выбрать пространство",
+  "ws_selector.open": "Открыть выбор пространства",
+    
   // Common
   "common.close": "Закрыть",
   "common.back": "Назад",

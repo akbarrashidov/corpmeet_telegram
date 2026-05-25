@@ -18,6 +18,16 @@ vi.mock("../src/hooks/useMyBookings", () => ({
   useMyBookings: vi.fn(),
 }));
 
+vi.mock("../src/hooks/useCurrentWorkspace", () => ({
+  useCurrentWorkspace: vi.fn(() => ({
+    current: { id: 1, name: "Test WS", slug: "test", invite_code: "X", timezone: "UTC", telegram_chat_id: null, created_at: "", my_role: "owner" as const },
+    workspaces: [{ id: 1, name: "Test WS", slug: "test", invite_code: "X", timezone: "UTC", telegram_chat_id: null, created_at: "", my_role: "owner" as const }],
+    selectWorkspace: vi.fn(),
+    isLoading: false,
+  })),
+}));
+
+
 import { useAuth, useBookings } from "@corpmeet/design/complex";
 import { useInvitedBookings } from "../src/hooks/useInvitedBookings";
 import { useMyBookings } from "../src/hooks/useMyBookings";

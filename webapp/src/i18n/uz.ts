@@ -146,6 +146,9 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "submitted.title": "Ariza yuborildi",
   "submitted.body": "Adminlardan tasdiq kuting. Tasdiqlangach Mini App'da ko'rinasiz.",
 
+  "ws_selector.title": "Makonni tanlash",
+  "ws_selector.open": "Makon tanlovini ochish",
+
   "common.close": "Yopish",
   "common.back": "Orqaga",
   "common.remove": "O'chirish",
