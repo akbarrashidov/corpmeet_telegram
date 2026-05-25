@@ -20,6 +20,7 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
+        script_stop: true
         script: |
           cd /var/www/www-root/data/www/tg-dev.corpmeet.uz
           git fetch origin
@@ -28,3 +29,4 @@ jobs:
           docker compose up -d --remove-orphans --force-recreate
           sleep 5
           docker compose ps
+
