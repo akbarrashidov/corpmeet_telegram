@@ -112,6 +112,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "bind.success_body": "«{name}» workspace endi bu chatga bog'langan.",
   "bind.no_workspace_title": "Workspace yo'q",
   "bind.no_workspace_body": "Chatni bog'lash uchun owner yoki admin rolida workspace bo'lishi kerak.",
+  "bind.create_workspace": "Workspace yaratish",
   "onboarding.title": "CorpMeet'ga xush kelibsiz",
   "onboarding.subtitle": "Boshlash uchun birini tanlang:",
   "onboarding.create.title": "Yangi makon yaratish",
