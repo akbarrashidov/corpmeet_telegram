@@ -57,7 +57,7 @@ describe("OnboardingScreen — create", () => {
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 
-  it("POSTs and calls onComplete on success", async () => {
+  it("POST workspace → navigates to room creation step", async () => {
     vi.mocked(apiClient.post).mockResolvedValue({ data: { id: 1 } });
     const { onComplete } = renderScreen();
     const user = userEvent.setup();
@@ -71,11 +71,40 @@ describe("OnboardingScreen — create", () => {
         "/api/v1/workspaces",
         expect.objectContaining({ name: "My team", timezone: "Asia/Tashkent" }),
       );
+    });
+
+    // На втором шаге — форма создания комнаты, onComplete ещё не вызван
+    expect(await screen.findByText(/Создайте переговорную/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Переговорная/i)).toBeInTheDocument();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("POST workspace + POST room → calls onComplete", async () => {
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce({ data: { id: 42 } }) // workspace
+      .mockResolvedValueOnce({ data: { id: 7 } }); // room
+    const { onComplete } = renderScreen();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText(/Создать пространство/i));
+    await user.type(screen.getByPlaceholderText(/Команда Альфа/i), "Team B");
+    await user.click(screen.getByRole("button", { name: /Создать/i }));
+
+    // Дождаться появления экрана комнаты и ввести имя
+    await screen.findByText(/Создайте переговорную/i);
+    await user.type(screen.getByPlaceholderText(/Переговорная/i), "Main room");
+    await user.click(screen.getByRole("button", { name: /Создать/i }));
+
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenCalledWith(
+        "/api/v1/rooms",
+        expect.objectContaining({ name: "Main room", workspace_id: 42 }),
+      );
       expect(onComplete).toHaveBeenCalled();
     });
   });
 
-  it("shows error on API failure", async () => {
+  it("shows error on workspace API failure", async () => {
     vi.mocked(apiClient.post).mockRejectedValue(new Error("nope"));
     const { onComplete } = renderScreen();
     const user = userEvent.setup();

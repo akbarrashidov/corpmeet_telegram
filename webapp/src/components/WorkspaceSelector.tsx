@@ -1,26 +1,34 @@
 import { useState } from "react";
+import type { Workspace } from "@corpmeet/design/complex";
 import { useCurrentWorkspace } from "../hooks/useCurrentWorkspace";
 import { useTranslation } from "../i18n";
 import { haptic } from "../lib/haptic";
 import { CreateWorkspaceForm } from "./CreateWorkspaceForm";
+import { CreateRoomForm } from "./CreateRoomForm";
+
+type Mode = "list" | "creating_ws" | "creating_room";
 
 export function WorkspaceSelector() {
   const { t } = useTranslation();
   const { current, workspaces, selectWorkspace } = useCurrentWorkspace();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"list" | "creating">("list");
+  const [mode, setMode] = useState<Mode>("list");
+  // Workspace, созданный в `creating_ws` — нужен для следующего шага.
+  const [createdWs, setCreatedWs] = useState<Workspace | null>(null);
 
   if (current === null) return null;
 
   function openModal() {
     haptic();
     setMode("list");
+    setCreatedWs(null);
     setOpen(true);
   }
 
   function closeModal() {
     setOpen(false);
     setMode("list");
+    setCreatedWs(null);
   }
 
   function pick(id: number) {
@@ -92,7 +100,7 @@ export function WorkspaceSelector() {
                   type="button"
                   onClick={() => {
                     haptic();
-                    setMode("creating");
+                    setMode("creating_ws");
                   }}
                   className="rounded-lg p-3 font-semibold mt-1"
                   style={{
@@ -117,12 +125,13 @@ export function WorkspaceSelector() {
               </>
             )}
 
-            {mode === "creating" && (
+            {mode === "creating_ws" && (
               <>
                 <CreateWorkspaceForm
                   onCreated={(ws) => {
+                    setCreatedWs(ws);
                     selectWorkspace(ws.id);
-                    closeModal();
+                    setMode("creating_room");
                   }}
                 />
                 <button
@@ -138,6 +147,13 @@ export function WorkspaceSelector() {
                   {t("common.back")}
                 </button>
               </>
+            )}
+
+            {mode === "creating_room" && createdWs !== null && (
+              <CreateRoomForm
+                workspaceId={createdWs.id}
+                onCreated={closeModal}
+              />
             )}
           </div>
         </div>

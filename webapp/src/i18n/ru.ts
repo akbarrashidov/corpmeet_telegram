@@ -142,6 +142,15 @@ export const ru = {
   "create_ws.error.name_required": "Введи название",
   "create_ws.error.failed": "Не удалось создать. Попробуй ещё.",
 
+  // Create room
+  "create_room.title": "Создайте переговорную",
+  "create_room.subtitle": "Хотя бы одна нужна, чтобы бронировать. Позже можно добавить ещё в настройках.",
+  "create_room.name.label": "Название",
+  "create_room.name.placeholder": "Переговорная",
+  "create_room.submit": "Создать",
+  "create_room.error.name_required": "Введи название",
+  "create_room.error.failed": "Не удалось создать. Попробуй ещё.",
+
   // Join by code
   "join_ws.title": "Войти по коду",
   "join_ws.code.label": "Invite-код",

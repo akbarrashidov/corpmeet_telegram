@@ -130,6 +130,15 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "create_ws.error.name_required": "Nomini kiriting",
   "create_ws.error.failed": "Yaratilmadi. Qayta urinib ko'ring.",
 
+  // Create room
+  "create_room.title": "Xona yarating",
+  "create_room.subtitle": "Bron qilish uchun kamida bittasi kerak. Keyin sozlamalarda yana qo'shasiz.",
+  "create_room.name.label": "Nomi",
+  "create_room.name.placeholder": "Xona",
+  "create_room.submit": "Yaratish",
+  "create_room.error.name_required": "Nomini kiriting",
+  "create_room.error.failed": "Yaratilmadi. Qayta urinib ko'ring.",
+
   "join_ws.title": "Kod orqali kirish",
   "join_ws.code.label": "Invite-kod",
   "join_ws.code.placeholder": "ABC12345",
