@@ -151,3 +151,38 @@ export interface Workspace {
   my_role: WorkspaceMemberRole | null;
 }
 
+
+export type RoomJoinMode = "open" | "approval" | "closed";
+export type RoomVisibility = "full" | "busy_only";
+export type WorkspaceRoomRole = "owner" | "shared";
+
+export interface Room {
+  id: number;
+  name: string;
+  description: string | null;
+  invite_code: string | null;
+  join_mode: RoomJoinMode;
+  archived_at: string | null;
+  created_at: string;
+}
+
+export interface WorkspaceRoom {
+  id: number;
+  workspace_id: number;
+  room: Room;
+  role: WorkspaceRoomRole;
+  visibility: RoomVisibility;
+  created_at: string;
+}
+
+export interface RoomCreate {
+  name: string;
+  description?: string | null;
+  workspace_id: number;
+}
+
+export interface RoomUpdate {
+  name?: string;
+  description?: string | null;
+  join_mode?: RoomJoinMode;
+}
