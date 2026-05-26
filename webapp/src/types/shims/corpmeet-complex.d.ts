@@ -23,6 +23,7 @@ export interface Booking {
   recurrence_until: string | null;
   recurrence_group_id: number | null;
   recurrence_days: number[];
+  workspace_id?: number | null;
 }
 
 export interface BookingCreate {
