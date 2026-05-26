@@ -1,9 +1,10 @@
-import { useAuth, useBookings, type Booking } from "@corpmeet/design/complex";
+import { useAuth, type Booking } from "@corpmeet/design/complex";
 import { HomeChips, type HomeTab } from "../components/HomeChips";
 import { DateStrip } from "../components/DateStrip";
 import { BookingsList } from "../components/BookingsList";
 import { useInvitedBookings } from "../hooks/useInvitedBookings";
 import { useMyBookings } from "../hooks/useMyBookings";
+import { useDayBookings } from "../hooks/useDayBookings";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { todayIso } from "../lib/datetime";
@@ -49,7 +50,7 @@ export function HomePage({
   ];
   const monthIndex = parseInt(selectedDate.slice(5, 7), 10) - 1;
   const monthLabel = t(monthKeys[monthIndex]);
-  const dayQuery = useBookings(selectedDate);
+  const dayQuery = useDayBookings(selectedDate);
   const mineQuery = useMyBookings(user);
   const invitedQuery = useInvitedBookings(user);
 
