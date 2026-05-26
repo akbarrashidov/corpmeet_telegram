@@ -4,8 +4,10 @@ import { useTranslation } from "../i18n";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
+import { CreateRoomForm } from "../components/CreateRoomForm";
+import { setCurrentWorkspaceId } from "../lib/currentWorkspace";
 
-type Mode = "menu" | "create" | "join" | "search" | "submitted";
+type Mode = "menu" | "create" | "create_room" | "join" | "search" | "submitted";
 
 interface Props {
   onComplete: () => void;
@@ -19,27 +21,58 @@ const inputStyle = {
 
 export function OnboardingScreen({ onComplete }: Props) {
   const [mode, setMode] = useState<Mode>("menu");
+  // workspace, созданный на шаге `create` — нужен для последующего create_room.
+  const [createdWs, setCreatedWs] = useState<Workspace | null>(null);
 
   function backToMenu() {
     haptic();
     setMode("menu");
+    setCreatedWs(null);
   }
 
-  useTgBackButton(mode === "menu" || mode === "submitted" ? null : backToMenu);
+  // На шаге create_room — Назад не возвращает в меню (workspace уже создан,
+  // нельзя его отменить). Просто блокируем.
+  useTgBackButton(
+    mode === "menu" || mode === "submitted" || mode === "create_room"
+      ? null
+      : backToMenu,
+  );
 
   function showSubmitted() {
     hapticSuccess();
     setMode("submitted");
   }
 
-  if (mode === "menu") return <Menu onPick={(m) => { haptic(); setMode(m); }} />;
+  if (mode === "menu")
+    return <Menu onPick={(m) => { haptic(); setMode(m as Exclude<Mode, "menu" | "submitted" | "create_room">); }} />;
+
   if (mode === "create") {
     return (
       <div
         className="min-h-screen p-6"
         style={{ background: "var(--bg)", color: "var(--text)" }}
       >
-        <CreateWorkspaceForm onCreated={() => onComplete()} />
+        <CreateWorkspaceForm
+          onCreated={(ws) => {
+            setCreatedWs(ws);
+            setCurrentWorkspaceId(ws.id);
+            setMode("create_room");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (mode === "create_room" && createdWs !== null) {
+    return (
+      <div
+        className="min-h-screen p-6"
+        style={{ background: "var(--bg)", color: "var(--text)" }}
+      >
+        <CreateRoomForm
+          workspaceId={createdWs.id}
+          onCreated={() => onComplete()}
+        />
       </div>
     );
   }
@@ -49,11 +82,12 @@ export function OnboardingScreen({ onComplete }: Props) {
   return <Submitted />;
 }
 
+
 // ────────────────────────────────────────────────────────────────────────────
 // Menu
 // ────────────────────────────────────────────────────────────────────────────
 
-function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "submitted">) => void }) {
+function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "submitted" | "create_room">) => void }) {
   const { t } = useTranslation();
   return (
     <div
