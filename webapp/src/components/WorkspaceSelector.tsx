@@ -8,7 +8,11 @@ import { CreateRoomForm } from "./CreateRoomForm";
 
 type Mode = "list" | "creating_ws" | "creating_room";
 
-export function WorkspaceSelector() {
+interface Props {
+  onOpenSettings: (workspaceId: number) => void;
+}
+
+export function WorkspaceSelector({ onOpenSettings }: Props) {
   const { t } = useTranslation();
   const { current, workspaces, selectWorkspace } = useCurrentWorkspace();
   const [open, setOpen] = useState(false);
@@ -72,29 +76,47 @@ export function WorkspaceSelector() {
                   {t("ws_selector.title")}
                 </h2>
                 <ul className="flex flex-col gap-1">
-                  {workspaces.map((w) => {
-                    const isSelected = w.id === current.id;
-                    return (
-                      <li key={w.id}>
-                        <button
-                          type="button"
-                          onClick={() => pick(w.id)}
-                          className="w-full text-left p-3 rounded-lg flex items-center justify-between gap-2"
-                          style={{
-                            background: isSelected
-                              ? "var(--primary-light)"
-                              : "var(--surface)",
-                            border: `1px solid ${
-                              isSelected ? "var(--primary)" : "var(--border)"
-                            }`,
-                          }}
-                        >
-                          <span className="truncate">{w.name}</span>
-                          {isSelected && <span>✓</span>}
-                        </button>
-                      </li>
-                    );
-                  })}
+                {workspaces.map((w) => {
+                  const isSelected = w.id === current.id;
+                  return (
+                    <li key={w.id} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => pick(w.id)}
+                        className="flex-1 text-left p-3 rounded-lg flex items-center justify-between gap-2 min-w-0"
+                        style={{
+                          background: isSelected
+                            ? "var(--primary-light)"
+                            : "var(--surface)",
+                          border: `1px solid ${
+                            isSelected ? "var(--primary)" : "var(--border)"
+                          }`,
+                        }}
+                      >
+                        <span className="truncate">{w.name}</span>
+                        {isSelected && <span>✓</span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          haptic();
+                          selectWorkspace(w.id);
+                          setOpen(false);
+                          onOpenSettings(w.id);
+                        }}
+                        aria-label={t("ws_selector.settings_aria", { name: w.name })}
+                        className="p-3 rounded-lg flex-shrink-0"
+                        style={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          color: "var(--text)",
+                        }}
+                      >
+                        ⚙️
+                      </button>
+                    </li>
+                  );
+                })}
                 </ul>
                 <button
                   type="button"

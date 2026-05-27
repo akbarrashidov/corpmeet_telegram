@@ -85,6 +85,7 @@ export const apiClient: {
   get<T>(url: string, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
   post<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
   patch<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
+  delete<T = unknown>(url: string, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
 };
 
 export const storage: {
