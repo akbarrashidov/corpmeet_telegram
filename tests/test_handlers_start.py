@@ -154,3 +154,67 @@ async def test_start_shows_button_for_member(monkeypatch: pytest.MonkeyPatch) ->
     args, kwargs = msg.answer.call_args
     assert "CorpMeet" in args[0]
     assert kwargs.get("reply_markup") is not None
+
+# ---------- cmd_start_deep_link — bind_<chat_id> branch ----------
+
+async def test_deep_link_bind_sends_webapp_button_with_chat_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/start bind_-100777` → DM с WebApp кнопкой, в тексте название группы."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+    chat = MagicMock()
+    chat.title = "Команда Альфа"
+    bot.get_chat = AsyncMock(return_value=chat)
+
+    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
+        await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
+
+    # consume_session НЕ вызывался
+    msg.answer.assert_called_once()
+    text, = msg.answer.call_args.args
+    assert "Команда Альфа" in text
+    keyboard = msg.answer.call_args.kwargs["reply_markup"]
+    button = keyboard.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert "bind_chat=-100777" in button.web_app.url
+
+
+
+async def test_deep_link_bind_fallback_title_when_get_chat_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Если бот не в чате (TelegramForbiddenError) — используем «групповой чат»."""
+    from aiogram.exceptions import TelegramForbiddenError
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+    bot.get_chat = AsyncMock(
+        side_effect=TelegramForbiddenError(method=MagicMock(), message="not a member"),
+    )
+
+    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
+        await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
+
+    msg.answer.assert_called_once()
+    text = msg.answer.call_args.args[0]
+    assert "групповой чат" in text
+    keyboard = msg.answer.call_args.kwargs["reply_markup"]
+    assert "bind_chat=-100777" in keyboard.inline_keyboard[0][0].web_app.url
+
+
+async def test_deep_link_bind_invalid_chat_id_falls_back_to_welcome(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`bind_abc` (не число после префикса) → welcome, не падаем."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+
+    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
+        await cmd_start_deep_link(msg, make_command("bind_abc"), bot)
+
+    msg.answer.assert_called_once()
+    text = msg.answer.call_args.args[0]
+    assert "CorpMeet" in text  # welcome message
