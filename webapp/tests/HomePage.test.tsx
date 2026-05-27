@@ -55,6 +55,7 @@ function HomePageWrapper({
       onCreate={onCreate}
       onSelect={onSelect}
       onProfile={onProfile}
+      onOpenSettings={() => {}}
     />
   );
 }

@@ -151,6 +151,24 @@ export const ru = {
   "create_room.error.name_required": "Введи название",
   "create_room.error.failed": "Не удалось создать. Попробуй ещё.",
 
+  // Workspace settings + rooms section
+  "ws_settings.title": "Настройки пространства",
+  "ws_settings.section.general": "Общее",
+  "ws_settings.section.members": "Участники",
+  "ws_settings.section.rooms": "Переговорные",
+  "ws_settings.section.telegram": "Telegram-чат",
+  "ws_settings.placeholder.coming_soon": "Скоро",
+  "rooms_section.title": "Переговорные",
+  "rooms_section.empty": "Пока нет ни одной переговорной — создайте первую.",
+  "rooms_section.shared_badge": "Поделились с вами",
+  "rooms_section.create": "Создать переговорную",
+  "rooms_section.archive": "Архивировать",
+  "rooms_section.archive_aria": "Архивировать «{name}»",
+  "rooms_section.confirm.title": "Архивировать «{name}»?",
+  "rooms_section.confirm.body": "Комната пропадёт из списка. Бронирования сохранятся.",
+  "rooms_section.confirm.last_room_warning": "Это последняя переговорная в пространстве. После архивации нельзя будет создать новые бронирования, пока не появится хотя бы одна комната.",
+  "rooms_section.confirm.confirm": "Архивировать",
+
   // Join by code
   "join_ws.title": "Войти по коду",
   "join_ws.code.label": "Invite-код",
@@ -174,7 +192,8 @@ export const ru = {
   "ws_selector.title": "Выбрать пространство",
   "ws_selector.open": "Открыть выбор пространства",
   "ws_selector.create_new": "Создать новое пространство",  
-    
+  "ws_selector.settings_aria": "Настройки «{name}»",
+      
   // Common
   "common.close": "Закрыть",
   "common.back": "Назад",

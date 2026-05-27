@@ -21,7 +21,7 @@ function makeRoom(over: Partial<Room> = {}): Room {
   };
 }
 
-function makeWR(over: Partial<WorkspaceRoom> & { room?: Partial<Room> } = {}): WorkspaceRoom {
+function makeWR(over: Omit<Partial<WorkspaceRoom>, "room"> & { room?: Partial<Room> } = {}): WorkspaceRoom {
   const { room: roomOver, ...rest } = over;
   return {
     id: 100,

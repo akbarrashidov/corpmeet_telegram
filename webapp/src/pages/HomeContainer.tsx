@@ -5,6 +5,7 @@ import { CreateBookingPage } from "./CreateBookingPage";
 import { BookingDetailPage } from "./BookingDetailPage";
 import { ReschedulePage } from "./ReschedulePage";
 import { ProfileScreen } from "./ProfileScreen";
+import { WorkspaceSettingsScreen } from "./WorkspaceSettingsScreen";
 import type { HomeTab } from "../components/HomeChips";
 import { todayIso } from "../lib/datetime";
 
@@ -18,7 +19,8 @@ type View =
       booking: Booking;
       defaultStart: string;
       defaultEnd: string;
-    };
+    }
+  | { kind: "workspace_settings"; workspaceId: number };
 
 export function HomeContainer() {
   const [view, setView] = useState<View>({ kind: "list" });
@@ -35,6 +37,9 @@ export function HomeContainer() {
         onCreate={() => setView({ kind: "create" })}
         onSelect={(b) => setView({ kind: "detail", booking: b })}
         onProfile={() => setView({ kind: "profile" })}
+        onOpenSettings={(workspaceId) =>
+          setView({ kind: "workspace_settings", workspaceId })
+        }
       />
     );
   }
@@ -52,6 +57,14 @@ export function HomeContainer() {
       <ProfileScreen
         onBack={() => setView({ kind: "list" })}
         onSaved={() => setView({ kind: "list" })}
+      />
+    );
+  }
+  if (view.kind === "workspace_settings") {
+    return (
+      <WorkspaceSettingsScreen
+        workspaceId={view.workspaceId}
+        onBack={() => setView({ kind: "list" })}
       />
     );
   }

@@ -25,6 +25,7 @@ interface Props {
   onCreate: () => void;
   onSelect: (booking: Booking) => void;
   onProfile: () => void;
+  onOpenSettings: (workspaceId: number) => void;
 }
 
 export function HomePage({
@@ -35,6 +36,7 @@ export function HomePage({
   onCreate,
   onSelect,
   onProfile,
+  onOpenSettings,
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -118,7 +120,7 @@ export function HomePage({
     >
       <header className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <WorkspaceSelector />
+        <WorkspaceSelector onOpenSettings={onOpenSettings} />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <LangToggle />

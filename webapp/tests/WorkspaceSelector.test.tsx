@@ -45,7 +45,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    const { container } = render(<WorkspaceSelector />);
+    const { container } = render(<WorkspaceSelector onOpenSettings={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -57,7 +57,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    render(<WorkspaceSelector />);
+    render(<WorkspaceSelector onOpenSettings={() => {}} />);
     expect(screen.getByText("Альфа Inc")).toBeInTheDocument();
   });
   it("always shows chevron (clickable to create new)", () => {
@@ -68,7 +68,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    render(<WorkspaceSelector />);
+    render(<WorkspaceSelector onOpenSettings={() => {}} />);
     expect(screen.getByText("▾")).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    render(<WorkspaceSelector />);
+    render(<WorkspaceSelector onOpenSettings={() => {}} />);
     expect(screen.getByText("▾")).toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    render(<WorkspaceSelector />);
+    render(<WorkspaceSelector onOpenSettings={() => {}} />);
     await userEvent.setup().click(screen.getByText("Альфа"));
     expect(screen.getByText(/Выбрать пространство/i)).toBeInTheDocument();
     // Бета — в списке модалки
@@ -111,7 +111,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace,
       isLoading: false,
     });
-    render(<WorkspaceSelector />);
+    render(<WorkspaceSelector onOpenSettings={() => {}} />);
     const user = userEvent.setup();
     await user.click(screen.getByText("Альфа")); // open modal
     await user.click(screen.getByText("Бета"));   // pick Beta
@@ -125,7 +125,7 @@ describe("WorkspaceSelector", () => {
       selectWorkspace: vi.fn(),
       isLoading: false,
     });
-    renderWithQuery(<WorkspaceSelector />);
+    renderWithQuery(<WorkspaceSelector onOpenSettings={() => {}} />);
     const user = userEvent.setup();
     await user.click(screen.getByText("Альфа")); // open modal
     await user.click(screen.getByRole("button", { name: /Создать новое/i }));

@@ -139,6 +139,24 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "create_room.error.name_required": "Nomini kiriting",
   "create_room.error.failed": "Yaratilmadi. Qayta urinib ko'ring.",
 
+  // Workspace settings + rooms section
+  "ws_settings.title": "Makon sozlamalari",
+  "ws_settings.section.general": "Umumiy",
+  "ws_settings.section.members": "Ishtirokchilar",
+  "ws_settings.section.rooms": "Xonalar",
+  "ws_settings.section.telegram": "Telegram-chat",
+  "ws_settings.placeholder.coming_soon": "Tez orada",
+  "rooms_section.title": "Xonalar",
+  "rooms_section.empty": "Hozircha xonalar yo'q — birinchisini yarating.",
+  "rooms_section.shared_badge": "Siz bilan baham ko'rildi",
+  "rooms_section.create": "Xona yaratish",
+  "rooms_section.archive": "Arxivlash",
+  "rooms_section.archive_aria": "«{name}» xonasini arxivlash",
+  "rooms_section.confirm.title": "«{name}» xonasini arxivlash?",
+  "rooms_section.confirm.body": "Xona ro'yxatdan yo'qoladi. Mavjud bronlar saqlanadi.",
+  "rooms_section.confirm.last_room_warning": "Bu pespacedagi oxirgi xona. Arxivdan keyin yangi xona yaratilmaguncha bron qilish mumkin emas.",
+  "rooms_section.confirm.confirm": "Arxivlash",
+
   "join_ws.title": "Kod orqali kirish",
   "join_ws.code.label": "Invite-kod",
   "join_ws.code.placeholder": "ABC12345",
@@ -158,7 +176,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "ws_selector.title": "Makonni tanlash",
   "ws_selector.open": "Makon tanlovini ochish",
   "ws_selector.create_new": "Yangi makon yaratish",
-  
+  "ws_selector.settings_aria": "«{name}» sozlamalari",
+
   "common.close": "Yopish",
   "common.back": "Orqaga",
   "common.remove": "O'chirish",
