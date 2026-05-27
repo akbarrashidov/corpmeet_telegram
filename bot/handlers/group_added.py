@@ -1,17 +1,16 @@
 """Handler for bot being added to a group: notify inviter with bind-chat WebApp button."""
 import logging
-from urllib.parse import urlencode
 
 from aiogram import Bot, F, Router
 from aiogram.filters import JOIN_TRANSITION, ChatMemberUpdatedFilter
-from aiogram.types import (
-    ChatMemberUpdated,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    WebAppInfo,
-)
+from aiogram.types import ChatMemberUpdated
 
 from bot.config import get_settings
+from bot.services.bind_helpers import (
+    DM_GREETING_TEMPLATE,
+    build_bind_webapp_keyboard,
+    build_group_fallback_keyboard,
+)
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -23,29 +22,10 @@ GROUP_HELLO = (
     "чтобы он проверил личку со мной."
 )
 
-DM_GREETING_TEMPLATE = (
-    "Меня добавили в чат «{group_title}».\n\n"
-    "Чтобы привязать его к твоему рабочему пространству — нажми кнопку ниже."
-)
-
-DM_BUTTON_TEXT = "Привязать чат"
-
-# Fallback в группу — на случай, если ЛС с user'ом недоступна
-GROUP_FALLBACK_TEMPLATE = (
+GROUP_FALLBACK_HEADER_TEMPLATE = (
     "{user_mention}, я не смог написать тебе в личку. "
-    "Открой меня в боте (нажми /start), затем добавь меня в этот чат заново."
+    "Открой кнопку ниже, чтобы привязать этот чат."
 )
-
-
-def _build_webapp_button(chat_id: int) -> InlineKeyboardMarkup:
-    settings = get_settings()
-    webapp_url = str(settings.webapp_url).rstrip("/")
-    url = f"{webapp_url}/?{urlencode({'bind_chat': chat_id})}"
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=DM_BUTTON_TEXT, web_app=WebAppInfo(url=url))]
-        ]
-    )
 
 
 @router.my_chat_member(
@@ -54,13 +34,20 @@ def _build_webapp_button(chat_id: int) -> InlineKeyboardMarkup:
 )
 async def on_added_to_group(event: ChatMemberUpdated, bot: Bot) -> None:
     """Bot был добавлен в группу/supergroup. Отправляем DM пригласившему
-    с WebApp-кнопкой для привязки чата к workspace."""
+    с WebApp-кнопкой для привязки чата к workspace.
+
+    Если DM не доходит (юзер не /start'нул бота) — кладём в группу
+    fallback-сообщение с URL-кнопкой на deep-link `t.me/<bot>?start=bind_<chat_id>`.
+    Юзер тапает → попадает в DM с бот → жмёт START → бот ловит param
+    и отправляет WebApp кнопку (см. handlers/start.py).
+    """
+    settings = get_settings()
     chat_id = event.chat.id
     group_title = event.chat.title or "групповой чат"
     inviter = event.from_user
     inviter_id = inviter.id if inviter else None
 
-    keyboard = _build_webapp_button(chat_id)
+    webapp_keyboard = build_bind_webapp_keyboard(settings, chat_id)
 
     # 1) Личный DM пригласившему
     dm_sent = False
@@ -69,7 +56,7 @@ async def on_added_to_group(event: ChatMemberUpdated, bot: Bot) -> None:
             await bot.send_message(
                 inviter_id,
                 DM_GREETING_TEMPLATE.format(group_title=group_title),
-                reply_markup=keyboard,
+                reply_markup=webapp_keyboard,
             )
             dm_sent = True
             logger.info(
@@ -91,7 +78,8 @@ async def on_added_to_group(event: ChatMemberUpdated, bot: Bot) -> None:
             )
             await bot.send_message(
                 chat_id,
-                GROUP_FALLBACK_TEMPLATE.format(user_mention=mention),
+                GROUP_FALLBACK_HEADER_TEMPLATE.format(user_mention=mention),
+                reply_markup=build_group_fallback_keyboard(settings, chat_id),
             )
     except Exception:  # noqa: BLE001
         logger.exception("Failed to post hello message to group %s", chat_id)
