@@ -3,6 +3,7 @@ import { apiClient, type Workspace } from "@corpmeet/design/complex";
 import { useWorkspaces } from "../hooks/useWorkspaces";
 import { useTranslation } from "../i18n";
 import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
+import { CreateRoomForm } from "../components/CreateRoomForm";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 
@@ -14,7 +15,10 @@ export function BindChatScreen({ chatId }: Props) {
   const { t } = useTranslation();
   const { data: workspaces, isLoading } = useWorkspaces();
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [creatingMode, setCreatingMode] = useState(false);  
+  const [creatingMode, setCreatingMode] = useState(false);
+  // Workspace, созданный в режиме `creatingMode` — переключает форму на
+  // создание первой комнаты (тот же flow что Onboarding/WorkspaceSelector).
+  const [createdWs, setCreatedWs] = useState<Workspace | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Workspace | null>(null);
@@ -88,9 +92,22 @@ export function BindChatScreen({ chatId }: Props) {
         className="min-h-screen p-6"
         style={{ background: "var(--bg)", color: "var(--text)" }}
       >
-        <CreateWorkspaceForm
-          onCreated={() => setCreatingMode(false)}
-        />
+        {createdWs === null ? (
+          <CreateWorkspaceForm
+            onCreated={(ws) => setCreatedWs(ws)}
+          />
+        ) : (
+          <CreateRoomForm
+            workspaceId={createdWs.id}
+            onCreated={() => {
+              // После создания комнаты возвращаемся в список workspace'ов
+              // и пред-выбираем только что созданный — юзер тапает «привязать».
+              setSelectedId(createdWs.id);
+              setCreatingMode(false);
+              setCreatedWs(null);
+            }}
+          />
+        )}
       </div>
     );
   }
