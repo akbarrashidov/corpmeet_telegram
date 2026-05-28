@@ -1,4 +1,4 @@
-"""Tests for bot.handlers.start (deep-link QR flow + plain start + access gate)."""
+"""Tests for bot.handlers.start (deep-link QR flow + plain start)."""
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -41,8 +41,7 @@ async def test_deep_link_calls_consume_session(monkeypatch: pytest.MonkeyPatch) 
     msg = make_message(user_id=999)
     bot = make_bot()
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
-         patch("bot.handlers.start.ApiClient") as mock_cls:
+    with patch("bot.handlers.start.ApiClient") as mock_cls:
         mock_api = MagicMock()
         mock_api.__aenter__ = AsyncMock(return_value=mock_api)
         mock_api.__aexit__ = AsyncMock(return_value=None)
@@ -73,8 +72,7 @@ async def test_deep_link_error_falls_back_to_welcome(
     fake_response.status_code = status_code
     err = httpx.HTTPStatusError("err", request=MagicMock(), response=fake_response)
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
-         patch("bot.handlers.start.ApiClient") as mock_cls:
+    with patch("bot.handlers.start.ApiClient") as mock_cls:
         mock_api = MagicMock()
         mock_api.__aenter__ = AsyncMock(return_value=mock_api)
         mock_api.__aexit__ = AsyncMock(return_value=None)
@@ -97,8 +95,7 @@ async def test_deep_link_unexpected_error_falls_back_to_welcome(
     msg = make_message()
     bot = make_bot()
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)), \
-         patch("bot.handlers.start.ApiClient") as mock_cls:
+    with patch("bot.handlers.start.ApiClient") as mock_cls:
         mock_api = MagicMock()
         mock_api.__aenter__ = AsyncMock(return_value=mock_api)
         mock_api.__aexit__ = AsyncMock(return_value=None)
@@ -125,35 +122,20 @@ async def test_deep_link_empty_token_does_nothing(monkeypatch: pytest.MonkeyPatc
         msg.answer.assert_not_awaited()
 
 
-async def test_deep_link_denies_non_member(monkeypatch: pytest.MonkeyPatch) -> None:
-    setup_env(monkeypatch)
-    msg = make_message()
-    bot = make_bot()
-
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=False)), \
-         patch("bot.handlers.start.ApiClient") as mock_cls:
-        await cmd_start_deep_link(msg, make_command("any-token"), bot)
-
-        mock_cls.assert_not_called()
-        msg.answer.assert_awaited_once()
-        text = msg.answer.call_args.args[0]
-        assert "нет в группе" in text.lower()
-
-
 # ---------- cmd_start ----------
 
-async def test_start_shows_button_for_member(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_start_shows_button(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_env(monkeypatch)
     msg = make_message()
     bot = make_bot()
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
-        await cmd_start(msg, bot)
+    await cmd_start(msg, bot)
 
     msg.answer.assert_awaited_once()
     args, kwargs = msg.answer.call_args
     assert "CorpMeet" in args[0]
     assert kwargs.get("reply_markup") is not None
+
 
 # ---------- cmd_start_deep_link — bind_<chat_id> branch ----------
 
@@ -168,8 +150,7 @@ async def test_deep_link_bind_sends_webapp_button_with_chat_title(
     chat.title = "Команда Альфа"
     bot.get_chat = AsyncMock(return_value=chat)
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
-        await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
+    await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
 
     # consume_session НЕ вызывался
     msg.answer.assert_called_once()
@@ -179,7 +160,6 @@ async def test_deep_link_bind_sends_webapp_button_with_chat_title(
     button = keyboard.inline_keyboard[0][0]
     assert button.web_app is not None
     assert "bind_chat=-100777" in button.web_app.url
-
 
 
 async def test_deep_link_bind_fallback_title_when_get_chat_fails(
@@ -194,8 +174,7 @@ async def test_deep_link_bind_fallback_title_when_get_chat_fails(
         side_effect=TelegramForbiddenError(method=MagicMock(), message="not a member"),
     )
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
-        await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
+    await cmd_start_deep_link(msg, make_command("bind_-100777"), bot)
 
     msg.answer.assert_called_once()
     text = msg.answer.call_args.args[0]
@@ -212,8 +191,7 @@ async def test_deep_link_bind_invalid_chat_id_falls_back_to_welcome(
     msg = make_message(user_id=999)
     bot = make_bot()
 
-    with patch("bot.handlers.start._has_access", AsyncMock(return_value=True)):
-        await cmd_start_deep_link(msg, make_command("bind_abc"), bot)
+    await cmd_start_deep_link(msg, make_command("bind_abc"), bot)
 
     msg.answer.assert_called_once()
     text = msg.answer.call_args.args[0]

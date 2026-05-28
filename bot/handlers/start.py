@@ -19,22 +19,13 @@ from bot.services.bind_helpers import (
     DM_GREETING_TEMPLATE,
     build_bind_webapp_keyboard,
 )
-from bot.services.membership import is_group_member
 
 logger = logging.getLogger(__name__)
 router = Router()
 
-DENY_MESSAGE = "Кажется, тебя нет в группе с доступом к переговорке."
 WELCOME_MESSAGE = "Привет! Я бот CorpMeetDev. Нажми кнопку, чтобы открыть приложение!"
 WELCOME_BUTTON = "Открыть CorpMeet"
 SESSION_OK_MESSAGE = "Вход подтверждён. Возвращайся в браузер — там уже всё!"
-
-
-async def _has_access(bot: Bot, settings: Settings, user_id: int) -> bool:
-    """Группа-гейт. Если GROUP_ID не задан — пускаем всех (dev/CI режим)."""
-    if settings.group_id is None:
-        return True
-    return await is_group_member(bot, settings.group_id, user_id)
 
 
 async def _send_welcome(message: Message, settings: Settings) -> None:
@@ -99,10 +90,6 @@ async def cmd_start_deep_link(
 
     settings = get_settings()
 
-    if not await _has_access(bot, settings, message.from_user.id):
-        await message.answer(DENY_MESSAGE)
-        return
-
     # Bind-chat deep-link имеет приоритет над QR-сессией
     if token.startswith(BIND_DEEP_LINK_PREFIX):
         await _handle_bind_deep_link(
@@ -132,14 +119,15 @@ async def cmd_start_deep_link(
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, bot: Bot) -> None:
-    """Plain /start — show Mini App button (only for group members)."""
+    """Plain /start — приветствие с кнопкой Mini App.
+
+    Доступ к workspace'ам и встречам контролируется на уровне самой Mini App
+    (через workspace membership), а не на уровне `/start` — поэтому здесь
+    нет group-gate'а: любой может запустить бота, дальше Mini App покажет
+    Onboarding / список workspace'ов / etc.
+    """
     if message.from_user is None:
         return
 
     settings = get_settings()
-
-    if not await _has_access(bot, settings, message.from_user.id):
-        await message.answer(DENY_MESSAGE)
-        return
-
     await _send_welcome(message, settings)
