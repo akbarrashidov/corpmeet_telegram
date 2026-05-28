@@ -196,3 +196,72 @@ async def test_deep_link_bind_invalid_chat_id_falls_back_to_welcome(
     msg.answer.assert_called_once()
     text = msg.answer.call_args.args[0]
     assert "CorpMeet" in text  # welcome message
+
+
+
+# ---------- cmd_start_deep_link — invite_<TOKEN> branch ----------
+
+async def test_deep_link_invite_sends_webapp_with_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/start invite_ABC123` → WebApp кнопка с ?invite_token=ABC123 в URL."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+
+    await cmd_start_deep_link(msg, make_command("invite_ABC123"), bot)
+
+    msg.answer.assert_called_once()
+    keyboard = msg.answer.call_args.kwargs["reply_markup"]
+    button = keyboard.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert "invite_token=ABC123" in button.web_app.url
+
+
+async def test_deep_link_invite_empty_token_falls_back_to_welcome(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/start invite_` (пустой токен после префикса) → welcome."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+
+    await cmd_start_deep_link(msg, make_command("invite_"), bot)
+
+    msg.answer.assert_called_once()
+    text = msg.answer.call_args.args[0]
+    assert "CorpMeet" in text
+
+
+# ---------- cmd_start_deep_link — ws_<CODE> branch ----------
+
+async def test_deep_link_ws_sends_webapp_with_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/start ws_XYZ789` → WebApp кнопка с ?ws_code=XYZ789 в URL."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+
+    await cmd_start_deep_link(msg, make_command("ws_XYZ789"), bot)
+
+    msg.answer.assert_called_once()
+    keyboard = msg.answer.call_args.kwargs["reply_markup"]
+    button = keyboard.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert "ws_code=XYZ789" in button.web_app.url
+
+
+async def test_deep_link_ws_empty_code_falls_back_to_welcome(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/start ws_` (пустой код) → welcome."""
+    setup_env(monkeypatch)
+    msg = make_message(user_id=999)
+    bot = make_bot()
+
+    await cmd_start_deep_link(msg, make_command("ws_"), bot)
+
+    msg.answer.assert_called_once()
+    text = msg.answer.call_args.args[0]
+    assert "CorpMeet" in text
