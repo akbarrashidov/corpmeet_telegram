@@ -58,3 +58,51 @@ def build_group_fallback_keyboard(
             [InlineKeyboardButton(text=GROUP_FALLBACK_BUTTON_TEXT, url=deep_link)]
         ]
     )
+
+
+
+# ── Invite & public workspace deep-links ─────────────────────────────────────
+
+INVITE_DEEP_LINK_PREFIX = "invite_"
+WS_DEEP_LINK_PREFIX = "ws_"
+
+INVITE_DM_GREETING = (
+    "Тебя приглашают в рабочее пространство.\n\n"
+    "Нажми кнопку ниже, чтобы открыть Mini App — там автоматически "
+    "подтвердишь приглашение."
+)
+
+WS_DM_GREETING = (
+    "Открываем рабочее пространство по ссылке.\n\n"
+    "Нажми кнопку ниже — Mini App сразу добавит тебя в него."
+)
+
+
+def build_invite_webapp_keyboard(settings: Settings, invite_token: str) -> InlineKeyboardMarkup:
+    """WebApp кнопка, открывающая Mini App с `?invite_token=<TOKEN>`.
+
+    Mini App при загрузке парсит query, сохраняет токен и подключает
+    юзера к workspace при login/register (см. BOT_INVITE_DOCS.md).
+    """
+    webapp_url = str(settings.webapp_url).rstrip("/")
+    url = f"{webapp_url}/?invite_token={invite_token}"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="Открыть мини-приложение", web_app=WebAppInfo(url=url),
+            )]
+        ]
+    )
+
+
+def build_ws_webapp_keyboard(settings: Settings, ws_code: str) -> InlineKeyboardMarkup:
+    """WebApp кнопка, открывающая Mini App с `?ws_code=<CODE>` (публичная ссылка)."""
+    webapp_url = str(settings.webapp_url).rstrip("/")
+    url = f"{webapp_url}/?ws_code={ws_code}"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="Открыть мини-приложение", web_app=WebAppInfo(url=url),
+            )]
+        ]
+    )

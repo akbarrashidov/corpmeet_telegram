@@ -17,7 +17,13 @@ from bot.services.api_client import ApiClient
 from bot.services.bind_helpers import (
     BIND_DEEP_LINK_PREFIX,
     DM_GREETING_TEMPLATE,
+    INVITE_DEEP_LINK_PREFIX,
+    INVITE_DM_GREETING,
+    WS_DEEP_LINK_PREFIX,
+    WS_DM_GREETING,
     build_bind_webapp_keyboard,
+    build_invite_webapp_keyboard,
+    build_ws_webapp_keyboard,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,6 +79,34 @@ async def _handle_bind_deep_link(
     )
 
 
+async def _handle_invite_deep_link(
+    message: Message, settings: Settings, raw_token: str,
+) -> None:
+    """`/start invite_<TOKEN>` — открыть Mini App с `?invite_token=<TOKEN>`.
+
+    Backend и Mini App дальше делают всё сами:
+    - Mini App читает invite_token из URL
+    - Login/Register обрабатывает claim или показывает Accept/Reject
+      (см. BOT_INVITE_DOCS.md разделы 1.2 и 1.3)
+    """
+    if not raw_token:
+        await _send_welcome(message, settings)
+        return
+    keyboard = build_invite_webapp_keyboard(settings, raw_token)
+    await message.answer(INVITE_DM_GREETING, reply_markup=keyboard)
+
+
+async def _handle_ws_deep_link(
+    message: Message, settings: Settings, raw_code: str,
+) -> None:
+    """`/start ws_<CODE>` — открыть Mini App с `?ws_code=<CODE>` (публичная ссылка)."""
+    if not raw_code:
+        await _send_welcome(message, settings)
+        return
+    keyboard = build_ws_webapp_keyboard(settings, raw_code)
+    await message.answer(WS_DM_GREETING, reply_markup=keyboard)
+
+
 @router.message(CommandStart(deep_link=True))
 async def cmd_start_deep_link(
     message: Message, command: CommandObject, bot: Bot
@@ -98,7 +132,24 @@ async def cmd_start_deep_link(
         )
         return
 
+    # Invite deep-link: /start invite_<TOKEN> → WebApp button с ?invite_token=
+    if token.startswith(INVITE_DEEP_LINK_PREFIX):
+        await _handle_invite_deep_link(
+            message, settings,
+            raw_token=token[len(INVITE_DEEP_LINK_PREFIX):],
+        )
+        return
+
+    # Public workspace link: /start ws_<CODE> → WebApp button с ?ws_code=
+    if token.startswith(WS_DEEP_LINK_PREFIX):
+        await _handle_ws_deep_link(
+            message, settings,
+            raw_code=token[len(WS_DEEP_LINK_PREFIX):],
+        )
+        return
+
     # QR-flow: /start <session_token> — consume browser session
+
     try:
         async with ApiClient(settings) as api:
             await api.consume_session(token=token, telegram_id=message.from_user.id)
