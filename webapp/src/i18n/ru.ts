@@ -60,6 +60,11 @@ export const ru = {
   "create.error.end_after_start": "Конец должен быть позже начала.",
   "create.error.failed": "Не удалось создать встречу. Попробуй ещё.",
   "create.submit": "Создать",
+  "create.error.no_workspace": "Выберите пространство (workspace).",
+  "create.error.room_required": "Выберите переговорную.",
+  "create.room.label": "Переговорная",
+  "create.room.empty_body": "В этом пространстве нет переговорных. Создайте через настройки.",
+  "create.room.empty_cta": "Открыть настройки",
 
   // Reschedule
   "reschedule.title": "Перенести встречу",

@@ -35,6 +35,8 @@ export interface BookingCreate {
   recurrence?: "none" | "daily" | "weekly" | "custom";
   recurrence_until?: string;
   recurrence_days?: number[];
+  workspace_id?: number;
+  room_id?: number;
 }
 
 export interface BookingUpdate {
