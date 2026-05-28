@@ -42,6 +42,10 @@ class BookingBotInfo(BaseModel):
     recurrence_group_id: Optional[int] = None
     recurrence_days: Optional[list[int]] = None  # 0=Mon … 6=Sun
     has_attachments: bool = False
+    room_id: Optional[int] = None
+    room_name: Optional[str] = None
+    workspace_id: Optional[int] = None
+    workspace_telegram_chat_id: Optional[int] = None
     
 class ApiClient:
     """Async client to backend API.
