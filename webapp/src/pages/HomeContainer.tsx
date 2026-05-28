@@ -20,7 +20,11 @@ type View =
       defaultStart: string;
       defaultEnd: string;
     }
-  | { kind: "workspace_settings"; workspaceId: number };
+  | {
+      kind: "workspace_settings";
+      workspaceId: number;
+      returnTo: "list" | "create";
+    };
 
 export function HomeContainer() {
   const [view, setView] = useState<View>({ kind: "list" });
@@ -38,7 +42,7 @@ export function HomeContainer() {
         onSelect={(b) => setView({ kind: "detail", booking: b })}
         onProfile={() => setView({ kind: "profile" })}
         onOpenSettings={(workspaceId) =>
-          setView({ kind: "workspace_settings", workspaceId })
+          setView({ kind: "workspace_settings", workspaceId, returnTo: "list" })
         }
       />
     );
@@ -49,6 +53,9 @@ export function HomeContainer() {
         defaultDate={selectedDate}
         onBack={() => setView({ kind: "list" })}
         onCreated={() => setView({ kind: "list" })}
+        onOpenSettings={(workspaceId) =>
+          setView({ kind: "workspace_settings", workspaceId, returnTo: "create" })
+        }
       />
     );
   }
@@ -61,10 +68,13 @@ export function HomeContainer() {
     );
   }
   if (view.kind === "workspace_settings") {
+    const back = view.returnTo === "create"
+      ? () => setView({ kind: "create" })
+      : () => setView({ kind: "list" });
     return (
       <WorkspaceSettingsScreen
         workspaceId={view.workspaceId}
-        onBack={() => setView({ kind: "list" })}
+        onBack={back}
       />
     );
   }

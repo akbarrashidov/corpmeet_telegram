@@ -138,7 +138,12 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "create_room.submit": "Yaratish",
   "create_room.error.name_required": "Nomini kiriting",
   "create_room.error.failed": "Yaratilmadi. Qayta urinib ko'ring.",
-
+  "create.error.no_workspace": "Makonni tanlang.",
+  "create.error.room_required": "Xonani tanlang.",
+  "create.room.label": "Xona",
+  "create.room.empty_body": "Bu makonda xonalar yo'q. Sozlamalardan yarating.",
+  "create.room.empty_cta": "Sozlamalarni ochish",
+  
   // Workspace settings + rooms section
   "ws_settings.title": "Makon sozlamalari",
   "ws_settings.section.general": "Umumiy",
