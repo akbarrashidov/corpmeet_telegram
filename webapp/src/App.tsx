@@ -10,6 +10,7 @@ import type { Workspace } from "@corpmeet/design/complex";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
 import { setLang as setI18nLang, useTranslation } from "./i18n";
+import { applyPendingInvite } from "./lib/applyPendingInvite";
 
 const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 
@@ -141,6 +142,9 @@ export default function App() {
       await runDesktopRedirect();
       return;
     }
+    // Если открыли через deep-link с ?invite_token=... или ?ws_code=... —
+    // добавляем юзера в workspace до проверки списка (иначе уйдёт в Onboarding).
+    await applyPendingInvite();
     // Проверяем активные workspaces — если нет ни одного, идём в onboarding.
     try {
       const res = await apiClient.get<Workspace[]>("/api/v1/workspaces");
