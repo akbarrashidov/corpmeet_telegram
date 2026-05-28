@@ -33,6 +33,9 @@ def make_booking(
     recurrence_group_id: int | None = None,
     recurrence_until: dt.date | None = None,
     recurrence_days: list[int] | None = None,
+    workspace_id: int | None = 1,
+    workspace_telegram_chat_id: int | None = -100,
+    room_name: str | None = None,
 ) -> BookingBotInfo:
     now = dt.datetime.now(dt.timezone.utc)
     return BookingBotInfo(
@@ -54,6 +57,9 @@ def make_booking(
         recurrence_group_id=recurrence_group_id,
         recurrence_until=recurrence_until,
         recurrence_days=recurrence_days,
+        workspace_id=workspace_id,
+        workspace_telegram_chat_id=workspace_telegram_chat_id,
+        room_name=room_name,
     )
 
 
@@ -80,12 +86,12 @@ async def test_new_booking_notification() -> None:
 
     await p._tick()
 
-    bot.send_message.assert_awaited_once()
-    chat_id, text = bot.send_message.call_args.args
-    assert chat_id == 999
+    # Owner DM (999) — booking message. Group notify (-100) тоже идёт, но проверяем owner DM
+    owner_calls = [c for c in bot.send_message.await_args_list if c.args[0] == 999]
+    assert len(owner_calls) == 1
+    text = owner_calls[0].args[1]
     assert "📌" in text
     assert "Standup" in text
-
 
 async def test_changed_booking_uses_change_message() -> None:
     p, bot = make_poller_with_mocked_api()
@@ -123,17 +129,19 @@ async def test_deletion_notification() -> None:
 
 
 async def test_user_without_telegram_id_skipped() -> None:
+    """Owner без telegram_id → DM не шлём (group-уведомление по чату всё равно идёт)."""
     p, bot = make_poller_with_mocked_api()
     p._api.bookings_since.return_value = [make_booking(telegram_id=None)]
 
     await p._tick()
 
-    bot.send_message.assert_not_awaited()
-
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert 999 not in chat_ids  # owner DM пропущен
 
 async def test_send_message_failure_does_not_break_loop() -> None:
+    """Падение одной send_message не ломает остальные вызовы в цикле."""
     p, bot = make_poller_with_mocked_api()
-    bot.send_message.side_effect = [Exception("boom"), None]
+    bot.send_message.side_effect = [Exception("boom"), None, None, None]
     p._api.bookings_since.return_value = [
         make_booking(id=1, telegram_id=111),
         make_booking(id=2, telegram_id=222),
@@ -141,8 +149,8 @@ async def test_send_message_failure_does_not_break_loop() -> None:
 
     await p._tick()  # не должен бросить
 
-    assert bot.send_message.await_count == 2
-
+    # 2 owner DMs + 2 group → 4 попытки send_message; первая упала, остальные прошли
+    assert bot.send_message.await_count == 4
 
 async def test_cursor_advances_after_update() -> None:
     p, bot = make_poller_with_mocked_api()
@@ -213,14 +221,20 @@ async def test_group_message_includes_guests_when_present() -> None:
     assert "👥 alice, bob" in group_call.args[1]
 
 
-async def test_no_group_id_skips_group_notify() -> None:
-    p, bot = make_poller_with_mocked_api()  # group_id=None
-    p._api.bookings_since.return_value = [make_booking()]
+async def test_no_workspace_chat_warns_owner_and_skips_group() -> None:
+    """Workspace без привязанного TG-чата → owner DM с booking + одноразовый warning, group skip."""
+    p, bot = make_poller_with_mocked_api()
+    p._api.bookings_since.return_value = [
+        make_booking(workspace_telegram_chat_id=None, workspace_id=42)
+    ]
 
     await p._tick()
 
     chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
-    assert chat_ids == [999]  # only owner, no group
+    # 2 сообщения owner'у (999): booking + warning. Никакого group-сообщения.
+    assert chat_ids == [999, 999]
+    warning_text = bot.send_message.await_args_list[1].args[1]
+    assert "не привязан" in warning_text.lower()
 
 
 async def test_group_notification_on_deletion() -> None:
@@ -261,15 +275,16 @@ async def test_guest_dmed_when_telegram_id_present() -> None:
 
 
 async def test_guest_skipped_when_telegram_id_is_null() -> None:
-    """Free-form text or unregistered users have telegram_id=None — skipped."""
+    """Free-form text или незарегистрированный юзер → telegram_id=None → DM не шлём."""
     p, bot = make_poller_with_mocked_api()
     booking = make_booking(guests=[GuestInfo(name="все PM", telegram_id=None)])
     p._api.bookings_since.return_value = [booking]
 
     await p._tick()
 
-    assert bot.send_message.await_count == 1  # owner only
-
+    # owner (999) + group (-100) = 2 вызова. Гость без telegram_id не получает DM.
+    chat_ids = [call.args[0] for call in bot.send_message.await_args_list]
+    assert chat_ids == [999, -100]
 
 async def test_guest_send_failure_does_not_break_loop() -> None:
     """If send_message to guest fails, owner notification still happens."""
@@ -389,7 +404,10 @@ async def test_deleted_since_500_advances_cursor_to_now() -> None:
 def test_msg_new_booking_group_includes_organizer_and_omits_guests() -> None:
     booking = make_booking(title="Demo")
     text = poller_module.msg_new_booking_group(booking, ZoneInfo("UTC"))
-    assert "📌 Новая встреча «Demo»" in text
+    # Новый compact-формат: "📌 «Demo» — yangi uchrashuv / новая встреча"
+    assert "📌 «Demo»" in text
+    assert "новая встреча" in text
+    assert "yangi uchrashuv" in text
     assert "👤 Anna" in text
     assert "👥" not in text
 
