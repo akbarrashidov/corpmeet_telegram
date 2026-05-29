@@ -10,17 +10,20 @@ interface Props {
   workspace: WorkspaceDetail;
 }
 
-const BOT_USERNAME =
+const FALLBACK_BOT_USERNAME =
   (import.meta as any).env?.VITE_BOT_USERNAME ?? "corpmeet_dev_bot";
 const COPIED_FEEDBACK_MS = 2000;
 
 /**
- * Блок публичной workspace-ссылки `t.me/<bot>?start=ws_<invite_code>`.
+ * Блок публичной workspace-ссылки.
+ *
+ * Backend возвращает готовый `tg_invite_link` в `WorkspaceDetail`.
+ * Если по какой-то причине его нет (старый бэкенд / null) — fallback на
+ * конструирование URL из `invite_code` и хардкод-bot-username.
  *
  * Кнопки:
  * - Копировать (clipboard)
  * - Обновить код — POST /regenerate-code, после confirm-dialog
- *   (предупреждение что старая ссылка перестанет работать)
  */
 export function PublicInviteLinkBlock({ workspace }: Props) {
   const { t } = useTranslation();
@@ -28,7 +31,9 @@ export function PublicInviteLinkBlock({ workspace }: Props) {
   const [copied, setCopied] = useState(false);
   const [confirmRegen, setConfirmRegen] = useState(false);
 
-  const publicLink = `https://t.me/${BOT_USERNAME}?start=ws_${workspace.invite_code}`;
+  const publicLink =
+    workspace.tg_invite_link
+    ?? `https://t.me/${FALLBACK_BOT_USERNAME}?start=ws_${workspace.invite_code}`;
 
   async function handleCopy() {
     haptic();

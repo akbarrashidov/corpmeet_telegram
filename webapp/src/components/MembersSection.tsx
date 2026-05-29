@@ -26,9 +26,8 @@ export function MembersSection({ workspaceId }: Props) {
   const activeMembers = (wsDetail?.members ?? []).filter(
     (m) => m.status === "active",
   );
-  const pendingMembers = (wsDetail?.members ?? []).filter(
-    (m) => m.status === "pending",
-  );
+  // pending_members приходят отдельным массивом от backend (не внутри members)
+  const pendingMembers = wsDetail?.pending_members ?? [];
 
   function canRemoveTarget(m: WorkspaceMember): boolean {
     if (!canManage) return false;

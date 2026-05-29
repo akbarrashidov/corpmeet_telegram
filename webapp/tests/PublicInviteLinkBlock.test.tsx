@@ -30,6 +30,7 @@ function renderBlock() {
           my_role: "owner",
           members: [],
           pending_members: [],
+          tg_invite_link: null,
         }}
       />
     </QueryClientProvider>,

@@ -35,9 +35,16 @@ export function InviteByUsernameForm({ workspaceId }: Props) {
       await invite.mutateAsync(clean);
       hapticSuccess();
       setUsername("");
-    } catch {
+    } catch (e: any) {
       hapticError();
-      setError(t("members_section.invite.error.failed"));
+      const status = e?.response?.status;
+      if (status === 409) {
+        setError(t("members_section.invite.error.already_member"));
+      } else if (status === 404) {
+        setError(t("members_section.invite.error.not_found"));
+      } else {
+        setError(t("members_section.invite.error.failed"));
+      }
     }
   }
 

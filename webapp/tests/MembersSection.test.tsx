@@ -72,7 +72,11 @@ function setupAuth(userId: number) {
   });
 }
 
-function setupWorkspace(members: any[], myRole: "owner" | "admin" | "member" = "owner") {
+function setupWorkspace(
+  members: any[],
+  myRole: "owner" | "admin" | "member" = "owner",
+  pendingMembers: any[] = [],
+) {
   vi.mocked(useWorkspaceDetail).mockReturnValue({
     data: {
       id: 10,
@@ -84,7 +88,8 @@ function setupWorkspace(members: any[], myRole: "owner" | "admin" | "member" = "
       created_at: "2026-01-01T00:00:00Z",
       my_role: myRole,
       members,
-      pending_members: [],
+      pending_members: pendingMembers,
+      tg_invite_link: null,
     },
     isLoading: false,
   } as any);
@@ -111,26 +116,32 @@ describe("MembersSection", () => {
 
   it("renders pending invite separately with anonymous label", () => {
     setupAuth(99);
-    setupWorkspace([
-      makeMember({ id: 100, role: "owner" }),
-      makeMember({
-        id: 200, status: "pending", user_id: null, user: null,
-        pending_username: null, invite_deep_link: "https://t.me/bot?start=invite_X",
-      }),
-    ]);
+    setupWorkspace(
+      [makeMember({ id: 100, role: "owner" })],
+      "owner",
+      [
+        makeMember({
+          id: 200, status: "pending", user_id: null, user: null,
+          pending_username: null, invite_deep_link: "https://t.me/bot?start=invite_X",
+        }),
+      ],
+    );
     renderSection();
     expect(screen.getByText(/Анонимная ссылка/i)).toBeInTheDocument();
   });
 
   it("renders pending invite with @username when set", () => {
     setupAuth(99);
-    setupWorkspace([
-      makeMember({ id: 100, role: "owner" }),
-      makeMember({
-        id: 201, status: "pending", user_id: null, user: null,
-        pending_username: "leyla", invite_deep_link: "https://t.me/bot?start=invite_Y",
-      }),
-    ]);
+    setupWorkspace(
+      [makeMember({ id: 100, role: "owner" })],
+      "owner",
+      [
+        makeMember({
+          id: 201, status: "pending", user_id: null, user: null,
+          pending_username: "leyla", invite_deep_link: "https://t.me/bot?start=invite_Y",
+        }),
+      ],
+    );
     renderSection();
     expect(screen.getByText("@leyla")).toBeInTheDocument();
   });
