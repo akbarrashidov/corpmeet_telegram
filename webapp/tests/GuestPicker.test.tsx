@@ -1,37 +1,62 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-vi.mock("@corpmeet/design/complex", () => ({
-  useUsers: vi.fn(),
+vi.mock("../src/lib/currentWorkspace", () => ({
+  useCurrentWorkspaceId: vi.fn(() => 10),
+  setCurrentWorkspaceId: vi.fn(),
 }));
 
-import { useUsers } from "@corpmeet/design/complex";
+vi.mock("../src/hooks/useWorkspaceDetail", () => ({
+  useWorkspaceDetail: vi.fn(),
+}));
+
+import { useWorkspaceDetail } from "../src/hooks/useWorkspaceDetail";
 import { GuestPicker, type GuestEntry } from "../src/components/GuestPicker";
 
 function mockUsers(
   users: Array<{ id: number; display_name: string; username?: string | null; position?: string | null }>,
 ) {
-  vi.mocked(useUsers).mockReturnValue({
-    data: users.map((u) => ({
-      id: u.id,
-      telegram_id: null,
-      username: u.username ?? null,
-      first_name: u.display_name.split(" ")[0],
-      last_name: u.display_name.split(" ")[1] ?? null,
-      role: "user",
-      display_name: u.display_name,
-      position: u.position ?? null,
-    })),
+  vi.mocked(useWorkspaceDetail).mockReturnValue({
+    data: {
+      id: 10,
+      name: "Test WS",
+      slug: "test",
+      invite_code: "CODE",
+      timezone: "UTC",
+      telegram_chat_id: null,
+      created_at: "2026-01-01T00:00:00Z",
+      my_role: "owner",
+      members: users.map((u, i) => ({
+        id: 100 + i,
+        workspace_id: 10,
+        user_id: u.id,
+        pending_username: null,
+        role: "member" as const,
+        status: "active" as const,
+        user: {
+          id: u.id,
+          display_name: u.display_name,
+          username: u.username ?? null,
+          first_name: u.display_name.split(" ")[0],
+          last_name: u.display_name.split(" ")[1] ?? null,
+          position: u.position ?? null,
+        },
+        created_at: "2026-01-01T00:00:00Z",
+      })),
+      pending_members: [],
+    },
     isLoading: false,
-    isFetching: false,
-    error: null,
   } as any);
 }
 
 function entry(label: string, value: string = label): GuestEntry {
   return { label, value };
 }
+
+beforeEach(() => {
+  vi.mocked(useWorkspaceDetail).mockReset();
+});
 
 describe("GuestPicker", () => {
   it("renders chips with labels for each value", () => {
@@ -60,7 +85,7 @@ describe("GuestPicker", () => {
     expect(onChange).toHaveBeenCalledWith([entry("Анна Смит", "anna")]);
   });
 
-  it("opens dropdown with users on input focus", async () => {
+  it("opens dropdown with workspace members on input focus", async () => {
     mockUsers([
       { id: 1, display_name: "Иван Иванов", username: "ivan" },
       { id: 2, display_name: "Анна Смит", username: "anna" },
@@ -111,6 +136,20 @@ describe("GuestPicker", () => {
     expect(list).not.toHaveTextContent("Иван Иванов");
   });
 
+  it("filters dropdown by query against workspace members only", async () => {
+    mockUsers([
+      { id: 1, display_name: "Иван Иванов", username: "ivan" },
+      { id: 2, display_name: "Анна Смит", username: "anna" },
+    ]);
+    render(<GuestPicker value={[]} onChange={vi.fn()} />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox");
+    await user.type(input, "Анна");
+    const list = screen.getByRole("list");
+    expect(list).toHaveTextContent("Анна Смит");
+    expect(list).not.toHaveTextContent("Иван Иванов");
+  });
+
   it("adds manual entry via Enter (label === value)", async () => {
     mockUsers([{ id: 1, display_name: "Иван Иванов", username: "ivan" }]);
     const onChange = vi.fn();
@@ -139,7 +178,7 @@ describe("GuestPicker", () => {
 
   // ---------- position filter chips ----------
 
-  it("adds all users of a position with their usernames", async () => {
+  it("adds all workspace members of a position with their usernames", async () => {
     mockUsers([
       { id: 1, display_name: "Alisher Rakhimov", username: "alisher", position: "PM" },
       { id: 2, display_name: "Anna Smirnova", username: "anna", position: "PM" },
@@ -188,5 +227,53 @@ describe("GuestPicker", () => {
     await user.click(screen.getByRole("button", { name: "+ Дизайнеры" }));
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("excludes pending members from suggestion list", async () => {
+    // Только active workspace members попадают в picker — pending invites нет
+    vi.mocked(useWorkspaceDetail).mockReturnValue({
+      data: {
+        id: 10,
+        name: "Test WS",
+        slug: "test",
+        invite_code: "CODE",
+        timezone: "UTC",
+        telegram_chat_id: null,
+        created_at: "2026-01-01T00:00:00Z",
+        my_role: "owner",
+        members: [
+          {
+            id: 100,
+            workspace_id: 10,
+            user_id: 1,
+            pending_username: null,
+            role: "member",
+            status: "active",
+            user: { id: 1, display_name: "Active User", username: "active",
+              first_name: "Active", last_name: "User", position: null },
+            created_at: "2026-01-01T00:00:00Z",
+          },
+          {
+            id: 101,
+            workspace_id: 10,
+            user_id: null,
+            pending_username: "pending_user",
+            role: "member",
+            status: "pending",
+            user: null,
+            created_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+        pending_members: [],
+      },
+      isLoading: false,
+    } as any);
+
+    render(<GuestPicker value={[]} onChange={vi.fn()} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("textbox"));
+    const list = screen.getByRole("list");
+    expect(list).toHaveTextContent("Active User");
+    expect(list).not.toHaveTextContent("pending_user");
   });
 });

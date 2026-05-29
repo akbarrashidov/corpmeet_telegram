@@ -18,6 +18,7 @@ export interface WorkspaceMember {
     first_name: string | null;
     last_name: string | null;
     display_name: string;
+    position: string | null;
   } | null;
   created_at: string;
 }
