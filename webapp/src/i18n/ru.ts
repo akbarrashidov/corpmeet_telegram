@@ -184,6 +184,27 @@ export const ru = {
   "members_section.confirm_remove.body": "Участник потеряет доступ к workspace и встречам.",
   "members_section.confirm_remove.confirm": "Удалить",
 
+  // Members section — pending / invite / public link
+  "members_section.pending.section_title": "Ожидают подтверждения",
+  "members_section.pending.anonymous": "Анонимная ссылка",
+  "members_section.pending.badge": "Приглашение отправлено",
+  "members_section.pending.copy_link": "Скопировать ссылку",
+  "members_section.pending.copied": "Скопировано ✓",
+  "members_section.revoke_aria": "Отозвать приглашение «{name}»",
+  "members_section.invite.label": "Пригласить по @username",
+  "members_section.invite.placeholder": "@username",
+  "members_section.invite.submit": "Пригласить",
+  "members_section.invite.generate_anon": "+ Создать одноразовую ссылку (без username)",
+  "members_section.invite.error.required": "Введи @username",
+  "members_section.invite.error.failed": "Не удалось пригласить. Попробуй ещё.",
+  "members_section.public_link.label": "Публичная ссылка для коллег",
+  "members_section.public_link.copy": "Скопировать ссылку",
+  "members_section.public_link.copied": "Скопировано ✓",
+  "members_section.public_link.regenerate": "Обновить код",
+  "members_section.public_link.confirm_regen.title": "Обновить код пространства?",
+  "members_section.public_link.confirm_regen.body": "Старая ссылка перестанет работать. Всем кому отправил — придётся прислать новую.",
+  "members_section.public_link.confirm_regen.confirm": "Обновить",
+
   // Join by code
   "join_ws.title": "Войти по коду",
   "join_ws.code.label": "Invite-код",
