@@ -1,5 +1,6 @@
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { useUsers, type User } from "@corpmeet/design/complex";
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
+import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { useTranslation, type TranslationKey } from "../i18n";
 
 export interface GuestEntry {
@@ -15,6 +16,14 @@ interface Props {
   disabled?: boolean;
 }
 
+/** Минимальная форма user'а для GuestPicker — то, что приходит в WorkspaceMember.user. */
+type GuestUser = {
+  id: number;
+  display_name: string;
+  username: string | null;
+  position: string | null;
+};
+
 const POSITION_FILTERS: { labelKey: TranslationKey; apiValue: string }[] = [
   { labelKey: "create.position_filter.heads", apiValue: "Начальник департамента/отдела" },
   { labelKey: "create.position_filter.pm", apiValue: "PM" },
@@ -23,14 +32,21 @@ const POSITION_FILTERS: { labelKey: TranslationKey; apiValue: string }[] = [
   { labelKey: "create.position_filter.designers", apiValue: "Дизайнер" },
 ];
 
-/** username (если есть) — резолвится бекендом по нику. Иначе fallback на display_name. */
-function entryFromUser(u: User): GuestEntry {
+function entryFromUser(u: GuestUser): GuestEntry {
   return {
     label: u.display_name,
     value: u.username ?? u.display_name,
   };
 }
 
+/**
+ * GuestPicker — выбор гостей встречи.
+ *
+ * Скоупит поиск **только участниками текущего workspace'а**: использует
+ * `useWorkspaceDetail(currentWsId).members`, фильтрует на клиенте.
+ * Free-text guests (например «все PM» не из workspace) всё ещё можно добавить
+ * через manual-add (canAddManual).
+ */
 export function GuestPicker({ value, onChange, disabled }: Props) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
@@ -38,8 +54,16 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: users = [], isLoading } = useUsers(query);
-  const { data: allUsers = [] } = useUsers("");
+  const wsId = useCurrentWorkspaceId();
+  const { data: wsDetail, isLoading } = useWorkspaceDetail(wsId);
+
+  // Активные участники с реальным user-аккаунтом (без pending invites)
+  const allUsers = useMemo<GuestUser[]>(
+    () => (wsDetail?.members ?? [])
+      .filter((m) => m.status === "active" && m.user !== null)
+      .map((m) => m.user!),
+    [wsDetail],
+  );
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -53,14 +77,24 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
 
   const valueValues = new Set(value.map((g) => g.value));
   const valueLabels = new Set(value.map((g) => g.label));
-  const available = users.filter(
-    (u) => !valueValues.has(u.username ?? u.display_name)
-  );
+
   const trimmed = query.trim();
+  const lower = trimmed.toLowerCase();
+  const matchedByQuery = trimmed === ""
+    ? allUsers
+    : allUsers.filter((u) => {
+        if (u.display_name.toLowerCase().includes(lower)) return true;
+        if (u.username && u.username.toLowerCase().includes(lower)) return true;
+        return false;
+      });
+  const available = matchedByQuery.filter(
+    (u) => !valueValues.has(u.username ?? u.display_name),
+  );
+
   const canAddManual =
     trimmed.length > 0 &&
     !valueLabels.has(trimmed) &&
-    !available.some((u) => u.display_name.toLowerCase() === trimmed.toLowerCase());
+    !available.some((u) => u.display_name.toLowerCase() === lower);
 
   function addEntry(entry: GuestEntry) {
     if (!entry.value || valueValues.has(entry.value)) return;
@@ -69,7 +103,7 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
     inputRef.current?.focus();
   }
 
-  function addUser(u: User) {
+  function addUser(u: GuestUser) {
     addEntry(entryFromUser(u));
   }
 

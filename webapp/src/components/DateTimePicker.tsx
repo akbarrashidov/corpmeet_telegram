@@ -8,7 +8,7 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-const HOUR_OPTIONS = Array.from({ length: 16 }, (_, i) => i + 7);
+const HOUR_OPTIONS = Array.from({ length: 17 }, (_, i) => i + 7);
 const MIN_OPTIONS = Array.from({ length: 12 }, (_, i) => i * 5);
 
 const MONTH_KEYS: TranslationKey[] = [

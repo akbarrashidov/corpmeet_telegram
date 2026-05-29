@@ -1,8 +1,16 @@
-import { FormEvent, useEffect, useState } from "react";
-import { useCreateBooking } from "@corpmeet/design/complex";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { apiClient, useCreateBooking, type SlotResponse } from "@corpmeet/design/complex";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "../components/PageHeader";
 import { GuestPicker, type GuestEntry } from "../components/GuestPicker";
-import { defaultStartLocal, defaultEndLocal, localInputToIso } from "../lib/datetime";
+import {
+  defaultStartLocal,
+  defaultEndLocal,
+  isoToLocalInput,
+  localInputToIso,
+  todayIso,
+} from "../lib/datetime";
+import { findNextFreeSlot } from "../lib/findNextFreeSlot";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useWorkspaceRooms } from "../hooks/useWorkspaceRooms";
@@ -11,6 +19,8 @@ import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
 import { DateTimePicker } from "../components/DateTimePicker";
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 interface Props {
   onBack: () => void;
@@ -33,10 +43,41 @@ export function CreateBookingPage({
   const [roomId, setRoomId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inTg = !!getTelegram();
+  // Если юзер сам поменял время — не подменяем дефолт когда подгрузятся slots.
+  const userChangedTimeRef = useRef(false);
 
   useTgBackButton(onBack);
 
-  // Авто-выбор первой комнаты как только подгрузился список (и если ещё не выбрано).
+  // Подгружаем слоты для выбранной даты, чтобы дефолт времени = ближайший
+  // свободный (а не статическое 09:00).
+  const dateForSlots = defaultDate ?? todayIso();
+  const { data: slots } = useQuery<SlotResponse[]>({
+    queryKey: ["slots", dateForSlots],
+    queryFn: async () => {
+      const res = await apiClient.get<SlotResponse[]>("/api/v1/slots", {
+        params: { date: dateForSlots },
+      });
+      return res.data;
+    },
+    staleTime: 30_000,
+  });
+
+  // Когда slots пришли и юзер ещё ничего не менял — берём ближайший свободный
+  // слот в 1 час. Если свободного нет — оставляем фолбэк 09:00.
+  useEffect(() => {
+    if (!slots || userChangedTimeRef.current) return;
+    // Якорим "now" на 00:00 выбранной даты для будущих дней; на реальный now
+    // для сегодняшней — чтобы пропустить уже прошедшие слоты.
+    const anchor = dateForSlots === todayIso()
+      ? new Date()
+      : new Date(dateForSlots + "T00:00:00");
+    const plan = findNextFreeSlot(slots, ONE_HOUR_MS, anchor);
+    if (plan === null) return;
+    setStart(isoToLocalInput(plan.start));
+    setEnd(isoToLocalInput(plan.end));
+  }, [slots, dateForSlots]);
+
+  // Авто-выбор первой комнаты как только подгрузился список.
   useEffect(() => {
     if (roomId !== null) return;
     if (!rooms || rooms.length === 0) return;
@@ -44,6 +85,16 @@ export function CreateBookingPage({
   }, [rooms, roomId]);
 
   const noRooms = !roomsLoading && (rooms?.length ?? 0) === 0;
+
+  function handleStartChange(v: string) {
+    userChangedTimeRef.current = true;
+    setStart(v);
+  }
+
+  function handleEndChange(v: string) {
+    userChangedTimeRef.current = true;
+    setEnd(v);
+  }
 
   async function submit() {
     if (!title.trim()) {
@@ -170,13 +221,13 @@ export function CreateBookingPage({
         <DateTimePicker
           label={t("create.field.start")}
           value={start}
-          onChange={setStart}
+          onChange={handleStartChange}
         />
 
         <DateTimePicker
           label={t("create.field.end")}
           value={end}
-          onChange={setEnd}
+          onChange={handleEndChange}
         />
 
         <GuestPicker
