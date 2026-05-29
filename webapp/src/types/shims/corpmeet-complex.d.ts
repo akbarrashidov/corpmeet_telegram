@@ -152,8 +152,8 @@ export interface Workspace {
   telegram_chat_id: number | null;
   created_at: string;
   my_role: WorkspaceMemberRole | null;
+  tg_invite_link?: string | null;
 }
-
 
 export type RoomJoinMode = "open" | "approval" | "closed";
 export type RoomVisibility = "full" | "busy_only";

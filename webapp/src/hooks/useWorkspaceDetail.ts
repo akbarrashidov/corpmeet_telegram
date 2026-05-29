@@ -22,6 +22,7 @@ export interface WorkspaceMember {
     position: string | null;
   } | null;
   created_at: string;
+  invite_expires_at: string | null;
 }
 
 export interface WorkspaceDetail {
@@ -35,6 +36,7 @@ export interface WorkspaceDetail {
   my_role: "owner" | "admin" | "member" | null;
   members: WorkspaceMember[];
   pending_members: WorkspaceMember[];
+  tg_invite_link: string | null;  
 }
 
 /**
