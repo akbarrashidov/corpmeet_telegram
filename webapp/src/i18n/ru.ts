@@ -174,6 +174,16 @@ export const ru = {
   "rooms_section.confirm.last_room_warning": "Это последняя переговорная в пространстве. После архивации нельзя будет создать новые бронирования, пока не появится хотя бы одна комната.",
   "rooms_section.confirm.confirm": "Архивировать",
 
+  // Members section
+  "members_section.title": "Участники",
+  "members_section.role.owner": "Владелец",
+  "members_section.role.admin": "Админ",
+  "members_section.role.member": "Участник",
+  "members_section.remove_aria": "Удалить «{name}»",
+  "members_section.confirm_remove.title": "Удалить «{name}»?",
+  "members_section.confirm_remove.body": "Участник потеряет доступ к workspace и встречам.",
+  "members_section.confirm_remove.confirm": "Удалить",
+
   // Join by code
   "join_ws.title": "Войти по коду",
   "join_ws.code.label": "Invite-код",

@@ -162,6 +162,16 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "rooms_section.confirm.last_room_warning": "Bu pespacedagi oxirgi xona. Arxivdan keyin yangi xona yaratilmaguncha bron qilish mumkin emas.",
   "rooms_section.confirm.confirm": "Arxivlash",
 
+  // Members section
+  "members_section.title": "Ishtirokchilar",
+  "members_section.role.owner": "Egasi",
+  "members_section.role.admin": "Admin",
+  "members_section.role.member": "Ishtirokchi",
+  "members_section.remove_aria": "«{name}»ni o'chirish",
+  "members_section.confirm_remove.title": "«{name}»ni o'chirish?",
+  "members_section.confirm_remove.body": "Ishtirokchi makonga va uchrashuvlarga kirish huquqini yo'qotadi.",
+  "members_section.confirm_remove.confirm": "O'chirish",
+
   "join_ws.title": "Kod orqali kirish",
   "join_ws.code.label": "Invite-kod",
   "join_ws.code.placeholder": "ABC12345",
