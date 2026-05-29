@@ -12,6 +12,7 @@ export interface WorkspaceMember {
   pending_username: string | null;
   role: "owner" | "admin" | "member";
   status: "active" | "pending" | "removed";
+  invite_deep_link: string | null;
   user: {
     id: number;
     username: string | null;
