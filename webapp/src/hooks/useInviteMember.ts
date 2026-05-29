@@ -1,14 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@corpmeet/design/complex";
 import type { WorkspaceMember } from "./useWorkspaceDetail";
+import { saveInviteDeepLink } from "../lib/inviteCache";
 
-/** Пригласить пользователя по @username.
- *
- * `POST /api/v1/workspaces/{ws_id}/invite` body `{username}`.
- * Бэк создаёт `pending_member` + генерирует `invite_token` и `invite_deep_link`.
- * Если username не зарегистрирован — pending_username запишется, юзер появится
- * после клика по deep_link и `/start invite_TOKEN`.
- */
+/** Пригласить пользователя по @username. */
 export function useInviteMember(workspaceId: number | null) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -21,7 +16,10 @@ export function useInviteMember(workspaceId: number | null) {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (newMember) => {
+      if (newMember?.invite_deep_link) {
+        saveInviteDeepLink(newMember.id, newMember.invite_deep_link);
+      }
       queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
     },
   });
