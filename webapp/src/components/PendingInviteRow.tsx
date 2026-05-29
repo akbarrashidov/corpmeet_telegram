@@ -3,6 +3,7 @@ import { useTranslation } from "../i18n";
 import { copyToClipboard } from "../lib/clipboard";
 import { haptic, hapticSuccess } from "../lib/haptic";
 import type { WorkspaceMember } from "../hooks/useWorkspaceDetail";
+import { getInviteDeepLink } from "../lib/inviteCache";
 
 interface Props {
   member: WorkspaceMember;
@@ -19,12 +20,14 @@ export function PendingInviteRow({ member, canManage, onRevoke }: Props) {
   const label = member.pending_username
     ? `@${member.pending_username}`
     : t("members_section.pending.anonymous");
-  const hasLink = !!member.invite_deep_link;
+  // Backend не отдаёт invite_deep_link в GET — fallback на localStorage кэш
+  const deepLink = member.invite_deep_link ?? getInviteDeepLink(member.id);
+  const hasLink = !!deepLink;
 
   async function handleCopy() {
-    if (!member.invite_deep_link) return;
+    if (!deepLink) return;
     haptic();
-    const ok = await copyToClipboard(member.invite_deep_link);
+    const ok = await copyToClipboard(deepLink);
     if (ok) {
       hapticSuccess();
       setCopied(true);

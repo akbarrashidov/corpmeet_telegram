@@ -1,13 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@corpmeet/design/complex";
 import type { WorkspaceMember } from "./useWorkspaceDetail";
+import { saveInviteDeepLink } from "../lib/inviteCache";
 
-/** Сгенерировать **анонимную** одноразовую invite-ссылку.
- *
- * `POST /api/v1/workspaces/{ws_id}/generate-invite-link` (без body).
- * Бэк создаёт pending_member с `user: null` (анонимный) и `invite_token`.
- * Любой, кто кликнет по ссылке, привяжется к workspace через `/claim`.
- */
+/** Сгенерировать анонимную одноразовую invite-ссылку. */
 export function useGenerateInviteLink(workspaceId: number | null) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -18,7 +14,10 @@ export function useGenerateInviteLink(workspaceId: number | null) {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (newMember) => {
+      if (newMember?.invite_deep_link) {
+        saveInviteDeepLink(newMember.id, newMember.invite_deep_link);
+      }
       queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
     },
   });
