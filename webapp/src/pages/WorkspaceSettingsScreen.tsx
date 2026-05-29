@@ -3,6 +3,7 @@ import { RoomsSection } from "../components/RoomsSection";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTranslation } from "../i18n";
+import { MembersSection } from "../components/MembersSection";
 
 interface Props {
   workspaceId: number;
@@ -40,7 +41,7 @@ export function WorkspaceSettingsScreen({ workspaceId, onBack }: Props) {
       {workspace && (
         <>
           <Placeholder label={t("ws_settings.section.general")} />
-          <Placeholder label={t("ws_settings.section.members")} />
+          <MembersSection workspaceId={workspaceId} />
           <RoomsSection workspaceId={workspaceId} />
           <Placeholder label={t("ws_settings.section.telegram")} />
         </>
