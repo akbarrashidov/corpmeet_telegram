@@ -132,19 +132,19 @@ describe("OnboardingScreen — join by code", () => {
     renderScreen();
     const user = userEvent.setup();
     await user.click(screen.getByText(/Войти по коду/i));
-    await user.click(screen.getByRole("button", { name: /Отправить заявку/i }));
+    await user.click(screen.getByRole("button", { name: /^Войти$/i }));
     expect(screen.getByText(/Введи код/i)).toBeInTheDocument();
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 
-  it("POSTs and shows submitted screen on success", async () => {
+  it("POSTs and calls onComplete on success", async () => {
     vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
-    renderScreen();
+    const { onComplete } = renderScreen();
     const user = userEvent.setup();
 
     await user.click(screen.getByText(/Войти по коду/i));
     await user.type(screen.getByPlaceholderText(/ABC12345/i), "INV123");
-    await user.click(screen.getByRole("button", { name: /Отправить заявку/i }));
+    await user.click(screen.getByRole("button", { name: /^Войти$/i }));
 
     await waitFor(() => {
       expect(apiClient.post).toHaveBeenCalledWith(
@@ -152,11 +152,14 @@ describe("OnboardingScreen — join by code", () => {
         { invite_code: "INV123" },
       );
     });
-    expect(await screen.findByText(/Заявка отправлена/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
   });
 });
 
 // ──────── Search ────────
+
 
 describe("OnboardingScreen — search", () => {
   it("opens search form with empty_query message", async () => {
@@ -202,12 +205,12 @@ describe("OnboardingScreen — search", () => {
       ],
     });
     vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
-    renderScreen();
+    const { onComplete } = renderScreen();
     const user = userEvent.setup();
     await user.click(screen.getByText(/Найти по названию/i));
     await user.type(screen.getByPlaceholderText(/Начни вводить/i), "Аль");
     await screen.findByText("Альфа");
-    await user.click(screen.getByRole("button", { name: /Подать заявку/i }));
+    await user.click(screen.getByRole("button", { name: /Вступить/i }));
 
     await waitFor(() => {
       expect(apiClient.post).toHaveBeenCalledWith(
@@ -215,6 +218,8 @@ describe("OnboardingScreen — search", () => {
         { invite_code: "AAA" },
       );
     });
-    expect(await screen.findByText(/Заявка отправлена/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
   });
 });

@@ -7,7 +7,7 @@ import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
 import { CreateRoomForm } from "../components/CreateRoomForm";
 import { setCurrentWorkspaceId } from "../lib/currentWorkspace";
 
-type Mode = "menu" | "create" | "create_room" | "join" | "search" | "submitted";
+type Mode = "menu" | "create" | "create_room" | "join" | "search";
 
 interface Props {
   onComplete: () => void;
@@ -33,18 +33,18 @@ export function OnboardingScreen({ onComplete }: Props) {
   // На шаге create_room — Назад не возвращает в меню (workspace уже создан,
   // нельзя его отменить). Просто блокируем.
   useTgBackButton(
-    mode === "menu" || mode === "submitted" || mode === "create_room"
+    mode === "menu" || mode === "create_room"
       ? null
       : backToMenu,
   );
 
-  function showSubmitted() {
+  function handleJoined() {
     hapticSuccess();
-    setMode("submitted");
+    onComplete();
   }
 
   if (mode === "menu")
-    return <Menu onPick={(m) => { haptic(); setMode(m as Exclude<Mode, "menu" | "submitted" | "create_room">); }} />;
+    return <Menu onPick={(m) => { haptic(); setMode(m as Exclude<Mode, "menu" | "create_room">); }} />;
 
   if (mode === "create") {
     return (
@@ -77,9 +77,9 @@ export function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  if (mode === "join") return <JoinForm onSubmitted={showSubmitted} />;
-  if (mode === "search") return <SearchForm onSubmitted={showSubmitted} />;
-  return <Submitted />;
+  if (mode === "join") return <JoinForm onJoined={handleJoined} />;
+  if (mode === "search") return <SearchForm onJoined={handleJoined} />;
+  return null;
 }
 
 
@@ -87,7 +87,7 @@ export function OnboardingScreen({ onComplete }: Props) {
 // Menu
 // ────────────────────────────────────────────────────────────────────────────
 
-function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "submitted" | "create_room">) => void }) {
+function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "create_room">) => void }) {
   const { t } = useTranslation();
   return (
     <div
@@ -149,7 +149,7 @@ function OptionButton({
 // Join by code
 // ────────────────────────────────────────────────────────────────────────────
 
-function JoinForm({ onSubmitted }: { onSubmitted: () => void }) {
+function JoinForm({ onJoined }: { onJoined: () => void }) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -165,7 +165,7 @@ function JoinForm({ onSubmitted }: { onSubmitted: () => void }) {
     setError(null);
     try {
       await apiClient.post("/api/v1/workspaces/join", { invite_code: code.trim() });
-      onSubmitted();
+      onJoined();
     } catch {
       hapticError();
       setError(t("join_ws.error.failed"));
@@ -201,7 +201,7 @@ function JoinForm({ onSubmitted }: { onSubmitted: () => void }) {
 // Search
 // ────────────────────────────────────────────────────────────────────────────
 
-function SearchForm({ onSubmitted }: { onSubmitted: () => void }) {
+function SearchForm({ onJoined }: { onJoined: () => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Workspace[]>([]);
@@ -238,7 +238,7 @@ function SearchForm({ onSubmitted }: { onSubmitted: () => void }) {
       await apiClient.post("/api/v1/workspaces/join", {
         invite_code: workspace.invite_code,
       });
-      onSubmitted();
+      onJoined();
     } catch {
       hapticError();
       setError(t("join_ws.error.failed"));
@@ -304,26 +304,6 @@ function SearchForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
     </FormShell>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Submitted
-// ────────────────────────────────────────────────────────────────────────────
-
-function Submitted() {
-  const { t } = useTranslation();
-  return (
-    <div
-      className="min-h-screen p-6 flex flex-col items-center justify-center text-center gap-4"
-      style={{ background: "var(--bg)", color: "var(--text)" }}
-    >
-      <div className="text-5xl">⏳</div>
-      <h2 className="font-heading text-2xl">{t("submitted.title")}</h2>
-      <p className="text-sm" style={{ color: "var(--text-sec)" }}>
-        {t("submitted.body")}
-      </p>
-    </div>
   );
 }
 

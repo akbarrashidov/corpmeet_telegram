@@ -136,7 +136,7 @@ export const ru = {
   "onboarding.join.title": "Войти по коду",
   "onboarding.join.body": "Если коллега скинул invite-код",
   "onboarding.search.title": "Найти по названию",
-  "onboarding.search.body": "Поиск пространства, заявка админам",
+  "onboarding.search.body": "Поиск пространства по названию",
 
   // Create workspace
   "create_ws.title": "Новое пространство",
@@ -188,7 +188,7 @@ export const ru = {
   "join_ws.title": "Войти по коду",
   "join_ws.code.label": "Invite-код",
   "join_ws.code.placeholder": "ABC12345",
-  "join_ws.submit": "Отправить заявку",
+  "join_ws.submit": "Войти",
   "join_ws.error.code_required": "Введи код",
   "join_ws.error.failed": "Не удалось отправить. Попробуй ещё.",
 
@@ -197,11 +197,7 @@ export const ru = {
   "search_ws.placeholder": "Начни вводить название",
   "search_ws.no_results": "Ничего не нашлось",
   "search_ws.empty_query": "Введи хотя бы 1 символ",
-  "search_ws.submit": "Подать заявку",
-
-  // Submitted
-  "submitted.title": "Заявка отправлена",
-  "submitted.body": "Жди одобрения админов. Mini App уведомит когда вступишь.",
+  "search_ws.submit": "Вступить",
 
   // Workspace selector
   "ws_selector.title": "Выбрать пространство",
