@@ -232,6 +232,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
 
   // ── Settings → Takliflar tab ───────────────────────────────────────────
   "invitations.one_time.button": "Hamkasbni taklif qilish",
+  "invitations.one_time.copy": "Havolani nusxalash",
   "invitations.one_time.copied": "Nusxalandi ✓",
 
   "invitations.code.label": "Taklif kodi",
