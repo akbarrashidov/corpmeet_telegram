@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,8 +12,13 @@ vi.mock("../src/hooks/useArchiveRoom", () => ({
   useArchiveRoom: vi.fn(),
 }));
 
+vi.mock("../src/hooks/useWorkspaceDetail", () => ({
+  useWorkspaceDetail: vi.fn(),
+}));
+
 import { useWorkspaceRooms } from "../src/hooks/useWorkspaceRooms";
 import { useArchiveRoom } from "../src/hooks/useArchiveRoom";
+import { useWorkspaceDetail } from "../src/hooks/useWorkspaceDetail";
 import { RoomsSection } from "../src/components/RoomsSection";
 
 function makeWR(over: Partial<WorkspaceRoom> = {}): WorkspaceRoom {
@@ -54,6 +59,14 @@ function mockArchive() {
 }
 
 describe("RoomsSection", () => {
+  beforeEach(() => {
+    // По умолчанию рендерим с ролью owner — иначе RBAC прячет кнопки управления.
+    vi.mocked(useWorkspaceDetail).mockReturnValue({
+      data: { my_role: "owner" },
+      isLoading: false,
+    } as any);
+  });
+
   it("renders empty state when no rooms", () => {
     vi.mocked(useWorkspaceRooms).mockReturnValue({
       data: [],
@@ -136,5 +149,21 @@ describe("RoomsSection", () => {
     await user.click(screen.getByRole("button", { name: "Архивировать" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(77);
+  });
+    it("hides + Create and Archive buttons for non-admin", () => {
+    vi.mocked(useWorkspaceDetail).mockReturnValue({
+      data: { my_role: "member" },
+      isLoading: false,
+    } as any);
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "Test" } })],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    expect(screen.getByText("Test")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Архивировать/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Создать переговорную/ })).not.toBeInTheDocument();
   });
 });

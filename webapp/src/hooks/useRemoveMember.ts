@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@corpmeet/design/complex";
-import { removeInviteDeepLink } from "../lib/inviteCache";
 
 /** Удалить участника / отозвать pending-инвайт. */
 export function useRemoveMember(workspaceId: number | null) {
@@ -13,9 +12,7 @@ export function useRemoveMember(workspaceId: number | null) {
       );
       return memberId;
     },
-    onSuccess: (memberId) => {
-      // Чистим localStorage кэш — pending больше нет, ссылка не нужна
-      removeInviteDeepLink(memberId);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
     },
   });

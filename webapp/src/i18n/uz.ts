@@ -146,11 +146,11 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   
   // Workspace settings + rooms section
   "ws_settings.title": "Makon sozlamalari",
+  "ws_settings.your_role": "Sizning rolingiz: {role}",
   "ws_settings.section.general": "Umumiy",
+  "ws_settings.section.invitations": "Takliflar",
   "ws_settings.section.members": "Ishtirokchilar",
   "ws_settings.section.rooms": "Xonalar",
-  "ws_settings.section.telegram": "Telegram-chat",
-  "ws_settings.placeholder.coming_soon": "Tez orada",
   "rooms_section.title": "Xonalar",
   "rooms_section.empty": "Hozircha xonalar yo'q — birinchisini yarating.",
   "rooms_section.shared_badge": "Siz bilan baham ko'rildi",
@@ -163,7 +163,6 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "rooms_section.confirm.confirm": "Arxivlash",
 
   // Members section
-  "members_section.title": "Ishtirokchilar",
   "members_section.role.owner": "Egasi",
   "members_section.role.admin": "Admin",
   "members_section.role.member": "Ishtirokchi",
@@ -171,29 +170,6 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "members_section.confirm_remove.title": "«{name}»ni o'chirish?",
   "members_section.confirm_remove.body": "Ishtirokchi makonga va uchrashuvlarga kirish huquqini yo'qotadi.",
   "members_section.confirm_remove.confirm": "O'chirish",
-
-  // Members section — pending / invite / public link
-  "members_section.pending.section_title": "Tasdiqlash kutilmoqda",
-  "members_section.pending.anonymous": "Anonim havola",
-  "members_section.pending.badge": "Taklif yuborildi",
-  "members_section.pending.copy_link": "Havolani nusxalash",
-  "members_section.pending.copied": "Nusxalandi ✓",
-  "members_section.revoke_aria": "«{name}» taklifni bekor qilish",
-  "members_section.invite.label": "@username orqali taklif qilish",
-  "members_section.invite.placeholder": "@username",
-  "members_section.invite.submit": "Taklif qilish",
-  "members_section.invite.generate_anon": "+ Bir martalik havola yaratish (usernamesiz)",
-  "members_section.invite.error.required": "@username kiriting",
-  "members_section.invite.error.not_found": "Bunday @username topilmadi.",
-  "members_section.invite.error.already_member": "Bu foydalanuvchi makonda yoki taklif qilingan.",
-  "members_section.invite.error.failed": "Taklif qilolmadi. Qayta urinib ko'ring.",  
-  "members_section.public_link.label": "Hamkasblar uchun ochiq havola",
-  "members_section.public_link.copy": "Havolani nusxalash",
-  "members_section.public_link.copied": "Nusxalandi ✓",
-  "members_section.public_link.regenerate": "Kodni yangilash",
-  "members_section.public_link.confirm_regen.title": "Makon kodini yangilash?",
-  "members_section.public_link.confirm_regen.body": "Eski havola ishlamay qoladi. Yangisini qayta yuborishingiz kerak.",
-  "members_section.public_link.confirm_regen.confirm": "Yangilash",
 
   "join_ws.title": "Kod orqali kirish",
   "join_ws.code.label": "Invite-kod",
@@ -251,4 +227,45 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "month.gen.november": "Noyabr",
   "month.gen.december": "Dekabr",
 
+  // ── Settings → Qatnashchilar tab ───────────────────────────────────────
+  "members.empty": "Ish maydonida hozircha boshqa qatnashchilar yo'q.",
+
+  // ── Settings → Takliflar tab ───────────────────────────────────────────
+  "invitations.one_time.button": "Hamkasbni taklif qilish",
+  "invitations.one_time.copied": "Nusxalandi ✓",
+
+  "invitations.code.label": "Taklif kodi",
+  "invitations.code.copy": "Nusxalash",
+  "invitations.code.copied": "Nusxalandi ✓",
+
+  "invitations.public_link.label": "Telegram'dagi ommaviy havola",
+  "invitations.public_link.subtitle": "Havolaga ega bo'lgan har bir kishi ish maydoniga avtomatik qo'shiladi. Yangilash bosilsa eski havola ishlamay qoladi.",
+  "invitations.public_link.copy": "Nusxalash",
+  "invitations.public_link.copied": "Nusxalandi ✓",
+
+  "invitations.regenerate.button": "Kod va havolani yangilash",
+  "invitations.regenerate.confirm.title": "Taklif kodi va havolasini yangilash?",
+  "invitations.regenerate.confirm.body": "Eski kod va ommaviy havola darhol ishdan to'xtaydi. Ular orqali yuborilgan takliflar endi ishlamaydi. Bu amalni bekor qilib bo'lmaydi.",
+  "invitations.regenerate.confirm.confirm": "Yangilash",
+
+  // ── Settings → Umumiy tab ──────────────────────────────────────────────
+
+  "general.bind.title": "Bildirishnomalar uchun Telegram-guruh",
+  "general.bind.hint_unbound.intro": "Guruhni ish maydoniga bog'lash uchun:",
+  "general.bind.hint_unbound.step1": "{bot} botini Telegram-guruhga qo'shing",
+  "general.bind.hint_unbound.step2": "Botga administrator huquqlarini bering — bu uchrashuvlar haqida bildirishnomalar yuborish uchun kerak",
+  "general.bind.hint_unbound.step3": "Bot o'zi guruhni bog'lashni taklif qiladi — uning xabaridagi tugmani bosing va bu ish maydonini tanlang",
+  "general.bind.hint_bound": "{chatId} guruhi bog'langan. Uchrashuvlar haqidagi bildirishnomalar shu yerga keladi.",
+  "general.bind.unbind": "Uzish",
+  "general.bind.confirm_unbind.title": "Guruhni uzish?",
+  "general.bind.confirm_unbind.body": "Yangi uchrashuvlar haqidagi bildirishnomalar endi Telegram'ga kelmaydi. Qaytadan bog'lash uchun botni guruhga yana qo'shish kerak bo'ladi.",
+  "general.bind.confirm_unbind.confirm": "Uzish",
+
+  "general.archive.title": "Arxivlash",
+  "general.archive.button": "Ish maydonini arxivlash",
+  "general.archive.confirm.title": "«{name}» arxivlansinmi?",
+  "general.archive.confirm.body": "Arxivlangandan keyin ish maydoni barcha qatnashchilar uchun mavjud bo'lmaydi. Bu amalni bekor qilib bo'lmaydi.",
+  "general.archive.confirm.confirm": "Arxivlash",
+
 };
+
