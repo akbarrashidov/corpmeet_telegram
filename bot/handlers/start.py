@@ -1,5 +1,6 @@
-"""/start handler — opens Mini App; supports deep-link QR auth + chat-bind flow."""
+"""/start handler — opens Mini App; supports QR auth + bind/invite/ws deep-links."""
 import logging
+from typing import Optional
 
 import httpx
 from aiogram import Bot, Router
@@ -22,8 +23,7 @@ from bot.services.bind_helpers import (
     WS_DEEP_LINK_PREFIX,
     WS_DM_GREETING,
     build_bind_webapp_keyboard,
-    build_invite_webapp_keyboard,
-    build_ws_webapp_keyboard,
+    build_open_webapp_keyboard,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,12 +52,7 @@ async def _send_welcome(message: Message, settings: Settings) -> None:
 async def _handle_bind_deep_link(
     message: Message, bot: Bot, settings: Settings, raw_chat_id: str,
 ) -> None:
-    """Юзер пришёл из group fallback-кнопки: `/start bind_<chat_id>`.
-
-    Шлём ему то же DM-сообщение что и в `group_added.py` при успешном DM —
-    WebApp-кнопку для привязки чата. Название группы пытаемся достать через
-    `bot.get_chat`; если бот не в чате / id невалидный — fallback на «групповой чат».
-    """
+    """Юзер пришёл из group fallback-кнопки: `/start bind_<chat_id>`."""
     try:
         chat_id = int(raw_chat_id)
     except ValueError:
@@ -79,31 +74,75 @@ async def _handle_bind_deep_link(
     )
 
 
+async def _consume_invite_or_ws(
+    settings: Settings, full_token: str, telegram_id: int,
+) -> Optional[str]:
+    """Вызывает /internal/auth/consume-session с invite_/ws_ префиксом.
+
+    Backend сам создаёт юзера (если нет), делает claim/join и возвращает
+    {ok: true}. Возвращает None при успехе, человекочитаемый текст ошибки
+    при сбое.
+    """
+    try:
+        async with ApiClient(settings) as api:
+            await api.consume_session(token=full_token, telegram_id=telegram_id)
+        return None
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        logger.warning(
+            "consume-session failed (%s) for token %s",
+            status, full_token,
+        )
+        if status == 410:
+            return "Эта ссылка уже использована."
+        if status == 404:
+            return "Ссылка недействительна — возможно, она была отозвана."
+        if 400 <= status < 500:
+            return "Не удалось обработать ссылку. Возможно, она истекла или была отозвана."
+        return "Сервер временно недоступен. Попробуй через минуту."
+    except Exception:  # noqa: BLE001
+        logger.exception("consume-session unexpected error for %s", full_token)
+        return "Сервер временно недоступен. Попробуй через минуту."
+
+
 async def _handle_invite_deep_link(
     message: Message, settings: Settings, raw_token: str,
 ) -> None:
-    """`/start invite_<TOKEN>` — открыть Mini App с `?invite_token=<TOKEN>`.
+    """`/start invite_<TOKEN>` — claim invite через consume-session.
 
-    Backend и Mini App дальше делают всё сами:
-    - Mini App читает invite_token из URL
-    - Login/Register обрабатывает claim или показывает Accept/Reject
-      (см. BOT_INVITE_DOCS.md разделы 1.2 и 1.3)
+    Backend по префиксу invite_ создаёт юзера если нужно, помечает member
+    active, и возвращает 200. Mini App потом откроется без URL-параметров
+    и сам увидит новый workspace.
     """
-    if not raw_token:
+    if not raw_token or message.from_user is None:
         await _send_welcome(message, settings)
         return
-    keyboard = build_invite_webapp_keyboard(settings, raw_token)
+    full_token = f"{INVITE_DEEP_LINK_PREFIX}{raw_token}"
+    error_text = await _consume_invite_or_ws(
+        settings, full_token, message.from_user.id,
+    )
+    keyboard = build_open_webapp_keyboard(settings)
+    if error_text:
+        await message.answer(error_text, reply_markup=keyboard)
+        return
     await message.answer(INVITE_DM_GREETING, reply_markup=keyboard)
 
 
 async def _handle_ws_deep_link(
     message: Message, settings: Settings, raw_code: str,
 ) -> None:
-    """`/start ws_<CODE>` — открыть Mini App с `?ws_code=<CODE>` (публичная ссылка)."""
-    if not raw_code:
+    """`/start ws_<CODE>` — join workspace через consume-session."""
+    if not raw_code or message.from_user is None:
         await _send_welcome(message, settings)
         return
-    keyboard = build_ws_webapp_keyboard(settings, raw_code)
+    full_token = f"{WS_DEEP_LINK_PREFIX}{raw_code}"
+    error_text = await _consume_invite_or_ws(
+        settings, full_token, message.from_user.id,
+    )
+    keyboard = build_open_webapp_keyboard(settings)
+    if error_text:
+        await message.answer(error_text, reply_markup=keyboard)
+        return
     await message.answer(WS_DM_GREETING, reply_markup=keyboard)
 
 
@@ -111,12 +150,11 @@ async def _handle_ws_deep_link(
 async def cmd_start_deep_link(
     message: Message, command: CommandObject, bot: Bot
 ) -> None:
-    """Поддерживает два формата deep-link:
-    - `bind_<chat_id>` → отправить WebApp кнопку для привязки группы
+    """Поддерживает четыре формата deep-link:
+    - `bind_<chat_id>` → WebApp кнопка для привязки группы
+    - `invite_<TOKEN>` → consume-session + WebApp кнопка
+    - `ws_<CODE>` → consume-session + WebApp кнопка
     - `<token>` (произвольный) → QR-сессия для browser auth
-
-    Если token не валидный (404/410/другая ошибка) — не ломаем UX
-    error-сообщением: показываем обычное приветствие с кнопкой Mini App.
     """
     token = (command.args or "").strip()
     if not token or message.from_user is None:
@@ -124,7 +162,6 @@ async def cmd_start_deep_link(
 
     settings = get_settings()
 
-    # Bind-chat deep-link имеет приоритет над QR-сессией
     if token.startswith(BIND_DEEP_LINK_PREFIX):
         await _handle_bind_deep_link(
             message, bot, settings,
@@ -132,7 +169,6 @@ async def cmd_start_deep_link(
         )
         return
 
-    # Invite deep-link: /start invite_<TOKEN> → WebApp button с ?invite_token=
     if token.startswith(INVITE_DEEP_LINK_PREFIX):
         await _handle_invite_deep_link(
             message, settings,
@@ -140,7 +176,6 @@ async def cmd_start_deep_link(
         )
         return
 
-    # Public workspace link: /start ws_<CODE> → WebApp button с ?ws_code=
     if token.startswith(WS_DEEP_LINK_PREFIX):
         await _handle_ws_deep_link(
             message, settings,
@@ -149,7 +184,6 @@ async def cmd_start_deep_link(
         return
 
     # QR-flow: /start <session_token> — consume browser session
-
     try:
         async with ApiClient(settings) as api:
             await api.consume_session(token=token, telegram_id=message.from_user.id)
@@ -170,13 +204,7 @@ async def cmd_start_deep_link(
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, bot: Bot) -> None:
-    """Plain /start — приветствие с кнопкой Mini App.
-
-    Доступ к workspace'ам и встречам контролируется на уровне самой Mini App
-    (через workspace membership), а не на уровне `/start` — поэтому здесь
-    нет group-gate'а: любой может запустить бота, дальше Mini App покажет
-    Onboarding / список workspace'ов / etc.
-    """
+    """Plain /start — приветствие с кнопкой Mini App."""
     if message.from_user is None:
         return
 
