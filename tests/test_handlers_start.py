@@ -8,9 +8,20 @@ from aiogram.filters import CommandObject
 from bot.handlers.start import cmd_start, cmd_start_deep_link
 
 
-def make_message(user_id: int = 999) -> MagicMock:
+def make_message(
+    user_id: int = 999,
+    *,
+    username: str | None = "testuser",
+    first_name: str = "Test",
+    last_name: str | None = "User",
+    language_code: str | None = "en",
+) -> MagicMock:
     msg = MagicMock()
     msg.from_user.id = user_id
+    msg.from_user.username = username
+    msg.from_user.first_name = first_name
+    msg.from_user.last_name = last_name
+    msg.from_user.language_code = language_code
     msg.answer = AsyncMock()
     return msg
 
@@ -66,7 +77,12 @@ async def test_deep_link_qr_calls_consume_session(monkeypatch: pytest.MonkeyPatc
         await cmd_start_deep_link(msg, make_command("abc-token"), bot)
 
         mock_api.consume_session.assert_awaited_once_with(
-            token="abc-token", telegram_id=999,
+            token="abc-token",
+            telegram_id=999,
+            first_name="Test",
+            last_name="User",
+            username="testuser",
+            language_code="en",
         )
         msg.answer.assert_awaited_once()
         text = msg.answer.call_args.args[0]
@@ -211,7 +227,12 @@ async def test_deep_link_invite_calls_consume_session_with_prefix(
         await cmd_start_deep_link(msg, make_command("invite_ABC123"), bot)
 
         mock_api.consume_session.assert_awaited_once_with(
-            token="invite_ABC123", telegram_id=999,
+            token="invite_ABC123",
+            telegram_id=999,
+            first_name="Test",
+            last_name="User",
+            username="testuser",
+            language_code="en",
         )
 
     msg.answer.assert_called_once()
@@ -301,7 +322,12 @@ async def test_deep_link_ws_calls_consume_session_with_prefix(
         await cmd_start_deep_link(msg, make_command("ws_XYZ789"), bot)
 
         mock_api.consume_session.assert_awaited_once_with(
-            token="ws_XYZ789", telegram_id=999,
+            token="ws_XYZ789",
+            telegram_id=999,
+            first_name="Test",
+            last_name="User",
+            username="testuser",
+            language_code="en",
         )
 
     msg.answer.assert_called_once()

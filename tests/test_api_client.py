@@ -80,6 +80,55 @@ async def test_consume_session_sends_bot_secret_and_payload() -> None:
         assert body == {"token": "t1", "telegram_id": 42}
 
 
+async def test_consume_session_forwards_user_info_when_provided() -> None:
+    """Optional поля попадают в request body — бэк юзает их при создании."""
+    with respx.mock(base_url="https://api.example.com") as router:
+        route = router.post("/api/v1/internal/auth/consume-session").respond(
+            json={"ok": True}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            await api.consume_session(
+                token="invite_X",
+                telegram_id=42,
+                first_name="Иван",
+                last_name="Иванов",
+                username="ivanov",
+                language_code="ru",
+            )
+
+        body = json.loads(route.calls.last.request.content)
+        assert body == {
+            "token": "invite_X",
+            "telegram_id": 42,
+            "first_name": "Иван",
+            "last_name": "Иванов",
+            "username": "ivanov",
+            "language_code": "ru",
+        }
+
+
+async def test_consume_session_omits_none_fields() -> None:
+    """None-ы не попадают в body — backend-валидация не падает."""
+    with respx.mock(base_url="https://api.example.com") as router:
+        route = router.post("/api/v1/internal/auth/consume-session").respond(
+            json={"ok": True}
+        )
+
+        async with ApiClient(make_settings()) as api:
+            await api.consume_session(
+                token="invite_X",
+                telegram_id=42,
+                first_name=None,
+                last_name=None,
+                username=None,
+                language_code=None,
+            )
+
+        body = json.loads(route.calls.last.request.content)
+        assert body == {"token": "invite_X", "telegram_id": 42}
+
+
 async def test_consume_session_raises_on_4xx() -> None:
     with respx.mock(base_url="https://api.example.com") as router:
         router.post("/api/v1/internal/auth/consume-session").respond(

@@ -75,18 +75,34 @@ async def _handle_bind_deep_link(
 
 
 async def _consume_invite_or_ws(
-    settings: Settings, full_token: str, telegram_id: int,
+    settings: Settings,
+    full_token: str,
+    telegram_id: int,
+    *,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    username: Optional[str] = None,
+    language_code: Optional[str] = None,
 ) -> Optional[str]:
     """Вызывает /internal/auth/consume-session с invite_/ws_ префиксом.
 
-    Backend сам создаёт юзера (если нет), делает claim/join и возвращает
-    {ok: true}. Возвращает None при успехе, человекочитаемый текст ошибки
-    при сбое.
+    Backend создаёт юзера если нет, делает claim/join, возвращает {ok: true}.
+    Юзер-инфа из Telegram прокидывается дальше — иначе предсозданный
+    аккаунт получает username=NULL и теряет связку с TG-username.
+    Возвращает None при успехе, человекочитаемый текст ошибки при сбое.
     """
     try:
         async with ApiClient(settings) as api:
-            await api.consume_session(token=full_token, telegram_id=telegram_id)
+            await api.consume_session(
+                token=full_token,
+                telegram_id=telegram_id,
+                first_name=first_name,
+                last_name=last_name,
+                username=username,
+                language_code=language_code,
+            )
         return None
+
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         logger.warning(
@@ -119,7 +135,13 @@ async def _handle_invite_deep_link(
         return
     full_token = f"{INVITE_DEEP_LINK_PREFIX}{raw_token}"
     error_text = await _consume_invite_or_ws(
-        settings, full_token, message.from_user.id,
+        settings,
+        full_token,
+        message.from_user.id,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name,
+        username=message.from_user.username,
+        language_code=message.from_user.language_code,
     )
     keyboard = build_open_webapp_keyboard(settings)
     if error_text:
@@ -137,7 +159,13 @@ async def _handle_ws_deep_link(
         return
     full_token = f"{WS_DEEP_LINK_PREFIX}{raw_code}"
     error_text = await _consume_invite_or_ws(
-        settings, full_token, message.from_user.id,
+        settings,
+        full_token,
+        message.from_user.id,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name,
+        username=message.from_user.username,
+        language_code=message.from_user.language_code,
     )
     keyboard = build_open_webapp_keyboard(settings)
     if error_text:
@@ -186,7 +214,14 @@ async def cmd_start_deep_link(
     # QR-flow: /start <session_token> — consume browser session
     try:
         async with ApiClient(settings) as api:
-            await api.consume_session(token=token, telegram_id=message.from_user.id)
+            await api.consume_session(
+                token=token,
+                telegram_id=message.from_user.id,
+                first_name=message.from_user.first_name,
+                last_name=message.from_user.last_name,
+                username=message.from_user.username,
+                language_code=message.from_user.language_code,
+            )
     except httpx.HTTPStatusError as e:
         logger.warning(
             "consume-session failed (%s); falling back to welcome",
