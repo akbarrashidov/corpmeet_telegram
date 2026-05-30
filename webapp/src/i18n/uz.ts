@@ -120,7 +120,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "onboarding.join.title": "Kod orqali kirish",
   "onboarding.join.body": "Hamkasb invite-kod yuborgan bo'lsa",
   "onboarding.search.title": "Nomi bo'yicha qidirish",
-  "onboarding.search.body": "Makonni izlab, ariza yuborish",
+  "onboarding.search.body": "Nomi bo'yicha makon qidirish",
 
   "create_ws.title": "Yangi makon",
   "create_ws.name.label": "Nomi",
@@ -174,7 +174,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "join_ws.title": "Kod orqali kirish",
   "join_ws.code.label": "Invite-kod",
   "join_ws.code.placeholder": "ABC12345",
-  "join_ws.submit": "Ariza yuborish",
+  "join_ws.submit": "Kirish",
   "join_ws.error.code_required": "Kodni kiriting",
   "join_ws.error.failed": "Yuborib bo'lmadi. Qayta urinib ko'ring.",
 
@@ -182,10 +182,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "search_ws.placeholder": "Nomini kiriting",
   "search_ws.no_results": "Hech narsa topilmadi",
   "search_ws.empty_query": "Kamida 1 belgi kiriting",
-  "search_ws.submit": "Ariza yuborish",
-
-  "submitted.title": "Ariza yuborildi",
-  "submitted.body": "Adminlardan tasdiq kuting. Tasdiqlangach Mini App'da ko'rinasiz.",
+  "search_ws.submit": "Qo'shilish",
 
   "ws_selector.title": "Makonni tanlash",
   "ws_selector.open": "Makon tanlovini ochish",
