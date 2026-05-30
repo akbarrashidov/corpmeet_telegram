@@ -252,6 +252,7 @@ export const ru = {
 
   // ── Settings → Приглашения tab ─────────────────────────────────────────
   "invitations.one_time.button": "Пригласить коллегу",
+  "invitations.one_time.copy": "Скопировать ссылку",
   "invitations.one_time.copied": "Скопировано ✓",
 
   "invitations.code.label": "Инвайт-код",
