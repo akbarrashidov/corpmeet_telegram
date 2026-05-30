@@ -24,6 +24,9 @@ export interface Booking {
   recurrence_group_id: number | null;
   recurrence_days: number[];
   workspace_id?: number | null;
+  room_id?: number | null;
+  video_enabled?: boolean;
+  video_room_name?: string | null;
 }
 
 export interface BookingCreate {

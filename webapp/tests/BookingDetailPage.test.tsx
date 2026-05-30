@@ -502,4 +502,61 @@ describe("BookingDetailPage", () => {
       expect(screen.getByText(/Ты принял участие/i)).toBeInTheDocument();
     });
   });
+    it("shows room name when booking has room_id and room found in workspace rooms", async () => {
+    const booking = {
+      ...baseBooking,
+      workspace_id: 10,
+      room_id: 77,
+    };
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url === "/api/v1/rooms") {
+        return {
+          data: [
+            {
+              id: 1,
+              workspace_id: 10,
+              role: "owner",
+              visibility: "full",
+              created_at: "",
+              room: {
+                id: 77,
+                name: "Альфа",
+                description: null,
+                invite_code: null,
+                join_mode: "open",
+                archived_at: null,
+                created_at: "",
+              },
+            },
+          ],
+        };
+      }
+      return { data: [] };
+    });
+
+    renderPage({ booking });
+    await waitFor(() => {
+      expect(screen.getByText(/🚪 Альфа/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows video indicator when video_enabled=true", () => {
+    const booking = { ...baseBooking, video_enabled: true };
+    renderPage({ booking });
+    expect(screen.getByText(/🎥 Видеоконференция/i)).toBeInTheDocument();
+  });
+
+  it("shows attachment indicator when /attachments returns non-empty", async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url.endsWith("/attachments")) {
+        return { data: [{ id: 1 }] };
+      }
+      return { data: [] };
+    });
+    renderPage({});
+    await waitFor(() => {
+      expect(screen.getByText(/📎 Прикреплены файлы/i)).toBeInTheDocument();
+    });
+  });
 });
+
