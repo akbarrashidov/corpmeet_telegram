@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   apiClient,
   useAuth,
   useDeleteBooking,
   type Booking,
   type SlotResponse,
+  type WorkspaceRoom,
 } from "@corpmeet/design/complex";
 import { PageHeader } from "../components/PageHeader";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -20,6 +22,7 @@ import {
   type GuestRsvpStatus,
 } from "../hooks/useBookingGuestStatuses";
 import { useGuestRsvp } from "../hooks/useGuestRsvp";
+import { useBookingAttachments } from "../hooks/useBookingAttachments";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
 import { useFormatDayMonth, useTranslation, type TranslationKey } from "../i18n";
@@ -111,6 +114,29 @@ export function BookingDetailPage({
     const status = statusByName.get(normalize(raw)) ?? "pending";
     grouped[status].push(raw);
   }
+
+  // Резолвим room_name через `/api/v1/rooms` — переиспользуем cache с useWorkspaceRooms
+  // (тот же queryKey). Гост-помещение из чужого workspace — fallback (имя не покажем).
+  const { data: allRooms } = useQuery<WorkspaceRoom[]>({
+    queryKey: ["rooms", "mine"],
+    queryFn: async () => {
+      const res = await apiClient.get<WorkspaceRoom[]>("/api/v1/rooms");
+      return res.data;
+    },
+    staleTime: 60_000,
+  });
+  const roomName: string | null = (() => {
+    if (booking.room_id == null || !allRooms) return null;
+    const match = allRooms.find(
+      (r) =>
+        r.room.id === booking.room_id &&
+        (booking.workspace_id == null || r.workspace_id === booking.workspace_id),
+    );
+    return match?.room.name ?? null;
+  })();
+
+  const hasAttachments = useBookingAttachments(booking.id).data === true;
+  const hasVideo = booking.video_enabled === true;
 
   const dayLabel = formatDayMonth(booking.start_time.split("T")[0]);
   const organizerName =
@@ -208,6 +234,9 @@ export function BookingDetailPage({
         <div>
           🕐 {dayLabel} · {formatTime(booking.start_time)} — {formatTime(booking.end_time)}
         </div>
+        {roomName && <div>🚪 {roomName}</div>}
+        {hasVideo && <div>🎥 {t("booking.video_indicator")}</div>}
+        {hasAttachments && <div>📎 {t("booking.attachment_indicator")}</div>}
         <div>👤 {organizerName}{isOrganizer && ` ${t("booking.organizer_self")}`}</div>
         {booking.guests.length > 0 && (
           <div className="flex flex-col gap-2">

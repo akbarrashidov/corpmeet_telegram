@@ -21,6 +21,8 @@ export const ru = {
   "booking.organizer_self": "(это ты)",
   "booking.description_label": "Описание",
   "booking.guest_badge": "Ты в гостях",
+  "booking.video_indicator": "Видеоконференция",
+  "booking.attachment_indicator": "Прикреплены файлы",
   "booking.guests_label": "Гости ({count}):",
   "booking.guests.accepted_label": "✓ Приняли ({count}):",
   "booking.guests.declined_label": "✗ Отказались ({count}):",

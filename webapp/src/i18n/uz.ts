@@ -20,6 +20,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "booking.organizer_self": "(bu siz)",
   "booking.description_label": "Tavsif",
   "booking.guest_badge": "Mehmon rejimi",
+  "booking.video_indicator": "Videokonferentsiya",
+  "booking.attachment_indicator": "Fayllar biriktirilgan",
   "booking.guests_label": "Mehmonlar ({count}):",
   "booking.guests.accepted_label": "✓ Qatnashadi ({count}):",
   "booking.guests.declined_label": "✗ Rad etgan ({count}):",
