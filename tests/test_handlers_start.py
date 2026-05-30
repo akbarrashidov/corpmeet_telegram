@@ -229,7 +229,7 @@ async def test_deep_link_invite_calls_consume_session_with_prefix(
     "status_code,expected_phrase",
     [
         (410, "уже использована"),
-        (404, "недействительна"),
+        (404, "не сработала"),
         (422, "истекла или была отозвана"),
         (500, "временно недоступен"),
     ],
@@ -318,7 +318,7 @@ async def test_deep_link_ws_calls_consume_session_with_prefix(
     "status_code,expected_phrase",
     [
         (410, "уже использована"),
-        (404, "недействительна"),
+        (404, "не сработала"),
         (422, "истекла или была отозвана"),
         (500, "временно недоступен"),
     ],
