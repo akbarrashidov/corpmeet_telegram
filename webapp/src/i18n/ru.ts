@@ -158,11 +158,11 @@ export const ru = {
 
   // Workspace settings + rooms section
   "ws_settings.title": "Настройки пространства",
+  "ws_settings.your_role": "Ваша роль: {role}",
   "ws_settings.section.general": "Общее",
+  "ws_settings.section.invitations": "Приглашения",
   "ws_settings.section.members": "Участники",
   "ws_settings.section.rooms": "Переговорные",
-  "ws_settings.section.telegram": "Telegram-чат",
-  "ws_settings.placeholder.coming_soon": "Скоро",
   "rooms_section.title": "Переговорные",
   "rooms_section.empty": "Пока нет ни одной переговорной — создайте первую.",
   "rooms_section.shared_badge": "Поделились с вами",
@@ -175,7 +175,6 @@ export const ru = {
   "rooms_section.confirm.confirm": "Архивировать",
 
   // Members section
-  "members_section.title": "Участники",
   "members_section.role.owner": "Владелец",
   "members_section.role.admin": "Админ",
   "members_section.role.member": "Участник",
@@ -184,28 +183,6 @@ export const ru = {
   "members_section.confirm_remove.body": "Участник потеряет доступ к workspace и встречам.",
   "members_section.confirm_remove.confirm": "Удалить",
 
-  // Members section — pending / invite / public link
-  "members_section.pending.section_title": "Ожидают подтверждения",
-  "members_section.pending.anonymous": "Анонимная ссылка",
-  "members_section.pending.badge": "Приглашение отправлено",
-  "members_section.pending.copy_link": "Скопировать ссылку",
-  "members_section.pending.copied": "Скопировано ✓",
-  "members_section.revoke_aria": "Отозвать приглашение «{name}»",
-  "members_section.invite.label": "Пригласить по @username",
-  "members_section.invite.placeholder": "@username",
-  "members_section.invite.submit": "Пригласить",
-  "members_section.invite.generate_anon": "+ Создать одноразовую ссылку (без username)",
-  "members_section.invite.error.required": "Введи @username",
-  "members_section.invite.error.not_found": "Пользователь с таким @username не найден.",
-  "members_section.invite.error.already_member": "Этот пользователь уже состоит в пространстве или приглашён.",
-  "members_section.invite.error.failed": "Не удалось пригласить. Попробуй ещё.",  
-  "members_section.public_link.label": "Публичная ссылка для коллег",
-  "members_section.public_link.copy": "Скопировать ссылку",
-  "members_section.public_link.copied": "Скопировано ✓",
-  "members_section.public_link.regenerate": "Обновить код",
-  "members_section.public_link.confirm_regen.title": "Обновить код пространства?",
-  "members_section.public_link.confirm_regen.body": "Старая ссылка перестанет работать. Всем кому отправил — придётся прислать новую.",
-  "members_section.public_link.confirm_regen.confirm": "Обновить",
 
   // Join by code
   "join_ws.title": "Войти по коду",
@@ -269,6 +246,46 @@ export const ru = {
   "month.gen.october": "октября",
   "month.gen.november": "ноября",
   "month.gen.december": "декабря",
+
+  // ── Settings → Участники tab ───────────────────────────────────────────
+  "members.empty": "В пространстве пока нет других участников.",
+
+  // ── Settings → Приглашения tab ─────────────────────────────────────────
+  "invitations.one_time.button": "Пригласить коллегу",
+  "invitations.one_time.copied": "Скопировано ✓",
+
+  "invitations.code.label": "Инвайт-код",
+  "invitations.code.copy": "Копировать",
+  "invitations.code.copied": "Скопировано ✓",
+
+  "invitations.public_link.label": "Публичная ссылка Telegram",
+  "invitations.public_link.subtitle": "Любой, у кого есть ссылка, вступит в пространство автоматически. После обновления старая ссылка перестаёт работать.",
+  "invitations.public_link.copy": "Копировать",
+  "invitations.public_link.copied": "Скопировано ✓",
+
+  "invitations.regenerate.button": "Обновить код и ссылку",
+  "invitations.regenerate.confirm.title": "Обновить инвайт-код и ссылку?",
+  "invitations.regenerate.confirm.body": "Старый код и публичная ссылка перестанут работать немедленно. Уже выданные приглашения по ним больше не сработают. Действие необратимо.",
+  "invitations.regenerate.confirm.confirm": "Обновить",
+
+  // ── Settings → Общее tab ───────────────────────────────────────────────
+
+  "general.bind.title": "Telegram-группа для уведомлений",
+  "general.bind.hint_unbound.intro": "Чтобы привязать группу к пространству:",
+  "general.bind.hint_unbound.step1": "Добавьте бота {bot} в Telegram-группу",
+  "general.bind.hint_unbound.step2": "Дайте боту права администратора — это нужно для отправки уведомлений о встречах",
+  "general.bind.hint_unbound.step3": "Бот сам предложит привязать чат — нажмите кнопку в его сообщении и выберите это пространство",
+  "general.bind.hint_bound": "Группа {chatId} привязана. Уведомления о встречах отправляются туда.",
+  "general.bind.unbind": "Отвязать",
+  "general.bind.confirm_unbind.title": "Отвязать группу?",
+  "general.bind.confirm_unbind.body": "Уведомления о новых встречах больше не будут приходить в Telegram. Привязать снова можно будет, добавив бота в группу заново.",
+  "general.bind.confirm_unbind.confirm": "Отвязать",
+
+  "general.archive.title": "Архивирование",
+  "general.archive.button": "Архивировать пространство",
+  "general.archive.confirm.title": "Архивировать «{name}»?",
+  "general.archive.confirm.body": "После архивации пространство станет недоступно всем участникам. Действие необратимо.",
+  "general.archive.confirm.confirm": "Архивировать",
 
 } as const;
 

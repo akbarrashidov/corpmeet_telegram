@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { WorkspaceRoom } from "@corpmeet/design/complex";
 import { useWorkspaceRooms } from "../hooks/useWorkspaceRooms";
 import { useArchiveRoom } from "../hooks/useArchiveRoom";
+import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { CreateRoomForm } from "./CreateRoomForm";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useTranslation } from "../i18n";
@@ -18,13 +19,20 @@ interface Props {
  * из `useCurrentWorkspaceId`. Предполагается, что родитель (Settings screen)
  * вызывается ТОЛЬКО для current workspace — переключение происходит при
  * клике на шестерёнку в WorkspaceSelector.
+ *
+ * RBAC: только owner/admin могут создавать и архивировать. Member видит
+ * read-only список.
  */
 export function RoomsSection({ workspaceId }: Props) {
   const { t } = useTranslation();
   const { data: rooms, isLoading } = useWorkspaceRooms();
+  const { data: workspace } = useWorkspaceDetail(workspaceId);
   const archive = useArchiveRoom();
   const [creatingMode, setCreatingMode] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<WorkspaceRoom | null>(null);
+
+  const myRole = workspace?.my_role ?? null;
+  const canManage = myRole === "owner" || myRole === "admin";
 
   async function handleConfirmArchive() {
     if (!confirmArchive) return;
@@ -35,7 +43,6 @@ export function RoomsSection({ workspaceId }: Props) {
       setConfirmArchive(null);
     } catch {
       hapticError();
-      // Ошибку оставляем в UI через mutation state, можно тостом — упростим пока
     }
   }
 
@@ -44,10 +51,6 @@ export function RoomsSection({ workspaceId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-base">{t("rooms_section.title")}</h3>
-      </div>
-
       {isLoading && (
         <p className="text-sm" style={{ color: "var(--text-sec)" }}>
           {t("app.connecting")}
@@ -79,29 +82,31 @@ export function RoomsSection({ workspaceId }: Props) {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  haptic();
-                  setConfirmArchive(wr);
-                }}
-                disabled={archive.isPending}
-                aria-label={t("rooms_section.archive_aria", { name: wr.room.name })}
-                className="rounded-lg px-3 py-2 text-sm"
-                style={{
-                  background: "var(--surface)",
-                  color: "var(--danger)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                {t("rooms_section.archive")}
-              </button>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic();
+                    setConfirmArchive(wr);
+                  }}
+                  disabled={archive.isPending}
+                  aria-label={t("rooms_section.archive_aria", { name: wr.room.name })}
+                  className="rounded-lg px-3 py-2 text-sm"
+                  style={{
+                    background: "var(--surface)",
+                    color: "var(--danger)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {t("rooms_section.archive")}
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {creatingMode ? (
+      {canManage && creatingMode && (
         <div
           className="p-3 rounded-lg"
           style={{
@@ -126,7 +131,9 @@ export function RoomsSection({ workspaceId }: Props) {
             {t("common.cancel")}
           </button>
         </div>
-      ) : (
+      )}
+
+      {canManage && !creatingMode && (
         <button
           type="button"
           onClick={() => {
