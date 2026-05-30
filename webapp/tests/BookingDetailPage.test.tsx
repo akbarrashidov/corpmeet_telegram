@@ -458,9 +458,14 @@ describe("BookingDetailPage", () => {
     renderPage({ currentUserId: 1, booking: owned });
 
     await waitFor(() => {
-      expect(screen.getByText(/🟢 @alice/)).toBeInTheDocument();
-      expect(screen.getByText(/🔴 @bob/)).toBeInTheDocument();
-      expect(screen.getByText(/⚪ @charlie/)).toBeInTheDocument();
+      // Группы видны с заголовками и счётчиками
+      expect(screen.getByText(/✓ Приняли \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/✗ Отказались \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/⏳ Ожидаем \(1\)/)).toBeInTheDocument();
+      // Имена — пока без workspace mock'а выводятся raw (fallback на @username)
+      expect(screen.getByText("@alice")).toBeInTheDocument();
+      expect(screen.getByText("@bob")).toBeInTheDocument();
+      expect(screen.getByText("@charlie")).toBeInTheDocument();
     });
   });
 

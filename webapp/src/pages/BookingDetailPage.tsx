@@ -14,6 +14,7 @@ import {
   isoToLocalInput,
 } from "../lib/datetime";
 import { useTgBackButton } from "../hooks/useTgBackButton";
+import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import {
   useBookingGuestStatuses,
   type GuestRsvpStatus,
@@ -21,7 +22,7 @@ import {
 import { useGuestRsvp } from "../hooks/useGuestRsvp";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
-import { useFormatDayMonth, useTranslation } from "../i18n";
+import { useFormatDayMonth, useTranslation, type TranslationKey } from "../i18n";
 
 interface Props {
   booking: Booking;
@@ -40,11 +41,13 @@ function normalize(name: string): string {
   return name.trim().replace(/^@/, "").toLowerCase();
 }
 
-const STATUS_EMOJI: Record<GuestRsvpStatus, string> = {
-  accepted: "🟢",
-  declined: "🔴",
-  pending: "⚪",
+const GROUP_LABEL_KEY: Record<GuestRsvpStatus, TranslationKey> = {
+  accepted: "booking.guests.accepted_label",
+  declined: "booking.guests.declined_label",
+  pending: "booking.guests.pending_label",
 };
+
+const GROUP_ORDER: GuestRsvpStatus[] = ["accepted", "declined", "pending"];
 
 export function BookingDetailPage({
   booking,
@@ -82,6 +85,32 @@ export function BookingDetailPage({
   const statusByName = new Map<string, GuestRsvpStatus>(
     (guestStatuses.data ?? []).map((g) => [normalize(g.name), g.status]),
   );
+
+  // Резолвим username → display_name через workspace members.
+  // Гости не из workspace (rare edge-case) — показываем raw-имя как есть.
+  const { data: workspace } = useWorkspaceDetail(booking.workspace_id ?? null);
+  const displayNameByUsername = new Map<string, string>();
+  for (const m of workspace?.members ?? []) {
+    const username = m.user?.username;
+    const displayName = m.user?.display_name;
+    if (username && displayName) {
+      displayNameByUsername.set(normalize(username), displayName);
+    }
+  }
+  function displayGuestName(rawName: string): string {
+    return displayNameByUsername.get(normalize(rawName)) ?? rawName;
+  }
+
+  // Группируем гостей по их RSVP-статусу.
+  const grouped: Record<GuestRsvpStatus, string[]> = {
+    accepted: [],
+    declined: [],
+    pending: [],
+  };
+  for (const raw of booking.guests) {
+    const status = statusByName.get(normalize(raw)) ?? "pending";
+    grouped[status].push(raw);
+  }
 
   const dayLabel = formatDayMonth(booking.start_time.split("T")[0]);
   const organizerName =
@@ -181,20 +210,32 @@ export function BookingDetailPage({
         </div>
         <div>👤 {organizerName}{isOrganizer && ` ${t("booking.organizer_self")}`}</div>
         {booking.guests.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <div>👥 {t("booking.guests_label")}</div>
-            <ul className="flex flex-col gap-1 pl-5">
-              {booking.guests.map((rawName) => {
-                const status = statusByName.get(normalize(rawName)) ?? "pending";
-                return (
-                  <li key={rawName}>
-                    {STATUS_EMOJI[status]} {rawName}
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="flex flex-col gap-2">
+            <div>
+              👥 {t("booking.guests_label", { count: booking.guests.length })}
+            </div>
+            {GROUP_ORDER.map((status) => {
+              const items = grouped[status];
+              if (items.length === 0) return null;
+              return (
+                <div key={status} className="flex flex-col gap-0.5 pl-5">
+                  <div
+                    className="text-xs"
+                    style={{ color: "var(--text-sec)" }}
+                  >
+                    {t(GROUP_LABEL_KEY[status], { count: items.length })}
+                  </div>
+                  <ul className="flex flex-col gap-0.5 pl-3">
+                    {items.map((rawName) => (
+                      <li key={rawName}>{displayGuestName(rawName)}</li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         )}
+
       </div>
 
       {booking.description && (
