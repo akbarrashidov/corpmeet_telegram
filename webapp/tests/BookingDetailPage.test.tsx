@@ -84,6 +84,11 @@ function futureSlot(offsetMs: number, durationMs: number) {
 
 describe("BookingDetailPage", () => {
   beforeEach(() => {
+    // Зафиксируем "сейчас" на полдень — иначе `futureSlot(ONE_HOUR, ...)`
+    // в ночные часы создаёт слот после полуночи, который findNextFreeSlot
+    // интерпретирует как сегодняшний 00:45 (прошлое) → тест ломается.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-05-30T08:00:00Z"));
     vi.mocked(useDeleteBooking).mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       isPending: false,
@@ -91,6 +96,10 @@ describe("BookingDetailPage", () => {
     } as any);
     vi.mocked(apiClient.get).mockReset();
     vi.mocked(apiClient.patch).mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows title, time, organizer, guests, description", () => {
@@ -294,14 +303,12 @@ describe("BookingDetailPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("on decline (non-series): confirms, PATCHes guests minus self, calls onDeleted", async () => {
+  it("shows accept + decline buttons for invited guest", () => {
     const invited = {
       ...baseBooking,
       user: { ...baseUser, id: 99 },
       user_id: 99,
-      guests: ["alice", "bob"],
-      recurrence: "none" as const,
-      recurrence_group_id: null,
+      guests: ["@alice"],
     };
     vi.mocked(useAuth).mockReturnValue({
       user: { ...baseUser, id: 1, username: "alice" },
@@ -310,7 +317,101 @@ describe("BookingDetailPage", () => {
       setToken: vi.fn(),
       logout: vi.fn(),
     });
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: invited });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <BookingDetailPage
+          booking={invited}
+          onBack={vi.fn()}
+          onDeleted={vi.fn()}
+          onReschedule={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    expect(screen.getByRole("button", { name: "Принять участие" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Не могу принять участие" })).toBeInTheDocument();
+  });
+
+  it("matches guest by stripping leading @ from name", () => {
+    const invited = {
+      ...baseBooking,
+      user: { ...baseUser, id: 99 },
+      user_id: 99,
+      guests: ["@alice"],  // backend хранит с @
+    };
+    vi.mocked(useAuth).mockReturnValue({
+      user: { ...baseUser, id: 1, username: "alice" },  // username без @
+      isLoading: false,
+      isAuthenticated: true,
+      setToken: vi.fn(),
+      logout: vi.fn(),
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <BookingDetailPage
+          booking={invited}
+          onBack={vi.fn()}
+          onDeleted={vi.fn()}
+          onReschedule={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    // isInvited вычислился true несмотря на @ в имени → кнопка decline видна.
+    expect(screen.getByRole("button", { name: "Не могу принять участие" })).toBeInTheDocument();
+  });
+
+  it("on accept: PATCHes /guests/me with status=accepted (no confirm dialog)", async () => {
+    const invited = {
+      ...baseBooking,
+      user: { ...baseUser, id: 99 },
+      user_id: 99,
+      guests: ["alice"],
+    };
+    vi.mocked(useAuth).mockReturnValue({
+      user: { ...baseUser, id: 1, username: "alice" },
+      isLoading: false,
+      isAuthenticated: true,
+      setToken: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <BookingDetailPage
+          booking={invited}
+          onBack={vi.fn()}
+          onDeleted={vi.fn()}
+          onReschedule={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Принять участие" }));
+
+    await waitFor(() => {
+      expect(apiClient.patch).toHaveBeenCalledWith(
+        "/api/v1/bookings/5/guests/me",
+        { status: "accepted" },
+      );
+    });
+  });
+
+  it("on decline: confirms, PATCHes /guests/me with status=declined, page stays (no onDeleted)", async () => {
+    const invited = {
+      ...baseBooking,
+      user: { ...baseUser, id: 99 },
+      user_id: 99,
+      guests: ["alice"],
+    };
+    vi.mocked(useAuth).mockReturnValue({
+      user: { ...baseUser, id: 1, username: "alice" },
+      isLoading: false,
+      isAuthenticated: true,
+      setToken: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} });
     const onDeleted = vi.fn();
 
     render(
@@ -330,21 +431,45 @@ describe("BookingDetailPage", () => {
     await user.click(screen.getByRole("button", { name: "Отказаться" }));
 
     await waitFor(() => {
-      expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/bookings/5", {
-        guests: ["bob"],
-      });
-      expect(onDeleted).toHaveBeenCalled();
+      expect(apiClient.patch).toHaveBeenCalledWith(
+        "/api/v1/bookings/5/guests/me",
+        { status: "declined" },
+      );
+    });
+    // Decline не закрывает страницу — onDeleted не вызывается.
+    expect(onDeleted).not.toHaveBeenCalled();
+  });
+
+  it("shows organizer-view guest statuses with colored badges (real-time poll)", async () => {
+    const owned = {
+      ...baseBooking,
+      user: { ...baseUser, id: 1 },
+      user_id: 1,
+      guests: ["@alice", "@bob", "@charlie"],
+    };
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: [
+        { name: "@alice", status: "accepted" },
+        { name: "@bob", status: "declined" },
+        // charlie omitted → fallback на pending
+      ],
+    });
+
+    renderPage({ currentUserId: 1, booking: owned });
+
+    await waitFor(() => {
+      expect(screen.getByText(/🟢 @alice/)).toBeInTheDocument();
+      expect(screen.getByText(/🔴 @bob/)).toBeInTheDocument();
+      expect(screen.getByText(/⚪ @charlie/)).toBeInTheDocument();
     });
   });
 
-  it("on decline (series): shows choice modal with one/series buttons", async () => {
+  it("shows guest's own status when accepted", async () => {
     const invited = {
       ...baseBooking,
       user: { ...baseUser, id: 99 },
       user_id: 99,
-      guests: ["alice"],
-      recurrence: "weekly" as const,
-      recurrence_group_id: 42,
+      guests: ["@alice"],
     };
     vi.mocked(useAuth).mockReturnValue({
       user: { ...baseUser, id: 1, username: "alice" },
@@ -352,6 +477,9 @@ describe("BookingDetailPage", () => {
       isAuthenticated: true,
       setToken: vi.fn(),
       logout: vi.fn(),
+    });
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: [{ name: "@alice", status: "accepted" }],
     });
 
     render(
@@ -365,11 +493,8 @@ describe("BookingDetailPage", () => {
       </QueryClientProvider>
     );
 
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Не могу принять участие" }));
-    expect(screen.getByText(/Эта встреча в серии/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Только эту встречу" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Всю серию" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Ты принял участие/i)).toBeInTheDocument();
+    });
   });
-
 });
