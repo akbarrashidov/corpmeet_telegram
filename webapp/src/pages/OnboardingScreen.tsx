@@ -6,8 +6,14 @@ import { useTgBackButton } from "../hooks/useTgBackButton";
 import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
 import { CreateRoomForm } from "../components/CreateRoomForm";
 import { setCurrentWorkspaceId } from "../lib/currentWorkspace";
+import { getTelegram } from "../lib/telegram";
 
-type Mode = "menu" | "create" | "create_room" | "join" | "search";
+type Mode = "menu" | "create" | "create_room" | "join" | "search" | "pending_sent";
+
+interface JoinResponse {
+  workspace_id: number;
+  status: "active" | "pending";
+}
 
 interface Props {
   onComplete: () => void;
@@ -21,30 +27,36 @@ const inputStyle = {
 
 export function OnboardingScreen({ onComplete }: Props) {
   const [mode, setMode] = useState<Mode>("menu");
-  // workspace, созданный на шаге `create` — нужен для последующего create_room.
   const [createdWs, setCreatedWs] = useState<Workspace | null>(null);
+  const [pendingWsName, setPendingWsName] = useState<string | null>(null);
 
   function backToMenu() {
     haptic();
     setMode("menu");
     setCreatedWs(null);
+    setPendingWsName(null);
   }
 
-  // На шаге create_room — Назад не возвращает в меню (workspace уже создан,
-  // нельзя его отменить). Просто блокируем.
+  // На шагах create_room и pending_sent — Назад не возвращает в меню.
   useTgBackButton(
-    mode === "menu" || mode === "create_room"
+    mode === "menu" || mode === "create_room" || mode === "pending_sent"
       ? null
       : backToMenu,
   );
 
-  function handleJoined() {
-    hapticSuccess();
-    onComplete();
+  function handleResult(status: "active" | "pending", workspaceName: string | null) {
+    if (status === "pending") {
+      haptic();
+      setPendingWsName(workspaceName);
+      setMode("pending_sent");
+    } else {
+      hapticSuccess();
+      onComplete();
+    }
   }
 
   if (mode === "menu")
-    return <Menu onPick={(m) => { haptic(); setMode(m as Exclude<Mode, "menu" | "create_room">); }} />;
+    return <Menu onPick={(m) => { haptic(); setMode(m as Exclude<Mode, "menu" | "create_room" | "pending_sent">); }} />;
 
   if (mode === "create") {
     return (
@@ -77,8 +89,10 @@ export function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  if (mode === "join") return <JoinForm onJoined={handleJoined} />;
-  if (mode === "search") return <SearchForm onJoined={handleJoined} />;
+  if (mode === "join") return <JoinForm onResult={handleResult} />;
+  if (mode === "search") return <SearchForm onResult={handleResult} />;
+  if (mode === "pending_sent")
+    return <PendingSentScreen workspaceName={pendingWsName} />;
   return null;
 }
 
@@ -87,7 +101,7 @@ export function OnboardingScreen({ onComplete }: Props) {
 // Menu
 // ────────────────────────────────────────────────────────────────────────────
 
-function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "create_room">) => void }) {
+function Menu({ onPick }: { onPick: (m: Exclude<Mode, "menu" | "create_room" | "pending_sent">) => void }) {
   const { t } = useTranslation();
   return (
     <div
@@ -149,7 +163,11 @@ function OptionButton({
 // Join by code
 // ────────────────────────────────────────────────────────────────────────────
 
-function JoinForm({ onJoined }: { onJoined: () => void }) {
+function JoinForm({
+  onResult,
+}: {
+  onResult: (status: "active" | "pending", workspaceName: string | null) => void;
+}) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -164,8 +182,23 @@ function JoinForm({ onJoined }: { onJoined: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await apiClient.post("/api/v1/workspaces/join", { invite_code: code.trim() });
-      onJoined();
+      const res = await apiClient.post<JoinResponse>(
+        "/api/v1/workspaces/join",
+        { invite_code: code.trim() },
+      );
+      const status = res.data?.status ?? "active";
+      let wsName: string | null = null;
+      if (status === "pending" && res.data?.workspace_id) {
+        // Подгрузим список workspace'ов юзера и найдём только что вступленный
+        // по id — чтобы показать его имя на экране «Заявка отправлена».
+        try {
+          const wsRes = await apiClient.get<Workspace[]>("/api/v1/workspaces");
+          wsName = wsRes.data.find((w) => w.id === res.data.workspace_id)?.name ?? null;
+        } catch {
+          // если /workspaces упал — покажем без имени, не блокируем флоу
+        }
+      }
+      onResult(status, wsName);
     } catch {
       hapticError();
       setError(t("join_ws.error.failed"));
@@ -201,7 +234,11 @@ function JoinForm({ onJoined }: { onJoined: () => void }) {
 // Search
 // ────────────────────────────────────────────────────────────────────────────
 
-function SearchForm({ onJoined }: { onJoined: () => void }) {
+function SearchForm({
+  onResult,
+}: {
+  onResult: (status: "active" | "pending", workspaceName: string | null) => void;
+}) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Workspace[]>([]);
@@ -235,10 +272,13 @@ function SearchForm({ onJoined }: { onJoined: () => void }) {
     setJoiningId(workspace.id);
     setError(null);
     try {
-      await apiClient.post("/api/v1/workspaces/join", {
-        invite_code: workspace.invite_code,
-      });
-      onJoined();
+      const res = await apiClient.post<JoinResponse>(
+        "/api/v1/workspaces/join",
+        { invite_code: workspace.invite_code },
+      );
+      const status = res.data?.status ?? "active";
+      // У нас уже есть workspace.name из списка результатов поиска
+      onResult(status, workspace.name);
     } catch {
       hapticError();
       setError(t("join_ws.error.failed"));
@@ -304,6 +344,50 @@ function SearchForm({ onJoined }: { onJoined: () => void }) {
 
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
     </FormShell>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Pending sent — экран после успешного pending join'а
+// ────────────────────────────────────────────────────────────────────────────
+
+function PendingSentScreen({ workspaceName }: { workspaceName: string | null }) {
+  const { t } = useTranslation();
+
+  function handleClose() {
+    haptic();
+    const tg = getTelegram();
+    if (tg) tg.close();
+  }
+
+  const body = workspaceName
+    ? t("pending_sent.body_named", { name: workspaceName })
+    : t("pending_sent.body");
+
+  return (
+    <div
+      className="min-h-screen p-6 flex flex-col items-center justify-center gap-5"
+      style={{ background: "var(--bg)", color: "var(--text)" }}
+    >
+      <div className="text-6xl" aria-hidden>⌛</div>
+      <h1 className="font-heading text-2xl text-center">
+        {t("pending_sent.title")}
+      </h1>
+      <p
+        className="text-sm text-center max-w-sm"
+        style={{ color: "var(--text-sec)" }}
+      >
+        {body}
+      </p>
+      <button
+        type="button"
+        onClick={handleClose}
+        className="rounded-lg p-3 font-semibold w-full max-w-sm"
+        style={{ background: "var(--primary)", color: "white" }}
+      >
+        {t("pending_sent.button")}
+      </button>
+    </div>
   );
 }
 
