@@ -85,11 +85,6 @@ function futureSlot(offsetMs: number, durationMs: number) {
 
 describe("BookingDetailPage", () => {
   beforeEach(() => {
-    // Зафиксируем "сейчас" на полдень — иначе `futureSlot(ONE_HOUR, ...)`
-    // в ночные часы создаёт слот после полуночи, который findNextFreeSlot
-    // интерпретирует как сегодняшний 00:45 (прошлое) → тест ломается.
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date("2026-05-30T08:00:00Z"));
     vi.mocked(useDeleteBooking).mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       isPending: false,
@@ -98,10 +93,6 @@ describe("BookingDetailPage", () => {
     vi.mocked(apiClient.get).mockReset();
     vi.mocked(apiClient.patch).mockReset();
     vi.mocked(apiClient.delete).mockReset();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it("shows title, time, organizer, guests, description", () => {
@@ -230,10 +221,17 @@ describe("BookingDetailPage", () => {
   });
 
   it("on click reschedule: fetches today's slots and calls onReschedule with prefill", async () => {
+    // Зафиксируем "сейчас" на 08:00 — иначе `futureSlot(ONE_HOUR, ...)` в ночные
+    // часы создаёт слот после полуночи (00:45) который findNextFreeSlot
+    // трактует как сегодняшний 00:45 → тест ломается.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-05-30T08:00:00Z"));
+    try {
     const ONE_HOUR = 60 * 60 * 1000;
     vi.mocked(apiClient.get).mockResolvedValue({
       data: [futureSlot(ONE_HOUR, 30 * 60 * 1000)],
     });
+
     const onReschedule = vi.fn();
 
     renderPage({ currentUserId: 1, onReschedule });
@@ -253,9 +251,13 @@ describe("BookingDetailPage", () => {
         expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
       );
     });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows error and does not call onReschedule when no available slots", async () => {
+
     vi.mocked(apiClient.get).mockResolvedValue({ data: [] });
     const onReschedule = vi.fn();
 
@@ -624,6 +626,46 @@ describe("BookingDetailPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/📎 Прикреплены файлы/i)).toBeInTheDocument();
     });
+  });
+
+  it("shows overlap warning when other booking time overlaps", async () => {
+    const otherBooking = {
+      ...baseBooking,
+      id: 999,
+      title: "Конфликт",
+      start_time: "2026-05-01T09:30:00+05:00",
+      end_time: "2026-05-01T10:30:00+05:00",
+    };
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url === "/api/v1/bookings/active") {
+        return { data: [baseBooking, otherBooking] };
+      }
+      return { data: [] };
+    });
+    renderPage({});
+    await waitFor(() => {
+      expect(screen.getByText(/Накладывается на/i)).toBeInTheDocument();
+      expect(screen.getByText("Конфликт")).toBeInTheDocument();
+    });
+  });
+
+  it("does NOT show overlap warning when no other booking overlaps", async () => {
+    const otherBooking = {
+      ...baseBooking,
+      id: 999,
+      title: "Не конфликт",
+      start_time: "2026-05-02T09:00:00+05:00",
+      end_time: "2026-05-02T10:00:00+05:00",
+    };
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url === "/api/v1/bookings/active") {
+        return { data: [baseBooking, otherBooking] };
+      }
+      return { data: [] };
+    });
+    renderPage({});
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText(/Накладывается на/i)).not.toBeInTheDocument();
   });
 });
 

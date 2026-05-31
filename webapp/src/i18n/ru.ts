@@ -27,6 +27,7 @@ export const ru = {
   "booking.guests.accepted_label": "✓ Приняли ({count}):",
   "booking.guests.declined_label": "✗ Отказались ({count}):",
   "booking.guests.pending_label": "⏳ Ожидаем ({count}):",
+  "booking.overlap.title": "Накладывается на:",
   "booking.cancel_button": "Отменить встречу",
   "booking.reschedule_button": "Перенести встречу",
   "booking.confirm.cancel_title": "Отменить встречу?",
