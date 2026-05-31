@@ -249,6 +249,18 @@ def msg_guest_declined(b: BookingBotInfo, declined: GuestInfo, tz: ZoneInfo) -> 
     body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}\n🚫 {declined.name}"
     return head + body + _description_block(b)
 
+# Participant-only: накладка с другими его встречами
+def msg_overlap_warning(
+    new: BookingBotInfo, conflicts: list[BookingBotInfo], tz: ZoneInfo,
+) -> str:
+    uz = "quyidagi uchrashuvga to’g’ri keladi"
+    ru = "накладывается на"
+    head = f"⚠️ {_action('Vaqt mosligi', 'Накладка по времени')}"
+    intro = f"\n\n«{new.title}» — {format_time_range(new, tz)}\n{_action(uz, ru)}:"
+    bullets = "\n".join(
+        f"• «{c.title}» — {format_time_range(c, tz)}" for c in conflicts
+    )
+    return head + intro + "\n" + bullets
 
 # Owner-only: предупреждение что чат не привязан
 def msg_no_chat_warning(b: BookingBotInfo) -> str:
@@ -283,6 +295,11 @@ class Poller:
         # «уже предупредили owner'а workspace X что чат не привязан» —
         # чтобы не спамить на каждое событие
         self._workspace_chat_warned: set[int] = set()
+        # Все известные upcoming bookings (для overlap-detection)
+        self._active_bookings: dict[int, BookingBotInfo] = {}
+        # Дедуп overlap-DM: (booking_id, participant_tg_id, start_iso, end_iso)
+        # — start/end в ключе чтобы при reschedule отправлять заново
+        self._notified_overlaps: set[tuple[int, int, str, str]] = set()
 
     async def start(self) -> None:
         await self._api.__aenter__()
@@ -301,6 +318,7 @@ class Poller:
         for b in bookings:
             self._notified_state[b.id] = (b.start_time, b.end_time)
             self._guests_state[b.id] = list(b.guests)
+            self._active_bookings[b.id] = b
             if b.recurrence != "none" and b.recurrence_group_id is not None:
                 self._notified_groups.add(b.recurrence_group_id)
         logger.info("Warmup loaded %d bookings into dedup state", len(bookings))
@@ -384,7 +402,9 @@ class Poller:
                 await self._notify_owner(b, owner_text)
                 await self._notify_guests(b, guest_text)
                 await self._notify_group(b, group_text)
+                await self._check_and_notify_overlaps(b)
                 self._notified_state[b.id] = current
+                self._active_bookings[b.id] = b
                 if is_series_create and b.recurrence_group_id is not None:
                     self._notified_groups.add(b.recurrence_group_id)
             elif cached != current:
@@ -394,18 +414,83 @@ class Poller:
                 await self._notify_owner(b, owner_text)
                 await self._notify_guests(b, guest_text)
                 await self._notify_group(b, group_text)
+                await self._check_and_notify_overlaps(b)
                 self._notified_state[b.id] = current
+                self._active_bookings[b.id] = b
             else:
                 logger.debug(
                     "Skip duplicate notification for booking %s (no time change)",
                     b.id,
                 )
+                self._active_bookings[b.id] = b
 
             if b.updated_at > self._cursor_updated:
                 self._cursor_updated = b.updated_at
 
+    async def _check_and_notify_overlaps(self, new: BookingBotInfo) -> None:
+        """Для каждого участника новой/изменённой встречи проверить —
+        пересекается ли время с его другими активными встречами. Если да —
+        DM **только** этому участнику с указанием конфликтующих встреч.
+
+        Past bookings игнорируем. Дедуп через `_notified_overlaps`:
+        ключ включает start/end, чтобы при reschedule сработать заново.
+        """
+        now = datetime.now(timezone.utc)
+        new_start_ms = new.start_time.timestamp()
+        new_end_ms = new.end_time.timestamp()
+
+        # Собираем участников новой встречи с telegram_id.
+        participants: list[int] = []
+        if new.user.telegram_id is not None:
+            participants.append(new.user.telegram_id)
+        for g in new.guests:
+            if g.telegram_id is not None and g.telegram_id not in participants:
+                participants.append(g.telegram_id)
+
+        for tg_id in participants:
+            # Найти ВСЕ другие активные встречи где этот юзер участвует
+            # И время пересекается с new.
+            conflicts: list[BookingBotInfo] = []
+            for other in self._active_bookings.values():
+                if other.id == new.id:
+                    continue
+                if other.end_time < now:
+                    continue
+                user_in_other = (
+                    other.user.telegram_id == tg_id
+                    or any(g.telegram_id == tg_id for g in other.guests)
+                )
+                if not user_in_other:
+                    continue
+                other_start_ms = other.start_time.timestamp()
+                other_end_ms = other.end_time.timestamp()
+                if new_start_ms < other_end_ms and new_end_ms > other_start_ms:
+                    conflicts.append(other)
+
+            if not conflicts:
+                continue
+
+            # Дедуп — ключ включает время чтобы reschedule перевзвёл проверку.
+            key = (
+                new.id,
+                tg_id,
+                new.start_time.isoformat(),
+                new.end_time.isoformat(),
+            )
+            if key in self._notified_overlaps:
+                continue
+            self._notified_overlaps.add(key)
+
+            conflicts.sort(key=lambda c: (c.start_time, c.id))
+            text = msg_overlap_warning(new, conflicts, self._tz)
+            try:
+                await self._bot.send_message(tg_id, text)
+            except Exception:  # noqa: BLE001
+                logger.exception("Overlap DM to %s failed", tg_id)
+
     async def _detect_guest_declines(self, b: BookingBotInfo) -> None:
         """Если у booking сократился guests с прошлого poll'а — шлём DM organizer'у."""
+
         prev_guests = self._guests_state.get(b.id)
         if prev_guests is None:
             return

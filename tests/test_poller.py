@@ -1123,3 +1123,72 @@ async def test_warmup_preserves_series_dedup() -> None:
     await p.warmup()
 
     assert 42 in p._notified_groups
+
+# ---------- Overlap detection ----------
+
+async def test_overlap_dm_to_organizer_when_their_own_two_bookings_overlap() -> None:
+    """Two bookings owned by same user overlap → DM to that user."""
+    p, bot = make_poller_with_mocked_api()
+    # Default make_booking ставит time now+1h..now+2h — два booking'а пересекаются
+    booking_a = make_booking(id=1, title="A", telegram_id=100)
+    booking_b = make_booking(id=2, title="B", telegram_id=100)
+    p._active_bookings[booking_a.id] = booking_a
+
+    await p._check_and_notify_overlaps(booking_b)
+
+    bot.send_message.assert_called_once()
+    args = bot.send_message.call_args
+    assert args.args[0] == 100
+    text = args.args[1]
+    assert "Накладка" in text or "mosligi" in text
+    assert "«A»" in text
+
+
+async def test_no_overlap_dm_when_times_dont_intersect() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking_a = make_booking(id=1, telegram_id=100)
+    # Сдвинем booking_b на 3 часа позже — не пересекаются с booking_a
+    booking_b = make_booking(id=2, telegram_id=100).model_copy(
+        update={
+            "start_time": booking_a.end_time + dt.timedelta(hours=1),
+            "end_time": booking_a.end_time + dt.timedelta(hours=2),
+        }
+    )
+    p._active_bookings[booking_a.id] = booking_a
+
+    await p._check_and_notify_overlaps(booking_b)
+    bot.send_message.assert_not_called()
+
+
+async def test_overlap_dm_to_guest_only_when_they_have_conflict() -> None:
+    """Гость new встречи — организатор другой пересекающейся → DM этому гостю.
+    Организатор new и другой гость без конфликта — не получают."""
+    p, bot = make_poller_with_mocked_api()
+    # bob owns его own meeting (telegram_id=200) at default time
+    bob_meeting = make_booking(id=10, title="Bob meeting", telegram_id=200)
+    # New booking by alice (100) с гостями bob (200) и carol (300) — same default time → overlap
+    new = make_booking(
+        id=20, title="New", telegram_id=100,
+        guests=[
+            GuestInfo(name="bob", telegram_id=200),
+            GuestInfo(name="carol", telegram_id=300),
+        ],
+    )
+    p._active_bookings[bob_meeting.id] = bob_meeting
+
+    await p._check_and_notify_overlaps(new)
+
+    sent_to = [c.args[0] for c in bot.send_message.await_args_list]
+    assert sent_to == [200]
+
+
+async def test_overlap_dedup_prevents_double_dm() -> None:
+    p, bot = make_poller_with_mocked_api()
+    booking_a = make_booking(id=1, telegram_id=100)
+    booking_b = make_booking(id=2, telegram_id=100)
+    p._active_bookings[booking_a.id] = booking_a
+
+    await p._check_and_notify_overlaps(booking_b)
+    await p._check_and_notify_overlaps(booking_b)
+    assert bot.send_message.call_count == 1
+
