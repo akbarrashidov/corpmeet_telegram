@@ -16,19 +16,18 @@ describe("RegistrationScreen", () => {
     expect(screen.getByLabelText(/Фамилия/i)).toHaveValue("Rakhimov");
   });
 
-  it("submits with three fields when all valid", async () => {
+  it("submits with two fields when both valid", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<RegistrationScreen onSubmit={onSubmit} />);
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
 
-    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov", "PM");
+    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov");
   });
 
   it("trims whitespace before validating", async () => {
@@ -38,12 +37,11 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "  Alisher  ");
     await user.type(screen.getByLabelText(/Фамилия/i), "  Rakhimov  ");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
 
-    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov", "PM");
+    expect(onSubmit).toHaveBeenCalledWith("Alisher", "Rakhimov");
   });
 
   it("rejects lowercase first name", async () => {
@@ -53,7 +51,6 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
@@ -69,7 +66,6 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "ALISHER");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
@@ -85,7 +81,6 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Алишер");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
@@ -101,48 +96,12 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText(/Фамилия — латиница/i)).toBeInTheDocument();
-  });
-
-  it("requires position to be picked", async () => {
-    const onSubmit = vi.fn();
-    render(<RegistrationScreen onSubmit={onSubmit} />);
-
-    const user = userEvent.setup();
-    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
-    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(
-      screen.getByRole("button", { name: /Зарегистрироваться/i })
-    );
-
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText(/Выбери должность/i)).toBeInTheDocument();
-  });
-
-  it("highlights only the most recently selected position", async () => {
-    render(<RegistrationScreen onSubmit={vi.fn()} />);
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "PM" }));
-    expect(screen.getByRole("button", { name: "PM" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    await user.click(screen.getByRole("button", { name: "Дизайнер" }));
-    expect(screen.getByRole("button", { name: "PM" })).toHaveAttribute(
-      "aria-pressed",
-      "false"
-    );
-    expect(screen.getByRole("button", { name: "Дизайнер" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
   });
 
   it("shows server error if onSubmit throws", async () => {
@@ -154,7 +113,6 @@ describe("RegistrationScreen", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(
       screen.getByRole("button", { name: /Зарегистрироваться/i })
     );

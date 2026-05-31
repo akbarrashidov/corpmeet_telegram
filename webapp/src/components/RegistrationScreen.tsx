@@ -1,34 +1,23 @@
 import { FormEvent, useState } from "react";
-import { useTranslation, type TranslationKey } from "../i18n";
+import { useTranslation } from "../i18n";
 import { LangToggle } from "./LangToggle";
-
-const POSITION_OPTIONS: { apiValue: string; labelKey: TranslationKey }[] = [
-  { apiValue: "Начальник департамента/отдела", labelKey: "position.label.heads" },
-  { apiValue: "PM", labelKey: "position.label.pm" },
-  { apiValue: "Аналитик", labelKey: "position.label.analyst" },
-  { apiValue: "Программист и др.", labelKey: "position.label.dev" },
-  { apiValue: "Дизайнер", labelKey: "position.label.designer" },
-];
 
 const NAME_REGEX = /^[A-Z][a-z]+$/;
 
 interface Props {
   defaultFirstName?: string;
   defaultLastName?: string;
-  defaultPosition?: string | null;
-  onSubmit: (firstName: string, lastName: string, position: string) => Promise<void>;
+  onSubmit: (firstName: string, lastName: string) => Promise<void>;
 }
 
 export function RegistrationScreen({
   defaultFirstName = "",
   defaultLastName = "",
-  defaultPosition = null,
   onSubmit,
 }: Props) {
   const { t } = useTranslation();
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [lastName, setLastName] = useState(defaultLastName);
-  const [position, setPosition] = useState<string | null>(defaultPosition);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +26,6 @@ export function RegistrationScreen({
     const ln = lastName.trim();
     if (!NAME_REGEX.test(fn)) return t("register.error.first_name_format");
     if (!NAME_REGEX.test(ln)) return t("register.error.last_name_format");
-    if (!position) return t("register.error.position_required");
     return null;
   }
 
@@ -51,7 +39,7 @@ export function RegistrationScreen({
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit(firstName.trim(), lastName.trim(), position!);
+      await onSubmit(firstName.trim(), lastName.trim());
     } catch (e: any) {
       const status = e?.response?.status;
       const data = e?.response?.data;
@@ -114,34 +102,6 @@ export function RegistrationScreen({
           style={inputStyle}
         />
       </label>
-
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm">{t("register.field.position")}</legend>
-        <div className="flex flex-wrap gap-2">
-          {POSITION_OPTIONS.map((opt) => {
-            const selected = position === opt.apiValue;
-            return (
-              <button
-                key={opt.apiValue}
-                type="button"
-                onClick={() => setPosition(opt.apiValue)}
-                disabled={submitting}
-                aria-pressed={selected}
-                className="px-3 py-2 rounded-full text-sm font-medium transition"
-                style={{
-                  background: selected ? "var(--primary)" : "var(--input-bg)",
-                  color: selected ? "white" : "var(--text)",
-                  border: `1px solid ${
-                    selected ? "var(--primary)" : "var(--input-border)"
-                  }`,
-                }}
-              >
-                {t(opt.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
 
       {error && (
         <p className="text-sm" style={{ color: "var(--danger)" }}>
