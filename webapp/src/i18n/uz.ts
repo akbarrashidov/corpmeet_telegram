@@ -289,5 +289,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "position_warning.message": "Sizning lavozimingiz ko'rsatilmagan.",
   "position_warning.button": "Belgilash",
   "member_position.label_aria": "«{name}» uchun lavozim tayinlash",
+  "name_warning.message": "Ismingiz yoki familiyangiz to'ldirilmagan.",
+  "name_warning.button": "Belgilash",  
 };
 

@@ -15,6 +15,7 @@ import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
 import { WorkspaceSelector } from "../components/WorkspaceSelector";
 import { PositionWarningBanner } from "../components/PositionWarningBanner";
+import { NameWarningBanner } from "../components/NameWarningBanner";
 import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
 import { addDaysIso } from "../lib/datetime";
 
@@ -136,6 +137,7 @@ export function HomePage({
         </div>
       </header>
 
+      <NameWarningBanner onOpenProfile={handleProfile} />
       <PositionWarningBanner onOpenProfile={handleProfile} />
 
       <div>

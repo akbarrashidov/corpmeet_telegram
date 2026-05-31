@@ -308,7 +308,8 @@ export const ru = {
   "position_warning.message": "У вас не указана должность.",
   "position_warning.button": "Указать",
   "member_position.label_aria": "Назначить должность для «{name}»",
-    
+  "name_warning.message": "У вас не заполнено имя или фамилия.",
+  "name_warning.button": "Указать",    
 } as const;
 
 export type TranslationKey = keyof typeof ru;
