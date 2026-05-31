@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   apiClient,
   useAuth,
@@ -62,15 +62,20 @@ export function BookingDetailPage({
   const { t } = useTranslation();
   const formatDayMonth = useFormatDayMonth();
   const deleteBooking = useDeleteBooking();
+  const queryClient = useQueryClient();
   const guestStatuses = useBookingGuestStatuses(booking.id);
   const rsvp = useGuestRsvp(booking.id);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
+  const [seriesChoiceOpen, setSeriesChoiceOpen] = useState(false);
+  const [cancelSeriesBusy, setCancelSeriesBusy] = useState(false);
   const [rescheduleBusy, setRescheduleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isOrganizer = user?.id === booking.user.id;
   const isReschedulable = isOrganizer && booking.recurrence === "none";
+  const isSeries =
+    booking.recurrence !== "none" && booking.recurrence_group_id !== null;
   const username = user?.username ? normalize(user.username) : null;
   const isInvited =
     !isOrganizer &&
@@ -147,7 +152,12 @@ export function BookingDetailPage({
 
   function openConfirmDelete() {
     haptic();
-    setConfirmDeleteOpen(true);
+    setError(null);
+    if (isSeries) {
+      setSeriesChoiceOpen(true);
+    } else {
+      setConfirmDeleteOpen(true);
+    }
   }
 
   async function handleConfirmDelete() {
@@ -160,6 +170,30 @@ export function BookingDetailPage({
     } catch {
       hapticError();
       setError(t("booking.error.cancel_failed"));
+    }
+  }
+
+  async function handleCancelSeries(deleteSeries: boolean) {
+    setSeriesChoiceOpen(false);
+    setError(null);
+    if (!deleteSeries) {
+      // «Только эту встречу» — одиночный cancel через тот же hook
+      await handleConfirmDelete();
+      return;
+    }
+    setCancelSeriesBusy(true);
+    try {
+      await apiClient.delete(`/api/v1/bookings/${booking.id}`, {
+        params: { delete_series: true },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["bookings", "active"] });
+      hapticSuccess();
+      onDeleted();
+    } catch {
+      hapticError();
+      setError(t("booking.error.cancel_failed"));
+    } finally {
+      setCancelSeriesBusy(false);
     }
   }
 
@@ -303,12 +337,12 @@ export function BookingDetailPage({
           <button
             type="button"
             onClick={openConfirmDelete}
-            disabled={deleteBooking.isPending}
+            disabled={deleteBooking.isPending || cancelSeriesBusy}
             className="rounded-lg p-3 font-semibold"
             style={{
               background: "var(--danger)",
               color: "white",
-              opacity: deleteBooking.isPending ? 0.5 : 1,
+              opacity: deleteBooking.isPending || cancelSeriesBusy ? 0.5 : 1,
             }}
           >
             {t("booking.cancel_button")}
@@ -379,6 +413,64 @@ export function BookingDetailPage({
         onConfirm={handleConfirmDecline}
         onCancel={() => setConfirmDeclineOpen(false)}
       />
+
+      {seriesChoiceOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 flex items-center justify-center p-6 z-50"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setSeriesChoiceOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-xl p-5 w-full max-w-sm flex flex-col gap-3"
+            style={{
+              background: "var(--modal)",
+              color: "var(--text)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h2 className="font-semibold text-lg">
+              {t("booking.cancel_choice.title")}
+            </h2>
+            <p className="text-sm" style={{ color: "var(--text-sec)" }}>
+              {t("booking.cancel_choice.body")}
+            </p>
+            <div className="flex flex-col gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => void handleCancelSeries(false)}
+                className="rounded-lg p-3 font-semibold"
+                style={{ background: "var(--danger)", color: "white" }}
+              >
+                {t("booking.cancel_choice.one")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCancelSeries(true)}
+                className="rounded-lg p-3 font-semibold"
+                style={{ background: "var(--danger)", color: "white" }}
+              >
+                {t("booking.cancel_choice.series")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSeriesChoiceOpen(false)}
+                className="rounded-lg p-2.5 font-medium"
+                style={{
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
