@@ -2,6 +2,16 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+vi.mock("@corpmeet/design/complex", () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 9999 },  // не пересекается с id юзеров в тестах
+    isLoading: false,
+    isAuthenticated: true,
+    setToken: vi.fn(),
+    logout: vi.fn(),
+  })),
+}));
+
 vi.mock("../src/lib/currentWorkspace", () => ({
   useCurrentWorkspaceId: vi.fn(() => 10),
   setCurrentWorkspaceId: vi.fn(),
@@ -11,6 +21,7 @@ vi.mock("../src/hooks/useWorkspaceDetail", () => ({
   useWorkspaceDetail: vi.fn(),
 }));
 
+import { useAuth } from "@corpmeet/design/complex";
 import { useWorkspaceDetail } from "../src/hooks/useWorkspaceDetail";
 import { GuestPicker, type GuestEntry } from "../src/components/GuestPicker";
 
@@ -97,16 +108,51 @@ describe("GuestPicker", () => {
     expect(screen.getAllByText("Анна Смит")[0]).toBeInTheDocument();
   });
 
-  it("adds user with username as value, display_name as label", async () => {
-    mockUsers([{ id: 1, display_name: "Иван Иванов", username: "ivan" }]);
-    const onChange = vi.fn();
-    render(<GuestPicker value={[]} onChange={onChange} />);
+  it("excludes current user (organizer) from suggestions", async () => {
+    // current user (организатор) id=5 — должен быть скрыт из списка
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 5 } as any,
+      isLoading: false,
+      isAuthenticated: true,
+      setToken: vi.fn(),
+      logout: vi.fn(),
+    });
+    mockUsers([
+      { id: 1, display_name: "Анна", username: "anna" },
+      { id: 5, display_name: "Иван (я)", username: "ivan" },
+      { id: 7, display_name: "Лейла", username: "leyla" },
+    ]);
+
+    render(<GuestPicker value={[]} onChange={vi.fn()} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole("textbox"));
-    await user.click(screen.getByText("Иван Иванов"));
-    expect(onChange).toHaveBeenCalledWith([
-      { label: "Иван Иванов", value: "ivan" },
+
+    expect(screen.getByText("Анна")).toBeInTheDocument();
+    expect(screen.getByText("Лейла")).toBeInTheDocument();
+    expect(screen.queryByText("Иван (я)")).not.toBeInTheDocument();
+  });
+
+  it("position-filter does NOT add current user even if their position matches", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 5 } as any,
+      isLoading: false,
+      isAuthenticated: true,
+      setToken: vi.fn(),
+      logout: vi.fn(),
+    });
+    mockUsers([
+      { id: 1, display_name: "Анна", username: "anna", position: "PM" },
+      { id: 5, display_name: "Иван (я)", username: "ivan", position: "PM" },
     ]);
+    const onChange = vi.fn();
+
+    render(<GuestPicker value={[]} onChange={onChange} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /PM/i }));
+
+    // Тапнули position-filter PM — Иван (current) не должен попасть в список
+    const args = onChange.mock.calls[0]?.[0] ?? [];
+    expect(args).toEqual([{ label: "Анна", value: "anna" }]);
   });
 
   it("falls back to display_name when user has no username", async () => {
