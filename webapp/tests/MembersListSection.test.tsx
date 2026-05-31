@@ -38,8 +38,16 @@ function makeMember(over: Partial<WorkspaceMember> = {}): WorkspaceMember {
       first_name: "Иван",
       last_name: "Иванов",
       display_name: "Иван Иванов",
-      position: "PM",
+      position: null,
     } as any,
+    position_id: 1,
+    position: {
+      id: 1,
+      workspace_id: 10,
+      name_ru: "PM",
+      name_uz: "PM",
+      created_at: "2026-05-30T10:00:00+05:00",
+    },
     created_at: "2026-05-30T10:00:00+05:00",
     invite_expires_at: null,
     ...over,
@@ -90,9 +98,9 @@ describe("MembersListSection", () => {
     expect(screen.getByText("Участник")).toBeInTheDocument();
   });
 
-  it("hides position chip when user has no position", () => {
+  it("hides position chip when member has no position", () => {
     mockDetail({
-      members: [makeMember({ user: { ...makeMember().user!, position: null } })],
+      members: [makeMember({ position_id: null, position: null })],
     } as any);
     renderSection();
     expect(screen.queryByText("PM")).not.toBeInTheDocument();

@@ -21,13 +21,23 @@ vi.mock("../src/hooks/useWorkspaceDetail", () => ({
   useWorkspaceDetail: vi.fn(),
 }));
 
+vi.mock("../src/hooks/usePositions", () => ({
+  usePositions: vi.fn(),
+}));
+
 import { useAuth } from "@corpmeet/design/complex";
 import { useWorkspaceDetail } from "../src/hooks/useWorkspaceDetail";
+import { usePositions, type WorkspacePosition } from "../src/hooks/usePositions";
 import { GuestPicker, type GuestEntry } from "../src/components/GuestPicker";
 
-function mockUsers(
-  users: Array<{ id: number; display_name: string; username?: string | null; position?: string | null }>,
-) {
+type MockUser = {
+  id: number;
+  display_name: string;
+  username?: string | null;
+  position_id?: number | null;
+};
+
+function mockUsers(users: MockUser[]) {
   vi.mocked(useWorkspaceDetail).mockReturnValue({
     data: {
       id: 10,
@@ -45,18 +55,36 @@ function mockUsers(
         pending_username: null,
         role: "member" as const,
         status: "active" as const,
+        invite_deep_link: null,
         user: {
           id: u.id,
           display_name: u.display_name,
           username: u.username ?? null,
           first_name: u.display_name.split(" ")[0],
           last_name: u.display_name.split(" ")[1] ?? null,
-          position: u.position ?? null,
+          position: null,
         },
+        position_id: u.position_id ?? null,
+        position: null,
         created_at: "2026-01-01T00:00:00Z",
+        invite_expires_at: null,
       })),
       pending_members: [],
+      tg_invite_link: null,
     },
+    isLoading: false,
+  } as any);
+}
+
+function mockPositions(positions: Array<Partial<WorkspacePosition> & { id: number; name_ru: string }>) {
+  vi.mocked(usePositions).mockReturnValue({
+    data: positions.map((p) => ({
+      id: p.id,
+      workspace_id: 10,
+      name_ru: p.name_ru,
+      name_uz: p.name_uz ?? p.name_ru,
+      created_at: "2026-01-01T00:00:00Z",
+    })),
     isLoading: false,
   } as any);
 }
@@ -67,6 +95,8 @@ function entry(label: string, value: string = label): GuestEntry {
 
 beforeEach(() => {
   vi.mocked(useWorkspaceDetail).mockReset();
+  vi.mocked(usePositions).mockReset();
+  mockPositions([]);  // дефолт — позиций нет, chips не рендерятся
 });
 
 describe("GuestPicker", () => {
@@ -109,7 +139,6 @@ describe("GuestPicker", () => {
   });
 
   it("excludes current user (organizer) from suggestions", async () => {
-    // current user (организатор) id=5 — должен быть скрыт из списка
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 5 } as any,
       isLoading: false,
@@ -140,9 +169,10 @@ describe("GuestPicker", () => {
       setToken: vi.fn(),
       logout: vi.fn(),
     });
+    mockPositions([{ id: 1, name_ru: "PM" }]);
     mockUsers([
-      { id: 1, display_name: "Анна", username: "anna", position: "PM" },
-      { id: 5, display_name: "Иван (я)", username: "ivan", position: "PM" },
+      { id: 1, display_name: "Анна", username: "anna", position_id: 1 },
+      { id: 5, display_name: "Иван (я)", username: "ivan", position_id: 1 },
     ]);
     const onChange = vi.fn();
 
@@ -150,7 +180,6 @@ describe("GuestPicker", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /PM/i }));
 
-    // Тапнули position-filter PM — Иван (current) не должен попасть в список
     const args = onChange.mock.calls[0]?.[0] ?? [];
     expect(args).toEqual([{ label: "Анна", value: "anna" }]);
   });
@@ -224,11 +253,33 @@ describe("GuestPicker", () => {
 
   // ---------- position filter chips ----------
 
+  it("renders no position chips when workspace has no positions", () => {
+    mockPositions([]);
+    mockUsers([{ id: 1, display_name: "Иван", username: "ivan" }]);
+    render(<GuestPicker value={[]} onChange={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /^\+ / })).not.toBeInTheDocument();
+  });
+
+  it("renders position chips dynamically from usePositions", () => {
+    mockPositions([
+      { id: 1, name_ru: "PM" },
+      { id: 2, name_ru: "Аналитик" },
+    ]);
+    mockUsers([]);
+    render(<GuestPicker value={[]} onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "+ PM" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Аналитик" })).toBeInTheDocument();
+  });
+
   it("adds all workspace members of a position with their usernames", async () => {
+    mockPositions([
+      { id: 1, name_ru: "PM" },
+      { id: 2, name_ru: "Аналитик" },
+    ]);
     mockUsers([
-      { id: 1, display_name: "Alisher Rakhimov", username: "alisher", position: "PM" },
-      { id: 2, display_name: "Anna Smirnova", username: "anna", position: "PM" },
-      { id: 3, display_name: "Boris Petrov", username: "boris", position: "Аналитик" },
+      { id: 1, display_name: "Alisher Rakhimov", username: "alisher", position_id: 1 },
+      { id: 2, display_name: "Anna Smirnova", username: "anna", position_id: 1 },
+      { id: 3, display_name: "Boris Petrov", username: "boris", position_id: 2 },
     ]);
     const onChange = vi.fn();
     render(<GuestPicker value={[]} onChange={onChange} />);
@@ -243,9 +294,10 @@ describe("GuestPicker", () => {
   });
 
   it("position chip skips already-selected users by value", async () => {
+    mockPositions([{ id: 1, name_ru: "PM" }]);
     mockUsers([
-      { id: 1, display_name: "Alisher Rakhimov", username: "alisher", position: "PM" },
-      { id: 2, display_name: "Anna Smirnova", username: "anna", position: "PM" },
+      { id: 1, display_name: "Alisher Rakhimov", username: "alisher", position_id: 1 },
+      { id: 2, display_name: "Anna Smirnova", username: "anna", position_id: 1 },
     ]);
     const onChange = vi.fn();
     render(
@@ -265,7 +317,8 @@ describe("GuestPicker", () => {
   });
 
   it("position chip with no matches does nothing", async () => {
-    mockUsers([{ id: 1, display_name: "Boris Petrov", username: "boris", position: "Аналитик" }]);
+    mockPositions([{ id: 99, name_ru: "Дизайнеры" }]);
+    mockUsers([{ id: 1, display_name: "Boris Petrov", username: "boris", position_id: 1 }]);
     const onChange = vi.fn();
     render(<GuestPicker value={[]} onChange={onChange} />);
 
@@ -276,7 +329,6 @@ describe("GuestPicker", () => {
   });
 
   it("excludes pending members from suggestion list", async () => {
-    // Только active workspace members попадают в picker — pending invites нет
     vi.mocked(useWorkspaceDetail).mockReturnValue({
       data: {
         id: 10,
@@ -295,9 +347,13 @@ describe("GuestPicker", () => {
             pending_username: null,
             role: "member",
             status: "active",
+            invite_deep_link: null,
             user: { id: 1, display_name: "Active User", username: "active",
               first_name: "Active", last_name: "User", position: null },
+            position_id: null,
+            position: null,
             created_at: "2026-01-01T00:00:00Z",
+            invite_expires_at: null,
           },
           {
             id: 101,
@@ -306,11 +362,16 @@ describe("GuestPicker", () => {
             pending_username: "pending_user",
             role: "member",
             status: "pending",
+            invite_deep_link: null,
             user: null,
+            position_id: null,
+            position: null,
             created_at: "2026-01-01T00:00:00Z",
+            invite_expires_at: null,
           },
         ],
         pending_members: [],
+        tg_invite_link: null,
       },
       isLoading: false,
     } as any);

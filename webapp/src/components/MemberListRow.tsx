@@ -1,5 +1,6 @@
 import { useTranslation, type TranslationKey } from "../i18n";
 import type { WorkspaceMember } from "../hooks/useWorkspaceDetail";
+import { getPositionLabel } from "../lib/positionLabel";
 
 interface Props {
   member: WorkspaceMember;
@@ -14,10 +15,12 @@ const ROLE_LABEL_KEY: Record<WorkspaceMember["role"], TranslationKey> = {
 };
 
 export function MemberListRow({ member, canRemove, onRemove }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const displayName = member.user?.display_name ?? "—";
   const username = member.user?.username ? `@${member.user.username}` : null;
-  const position = member.user?.position ?? null;
+  const positionLabel = member.position
+    ? getPositionLabel(member.position, lang)
+    : null;
   const roleLabel = t(ROLE_LABEL_KEY[member.role]);
 
   return (
@@ -34,8 +37,8 @@ export function MemberListRow({ member, canRemove, onRemove }: Props) {
           className="text-xs flex flex-wrap items-center gap-x-2 gap-y-0.5"
           style={{ color: "var(--text-muted)" }}
         >
-          {position && <span className="truncate">{position}</span>}
-          {position && <span aria-hidden>·</span>}
+          {positionLabel && <span className="truncate">{positionLabel}</span>}
+          {positionLabel && <span aria-hidden>·</span>}
           <span>{roleLabel}</span>
         </div>
         {username && (

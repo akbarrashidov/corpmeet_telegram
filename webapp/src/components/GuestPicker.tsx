@@ -2,7 +2,9 @@ import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@corpmeet/design/complex";
 import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
-import { useTranslation, type TranslationKey } from "../i18n";
+import { usePositions } from "../hooks/usePositions";
+import { getPositionLabel } from "../lib/positionLabel";
+import { useTranslation } from "../i18n";
 
 export interface GuestEntry {
   /** То, что показывается в chip-е (например, "Artem Iskra") */
@@ -17,21 +19,13 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Минимальная форма user'а для GuestPicker — то, что приходит в WorkspaceMember.user. */
+/** Минимальная форма user'а для GuestPicker. */
 type GuestUser = {
   id: number;
   display_name: string;
   username: string | null;
-  position: string | null;
+  position_id: number | null;
 };
-
-const POSITION_FILTERS: { labelKey: TranslationKey; apiValue: string }[] = [
-  { labelKey: "create.position_filter.heads", apiValue: "Начальник департамента/отдела" },
-  { labelKey: "create.position_filter.pm", apiValue: "PM" },
-  { labelKey: "create.position_filter.analysts", apiValue: "Аналитик" },
-  { labelKey: "create.position_filter.devs", apiValue: "Программист и др." },
-  { labelKey: "create.position_filter.designers", apiValue: "Дизайнер" },
-];
 
 function entryFromUser(u: GuestUser): GuestEntry {
   return {
@@ -45,11 +39,11 @@ function entryFromUser(u: GuestUser): GuestEntry {
  *
  * Скоупит поиск **только участниками текущего workspace'а**: использует
  * `useWorkspaceDetail(currentWsId).members`, фильтрует на клиенте.
- * Free-text guests (например «все PM» не из workspace) всё ещё можно добавить
- * через manual-add (canAddManual).
+ * Position-filter chips — динамические из `usePositions(wsId)`.
+ * На воркспейсах без позиций секция chips не рендерится.
  */
 export function GuestPicker({ value, onChange, disabled }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -57,15 +51,22 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
 
   const wsId = useCurrentWorkspaceId();
   const { data: wsDetail, isLoading } = useWorkspaceDetail(wsId);
+  const { data: positions = [] } = usePositions(wsId);
   const { user: currentUser } = useAuth();
 
   // Активные участники с реальным user-аккаунтом (без pending invites).
-  // Исключаем самого организатора — он и так в встрече, нельзя его в гости.
+  // Исключаем самого организатора — он и так в встрече.
   const allUsers = useMemo<GuestUser[]>(
-    () => (wsDetail?.members ?? [])
-      .filter((m) => m.status === "active" && m.user !== null)
-      .filter((m) => m.user!.id !== currentUser?.id)
-      .map((m) => m.user!),
+    () =>
+      (wsDetail?.members ?? [])
+        .filter((m) => m.status === "active" && m.user !== null)
+        .filter((m) => m.user!.id !== currentUser?.id)
+        .map((m) => ({
+          id: m.user!.id,
+          display_name: m.user!.display_name,
+          username: m.user!.username,
+          position_id: m.position_id,
+        })),
     [wsDetail, currentUser?.id],
   );
 
@@ -117,9 +118,9 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
     addEntry({ label: clean, value: clean });
   }
 
-  function addAllByPosition(apiValue: string) {
+  function addAllByPosition(positionId: number) {
     const toAdd = allUsers
-      .filter((u) => u.position === apiValue)
+      .filter((u) => u.position_id === positionId)
       .map(entryFromUser)
       .filter((entry) => !valueValues.has(entry.value));
     if (toAdd.length === 0) return;
@@ -153,24 +154,26 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
     <div ref={rootRef} className="flex flex-col gap-2 relative">
       <span className="text-sm">{t("create.guests")}</span>
 
-      <div className="flex flex-wrap gap-2">
-        {POSITION_FILTERS.map((f) => (
-          <button
-            key={f.apiValue}
-            type="button"
-            onClick={() => addAllByPosition(f.apiValue)}
-            disabled={disabled}
-            className="px-3 py-1.5 rounded-full text-xs font-medium transition"
-            style={{
-              background: "var(--input-bg)",
-              color: "var(--text)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
-            + {t(f.labelKey)}
-          </button>
-        ))}
-      </div>
+      {positions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {positions.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => addAllByPosition(p.id)}
+              disabled={disabled}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition"
+              style={{
+                background: "var(--input-bg)",
+                color: "var(--text)",
+                border: "1px solid var(--input-border)",
+              }}
+            >
+              + {getPositionLabel(p, lang)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div
         className="rounded-lg p-2 flex flex-wrap gap-2 min-h-[3rem] cursor-text"
