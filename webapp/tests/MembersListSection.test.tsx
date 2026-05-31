@@ -3,6 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { WorkspaceDetail, WorkspaceMember } from "../src/hooks/useWorkspaceDetail";
 
+vi.mock("../src/hooks/useDecideJoinRequest", () => ({
+  useDecideJoinRequest: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
+}));
+
 vi.mock("../src/hooks/useWorkspaceDetail", () => ({
   useWorkspaceDetail: vi.fn(),
 }));

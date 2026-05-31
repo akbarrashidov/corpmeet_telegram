@@ -9,6 +9,7 @@ import { MemberListRow } from "./MemberListRow";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useTranslation } from "../i18n";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
+import { PendingJoinRequests } from "./PendingJoinRequests";
 
 interface Props {
   workspaceId: number;
@@ -70,6 +71,7 @@ export function MembersListSection({ workspaceId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
+      {canManage && <PendingJoinRequests workspaceId={workspaceId} />}
       <ul className="flex flex-col gap-2">
         {activeMembers.map((m) => (
           <MemberListRow

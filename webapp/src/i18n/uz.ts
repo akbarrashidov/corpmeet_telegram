@@ -296,6 +296,12 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "pending_sent.body": "Admin tasdiqlashini kuting. Tasdiqlangach Mini App-ni qaytadan oching.",
   "pending_sent.body_named": "«{name}»ga qo'shilish uchun ariza yuborildi. Admin tasdiqlashini kuting — tasdiqlangach Mini App-ni qaytadan oching.",
   "pending_sent.button": "Yopish",
+
+  "pending_requests.heading": "Qo'shilish arizalari ({count})",
+  "pending_requests.accept": "Qabul qilish",
+  "pending_requests.reject": "Rad etish",
+  "pending_requests.accept_aria": "{name} dan kelgan arizani qabul qilish",
+  "pending_requests.reject_aria": "{name} dan kelgan arizani rad etish",
     
 };
 
