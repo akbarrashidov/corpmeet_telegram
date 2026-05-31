@@ -35,11 +35,6 @@ SESSION_OK_MESSAGE = (
     "Вход подтверждён. Возвращайся в браузер — там уже всё, "
     "или открой Mini App кнопкой ниже."
 )
-INCOMPLETE_PROFILE_MESSAGE = (
-    "Вход подтверждён. Чтобы пользоваться приложением, "
-    "открой Mini App кнопкой ниже и заполни имя и фамилию."
-)
-
 async def _send_welcome(message: Message, settings: Settings) -> None:
     """Стандартное приветствие с кнопкой открытия Mini App."""
     keyboard = InlineKeyboardMarkup(
@@ -220,7 +215,7 @@ async def cmd_start_deep_link(
     # QR-flow: /start <session_token> — consume browser session
     try:
         async with ApiClient(settings) as api:
-            result = await api.consume_session(
+            await api.consume_session(
                 token=token,
                 telegram_id=message.from_user.id,
                 first_name=message.from_user.first_name,
@@ -240,19 +235,12 @@ async def cmd_start_deep_link(
         await _send_welcome(message, settings)
         return
 
-    # Шлём подтверждение + Mini App кнопку — юзер сам выбирает контекст.
-    # Бэк-флаг `profile_complete` сейчас опирается на legacy `user.position`
-    # (которое мы больше не заполняем — должность теперь на уровне workspace),
-    # поэтому ему доверять нельзя — он может быть True при пустых first/last.
-    # Бот решает сам по данным Telegram: бот передаёт TG-имена в
-    # consume_session, бэк их сохраняет; значит TG = источник истины.
-    tg_first = (message.from_user.first_name or "").strip()
-    tg_last = (message.from_user.last_name or "").strip()
-    has_tg_name = bool(tg_first and tg_last)
-    text = SESSION_OK_MESSAGE if has_tg_name else INCOMPLETE_PROFILE_MESSAGE
+    # Бот всегда шлёт OK + Mini App кнопку. Проверку заполненности профиля
+    # делает Mini App: если у юзера в БД нет имени/фамилии/должности — там
+    # покажется warning-баннер с переходом в Profile. Бот не дублирует логику.
 
     await message.answer(
-        text,
+        SESSION_OK_MESSAGE,
         reply_markup=build_open_webapp_keyboard(settings),
     )
 

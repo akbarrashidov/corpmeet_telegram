@@ -90,11 +90,12 @@ async def test_deep_link_qr_calls_consume_session(monkeypatch: pytest.MonkeyPatc
         # Mini App кнопка прикреплена
         assert msg.answer.call_args.kwargs.get("reply_markup") is not None
 
-
-async def test_deep_link_qr_incomplete_profile_no_tg_last_name_shows_nudge(
+async def test_deep_link_qr_always_sends_ok_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """profile_complete=False + у TG нет last_name → nudge заполнить имя/фамилию."""
+    """QR-flow всегда шлёт SESSION_OK_MESSAGE — независимо от profile_complete
+    и от наличия last_name в TG. Проверку заполненности делает Mini App.
+    """
     setup_env(monkeypatch)
     msg = make_message(last_name=None)
     bot = make_bot()
@@ -105,30 +106,10 @@ async def test_deep_link_qr_incomplete_profile_no_tg_last_name_shows_nudge(
 
     msg.answer.assert_awaited_once()
     text = msg.answer.call_args.args[0]
-    assert "имя" in text.lower() or "фамилию" in text.lower()
-    assert msg.answer.call_args.kwargs.get("reply_markup") is not None
-
-async def test_deep_link_qr_incomplete_profile_with_tg_name_skips_nudge(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """profile_complete=False, НО у TG есть first+last_name → стандартное OK сообщение.
-
-    Защита от стейл-флага бэка (он ещё считает profile_complete по legacy
-    user.position, который мы больше не заполняем).
-    """
-    setup_env(monkeypatch)
-    msg = make_message(first_name="Alice", last_name="Smith")
-    bot = make_bot()
-
-    mock_api = patch_api_client(consume_result={"ok": True, "profile_complete": False})
-    with patch("bot.handlers.start.ApiClient", return_value=mock_api):
-        await cmd_start_deep_link(msg, make_command("abc-token"), bot)
-
-    msg.answer.assert_awaited_once()
-    text = msg.answer.call_args.args[0]
-    assert "имя" not in text.lower() and "фамилию" not in text.lower()
     assert "вход подтверждён" in text.lower()
-
+    assert "имя" not in text.lower()
+    assert "фамилию" not in text.lower()
+    assert msg.answer.call_args.kwargs.get("reply_markup") is not None
 
 @pytest.mark.parametrize("status_code", [404, 410, 422, 500])
 async def test_deep_link_qr_error_falls_back_to_welcome(
