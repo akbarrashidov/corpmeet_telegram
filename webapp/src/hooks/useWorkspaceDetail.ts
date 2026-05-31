@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@corpmeet/design/complex";
+import type { WorkspacePosition } from "./usePositions";
 
-/** Минимальная форма WorkspaceMember под нужды Settings.
- * Полная схема — `WorkspaceMemberResponse` в Swagger; добавим поля по мере
- * необходимости в PR-4. Пока только то, что нужно показать в списке участников.
- */
+/** Минимальная форма WorkspaceMember под нужды Settings + GuestPicker. */
 export interface WorkspaceMember {
   id: number;
   workspace_id: number;
@@ -21,6 +19,8 @@ export interface WorkspaceMember {
     display_name: string;
     position: string | null;
   } | null;
+  position_id: number | null;
+  position: WorkspacePosition | null;
   created_at: string;
   invite_expires_at: string | null;
 }
@@ -36,7 +36,7 @@ export interface WorkspaceDetail {
   my_role: "owner" | "admin" | "member" | null;
   members: WorkspaceMember[];
   pending_members: WorkspaceMember[];
-  tg_invite_link: string | null;  
+  tg_invite_link: string | null;
 }
 
 /**
