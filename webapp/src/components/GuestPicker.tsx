@@ -1,4 +1,5 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@corpmeet/design/complex";
 import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { useTranslation, type TranslationKey } from "../i18n";
@@ -56,13 +57,16 @@ export function GuestPicker({ value, onChange, disabled }: Props) {
 
   const wsId = useCurrentWorkspaceId();
   const { data: wsDetail, isLoading } = useWorkspaceDetail(wsId);
+  const { user: currentUser } = useAuth();
 
-  // Активные участники с реальным user-аккаунтом (без pending invites)
+  // Активные участники с реальным user-аккаунтом (без pending invites).
+  // Исключаем самого организатора — он и так в встрече, нельзя его в гости.
   const allUsers = useMemo<GuestUser[]>(
     () => (wsDetail?.members ?? [])
       .filter((m) => m.status === "active" && m.user !== null)
+      .filter((m) => m.user!.id !== currentUser?.id)
       .map((m) => m.user!),
-    [wsDetail],
+    [wsDetail, currentUser?.id],
   );
 
   useEffect(() => {
