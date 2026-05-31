@@ -241,19 +241,15 @@ async def cmd_start_deep_link(
         return
 
     # Шлём подтверждение + Mini App кнопку — юзер сам выбирает контекст.
-    # Бэк может вернуть profile_complete=false по legacy-полю user.position
-    # (которое мы больше не заполняем — должность теперь на уровне workspace).
-    # Поэтому игнорируем флаг бэка если Telegram отдаёт first_name+last_name —
-    # значит имя/фамилия уже точно в БД (мы их пробрасываем в consume_session).
-    backend_complete = bool(result.get("profile_complete", True))
+    # Бэк-флаг `profile_complete` сейчас опирается на legacy `user.position`
+    # (которое мы больше не заполняем — должность теперь на уровне workspace),
+    # поэтому ему доверять нельзя — он может быть True при пустых first/last.
+    # Бот решает сам по данным Telegram: бот передаёт TG-имена в
+    # consume_session, бэк их сохраняет; значит TG = источник истины.
     tg_first = (message.from_user.first_name or "").strip()
     tg_last = (message.from_user.last_name or "").strip()
     has_tg_name = bool(tg_first and tg_last)
-    text = (
-        SESSION_OK_MESSAGE
-        if backend_complete or has_tg_name
-        else INCOMPLETE_PROFILE_MESSAGE
-    )
+    text = SESSION_OK_MESSAGE if has_tg_name else INCOMPLETE_PROFILE_MESSAGE
 
     await message.answer(
         text,
