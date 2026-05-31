@@ -7,6 +7,17 @@ vi.mock("../src/hooks/useWorkspaceDetail", () => ({
   useWorkspaceDetail: vi.fn(),
 }));
 
+vi.mock("../src/hooks/usePositions", () => ({
+  usePositions: vi.fn(() => ({ data: [], isLoading: false })),
+}));
+
+vi.mock("../src/hooks/useUpdateMemberPosition", () => ({
+  useUpdateMemberPosition: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
+}));
+
 vi.mock("../src/hooks/useRemoveMember", () => ({
   useRemoveMember: vi.fn(),
 }));

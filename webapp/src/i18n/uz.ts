@@ -289,6 +289,10 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "positions_section.confirm_delete.body": "Lavozim o'chiriladi.",
   "positions_section.confirm_delete.body_with_count": "Lavozim {count} ishtirokchidan olib tashlanadi va o'chiriladi. Bekor qilib bo'lmaydi.",
   "positions_section.confirm_delete.confirm": "O'chirish",
-
+  "profile.position.workspace_label": "«{name}»dagi lavozim",
+  "profile.position.empty_state": "Bu makonda hozircha lavozimlar yo'q. Sozlamalarda yarating.",
+  "position_warning.message": "Sizning lavozimingiz ko'rsatilmagan.",
+  "position_warning.button": "Belgilash",
+  "member_position.label_aria": "«{name}» uchun lavozim tayinlash",
 };
 

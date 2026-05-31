@@ -16,7 +16,8 @@ interface Props {
 
 /** Tab «Участники» в WorkspaceSettingsScreen.
  *
- * Список активных участников с именем, должностью, ролью.
+ * Список активных участников с именем, ролью, должностью.
+ * Для owner/admin — inline-селектор должности на каждой строке.
  * Удалить — только для owner/admin (нельзя удалить себя или owner'а если ты admin).
  */
 export function MembersListSection({ workspaceId }: Props) {
@@ -74,6 +75,8 @@ export function MembersListSection({ workspaceId }: Props) {
           <MemberListRow
             key={m.id}
             member={m}
+            workspaceId={workspaceId}
+            canEditPosition={canManage}
             canRemove={canRemoveTarget(m)}
             onRemove={() => {
               haptic();

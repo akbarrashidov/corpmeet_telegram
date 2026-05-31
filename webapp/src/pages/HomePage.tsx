@@ -14,6 +14,7 @@ import { haptic } from "../lib/haptic";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
 import { WorkspaceSelector } from "../components/WorkspaceSelector";
+import { PositionWarningBanner } from "../components/PositionWarningBanner";
 import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
 import { addDaysIso } from "../lib/datetime";
 
@@ -134,6 +135,8 @@ export function HomePage({
           </button>
         </div>
       </header>
+
+      <PositionWarningBanner onOpenProfile={handleProfile} />
 
       <div>
         <p className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>
