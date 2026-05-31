@@ -31,8 +31,14 @@ router = Router()
 
 WELCOME_MESSAGE = "Привет! Я бот CorpMeetDev. Нажми кнопку, чтобы открыть приложение!"
 WELCOME_BUTTON = "Открыть CorpMeet"
-SESSION_OK_MESSAGE = "Вход подтверждён. Возвращайся в браузер — там уже всё!"
-
+SESSION_OK_MESSAGE = (
+    "Вход подтверждён. Возвращайся в браузер — там уже всё, "
+    "или открой Mini App кнопкой ниже."
+)
+INCOMPLETE_PROFILE_MESSAGE = (
+    "Вход подтверждён. Чтобы пользоваться приложением, "
+    "открой Mini App кнопкой ниже и заполни должность и фамилию."
+)
 
 async def _send_welcome(message: Message, settings: Settings) -> None:
     """Стандартное приветствие с кнопкой открытия Mini App."""
@@ -214,7 +220,7 @@ async def cmd_start_deep_link(
     # QR-flow: /start <session_token> — consume browser session
     try:
         async with ApiClient(settings) as api:
-            await api.consume_session(
+            result = await api.consume_session(
                 token=token,
                 telegram_id=message.from_user.id,
                 first_name=message.from_user.first_name,
@@ -234,8 +240,15 @@ async def cmd_start_deep_link(
         await _send_welcome(message, settings)
         return
 
-    await message.answer(SESSION_OK_MESSAGE)
-
+    # Шлём подтверждение + Mini App кнопку — юзер сам выбирает контекст.
+    # Если бэк сообщил что профиль неполный (новый юзер без должности/фамилии)
+    # — подменяем текст на nudge к регистрации в Mini App.
+    profile_complete = bool(result.get("profile_complete", True))
+    text = SESSION_OK_MESSAGE if profile_complete else INCOMPLETE_PROFILE_MESSAGE
+    await message.answer(
+        text,
+        reply_markup=build_open_webapp_keyboard(settings),
+    )
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, bot: Bot) -> None:
