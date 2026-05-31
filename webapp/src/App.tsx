@@ -118,12 +118,29 @@ export default function App() {
     const alreadyAuthed = phase.kind === "needs_registration" && phase.alreadyAuthed;
 
     if (!alreadyAuthed) {
-      const { access_token } = await authApi.register(
-        tg.initData,
-        firstName,
-        lastName,
-      );
-      storage.setToken(access_token);
+      try {
+        const { access_token } = await authApi.register(
+          tg.initData,
+          firstName,
+          lastName,
+        );
+        storage.setToken(access_token);
+      } catch (e) {
+        // Юзер уже создан (например, через QR consume-session, который сделал
+        // только first_name+username, без position) — register отвечает
+        // 400 "already registered". Падать нельзя — пробуем login повторно
+        // и идём дальше через PATCH /auth/me.
+        const err = e as { response?: { status?: number; data?: { detail?: unknown } } };
+        const detail = err.response?.data?.detail;
+        const isAlreadyRegistered =
+          err.response?.status === 400 &&
+          typeof detail === "string" &&
+          detail.toLowerCase().includes("registered");
+        if (!isAlreadyRegistered) throw e;
+
+        const { access_token } = await authApi.login(tg.initData);
+        storage.setToken(access_token);
+      }
     }
 
     await apiClient.patch<User>("/api/v1/auth/me", {
