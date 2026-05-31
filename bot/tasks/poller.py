@@ -64,17 +64,22 @@ def _guests_line_block(b: BookingBotInfo) -> str:
 def _description_block(b: BookingBotInfo) -> str:
     if not b.description or not b.description.strip():
         return ""
-    return f"\n\n📎 Повестка / Tavsif:\n{b.description.strip()}"
+    return f"\n\n📝 Повестка / Tavsif:\n{b.description.strip()}"
 
 
 def _attachments_block(b: BookingBotInfo) -> str:
     if not b.has_attachments:
         return ""
     return (
-        "\n\n📂 К встрече прикреплён файл / Uchrashuvga fayl biriktirilgan\n"
+        "\n\n📎 К встрече прикреплён файл / Uchrashuvga fayl biriktirilgan\n"
         "→ corpmeet.uz"
     )
 
+
+def _video_block(b: BookingBotInfo) -> str:
+    if not b.video_enabled:
+        return ""
+    return f"\n🎥 {_action('Videokonferentsiya', 'Видеоконференция')}"
 
 def _footer(b: BookingBotInfo) -> str:
     return _description_block(b) + _attachments_block(b)
@@ -138,50 +143,50 @@ def _series_line(b: BookingBotInfo) -> str:
 
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"📌 «{b.title}» — {_action('yangi uchrashuv', 'новая встреча')}"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_series_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}{_series_line(b)}"
     return head + body + _footer(b)
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_room_line(b)}"
+    body = f"\n{format_time_change(b, tz)}{_room_line(b)}{_video_block(b)}"
     return head + body + _footer(b)
 
 
 def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}"
     return head + body + _description_block(b)
 
 
 def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"⏰ {_action('15 daqiqadan', 'Через 15 минут')} — «{b.title}»"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}"
     return head + body + _footer(b)
 
 
 # Гостевые версии: + organizer
 def msg_new_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"📌 «{b.title}» — {_action('yangi uchrashuv', 'новая встреча')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_series_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}{_series_line(b)}"
     return head + body + _footer(b)
 
 
 def msg_changed_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}"
+    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
     return head + body + _footer(b)
 
 
 def msg_deleted_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
     return head + body + _description_block(b)
 
 
 def msg_reminder_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"⏰ {_action('15 daqiqadan', 'Через 15 минут')} — «{b.title}»"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
     return head + body + _footer(b)
 
 
@@ -197,13 +202,13 @@ def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
 
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}"
+    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
     return head + body + _footer(b)
 
 
 def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}"
+    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
     return head + body + _description_block(b)
 
 
