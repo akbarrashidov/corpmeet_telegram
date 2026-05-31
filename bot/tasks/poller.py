@@ -141,75 +141,103 @@ def _series_line(b: BookingBotInfo) -> str:
 # ── Сборка сообщений: одноязычная структура с бил-action ─────────────────────
 
 
+def _body_lines(
+    b: BookingBotInfo,
+    time_text: str,
+    *,
+    show_organizer: bool,
+    show_series: bool,
+) -> str:
+    """Унифицированный body-блок: время → organizer? → room → video → guests → series?"""
+    parts = [f"\n{time_text}"]
+    if show_organizer:
+        parts.append(_organizer_line(b))
+    parts.append(_room_line(b))
+    parts.append(_video_block(b))
+    parts.append(_guests_line_block(b))
+    if show_series:
+        parts.append(_series_line(b))
+    return "".join(parts)
+
+
+# Owner-DM (без organizer-line — он и так знает что это его встреча)
 def msg_new_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"📌 «{b.title}» — {_action('yangi uchrashuv', 'новая встреча')}"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}{_series_line(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=False, show_series=True,
+    ) + _footer(b)
 
 
 def msg_changed_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_change(b, tz), show_organizer=False, show_series=False,
+    ) + _footer(b)
 
 
 def msg_deleted_booking(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _description_block(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=False, show_series=False,
+    ) + _description_block(b)
 
 
 def msg_reminder(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"⏰ {_action('15 daqiqadan', 'Через 15 минут')} — «{b.title}»"
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=False, show_series=False,
+    ) + _footer(b)
 
 
-# Гостевые версии: + organizer
+# Гостевые DM — same body как у owner, но + organizer-line
 def msg_new_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"📌 «{b.title}» — {_action('yangi uchrashuv', 'новая встреча')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}{_series_line(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=True, show_series=True,
+    ) + _footer(b)
 
 
 def msg_changed_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_change(b, tz), show_organizer=True, show_series=False,
+    ) + _footer(b)
 
 
 def msg_deleted_booking_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _description_block(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=True, show_series=False,
+    ) + _description_block(b)
 
 
 def msg_reminder_guest(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"⏰ {_action('15 daqiqadan', 'Через 15 минут')} — «{b.title}»"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=True, show_series=False,
+    ) + _footer(b)
 
 
-# Групповые версии: + organizer + guests-line
+# Группа — то же что guest DM (тот же набор полей)
 def msg_new_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"📌 «{b.title}» — {_action('yangi uchrashuv', 'новая встреча')}"
-    body = (
-        f"\n{format_time_range(b, tz)}"
-        f"{_organizer_line(b)}{_room_line(b)}{_guests_line_block(b)}{_series_line(b)}"
-    )
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=True, show_series=True,
+    ) + _footer(b)
 
 
 def msg_changed_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"✏️ «{b.title}» — {_action("vaqti o'zgartirildi", 'перенесена')}"
-    body = f"\n{format_time_change(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _footer(b)
+    return head + _body_lines(
+        b, format_time_change(b, tz), show_organizer=True, show_series=False,
+    ) + _footer(b)
 
 
 def msg_deleted_booking_group(b: BookingBotInfo, tz: ZoneInfo) -> str:
     head = f"❌ «{b.title}» — {_action('bekor qilindi', 'отменена')}"
-    body = f"\n{format_time_range(b, tz)}{_organizer_line(b)}{_room_line(b)}{_video_block(b)}"
-    return head + body + _description_block(b)
+    return head + _body_lines(
+        b, format_time_range(b, tz), show_organizer=True, show_series=False,
+    ) + _description_block(b)
 
 
 # Owner-only: гость отказался
@@ -218,7 +246,7 @@ def msg_guest_declined(b: BookingBotInfo, declined: GuestInfo, tz: ZoneInfo) -> 
         f"🚫 «{b.title}» — "
         f"{_action('ishtirokchilar ishtirok eta olmaydi', 'гость не сможет принять участие')}"
     )
-    body = f"\n{format_time_range(b, tz)}{_room_line(b)}\n🚫 {declined.name}"
+    body = f"\n{format_time_range(b, tz)}{_room_line(b)}{_video_block(b)}\n🚫 {declined.name}"
     return head + body + _description_block(b)
 
 
