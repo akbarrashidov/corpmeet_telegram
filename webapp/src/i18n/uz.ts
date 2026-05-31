@@ -275,6 +275,20 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "general.archive.confirm.title": "«{name}» arxivlansinmi?",
   "general.archive.confirm.body": "Arxivlangandan keyin ish maydoni barcha qatnashchilar uchun mavjud bo'lmaydi. Bu amalni bekor qilib bo'lmaydi.",
   "general.archive.confirm.confirm": "Arxivlash",
+  "common.save": "Saqlash",
+  "ws_settings.section.positions": "Lavozimlar",
+  "positions_section.empty": "Hozircha lavozimlar yo'q — birinchisini qo'shing.",
+  "positions_section.create": "Lavozim qo'shish",
+  "positions_section.name_ru_label": "Название на русском",
+  "positions_section.name_ru_placeholder": "Например, Аналитик",
+  "positions_section.name_uz_label": "O'zbekcha nomi",
+  "positions_section.name_uz_placeholder": "Masalan, Analitik",
+  "positions_section.edit_aria": "«{name}»ni tahrirlash",
+  "positions_section.delete_aria": "«{name}»ni o'chirish",
+  "positions_section.confirm_delete.title": "«{name}»ni o'chirilsinmi?",
+  "positions_section.confirm_delete.body": "Lavozim o'chiriladi.",
+  "positions_section.confirm_delete.body_with_count": "Lavozim {count} ishtirokchidan olib tashlanadi va o'chiriladi. Bekor qilib bo'lmaydi.",
+  "positions_section.confirm_delete.confirm": "O'chirish",
 
 };
 

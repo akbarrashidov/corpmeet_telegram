@@ -193,7 +193,19 @@ export const ru = {
   "members_section.confirm_remove.title": "Удалить «{name}»?",
   "members_section.confirm_remove.body": "Участник потеряет доступ к workspace и встречам.",
   "members_section.confirm_remove.confirm": "Удалить",
-
+  "ws_settings.section.positions": "Должности",
+  "positions_section.empty": "Должностей пока нет — добавьте первую.",
+  "positions_section.create": "Добавить должность",
+  "positions_section.name_ru_label": "Название на русском",
+  "positions_section.name_ru_placeholder": "Например, Аналитик",
+  "positions_section.name_uz_label": "O'zbekcha nomi",
+  "positions_section.name_uz_placeholder": "Masalan, Analitik",
+  "positions_section.edit_aria": "Редактировать «{name}»",
+  "positions_section.delete_aria": "Удалить «{name}»",
+  "positions_section.confirm_delete.title": "Удалить «{name}»?",
+  "positions_section.confirm_delete.body": "Должность будет удалена.",
+  "positions_section.confirm_delete.body_with_count": "Должность будет снята с {count} участников и удалена. Действие необратимо.",
+  "positions_section.confirm_delete.confirm": "Удалить",
 
   // Join by code
   "join_ws.title": "Войти по коду",
@@ -222,6 +234,7 @@ export const ru = {
   "common.remove": "Удалить",
   "common.confirm": "Подтвердить",
   "common.cancel": "Отмена",
+  "common.save": "Сохранить",  
 
     // Picker (DateTimePicker)
   "picker.clear": "Удалить",
