@@ -5,6 +5,7 @@ import { GeneralSection } from "../components/GeneralSection";
 import { InvitationsSection } from "../components/InvitationsSection";
 import { MembersListSection } from "../components/MembersListSection";
 import { RoomsSection } from "../components/RoomsSection";
+import { PositionsSection } from "../components/PositionsSection";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTranslation, type TranslationKey } from "../i18n";
@@ -22,9 +23,9 @@ const ROLE_LABEL_KEY: Record<"owner" | "admin" | "member", TranslationKey> = {
 
 function tabsForRole(role: "owner" | "admin" | "member" | null): SettingsTabId[] {
   if (role === "owner" || role === "admin") {
-    return ["general", "invitations", "members", "rooms"];
+    return ["general", "rooms", "positions", "invitations", "members"];
   }
-  // member видит только участников и переговорные
+  // member видит только участников и переговорные (без positions/invitations/general)
   return ["members", "rooms"];
 }
 
@@ -87,14 +88,17 @@ export function WorkspaceSettingsScreen({ workspaceId, onBack }: Props) {
           {activeTab === "general" && (
             <GeneralSection workspace={workspace} onArchived={onBack} />
           )}
+          {activeTab === "rooms" && (
+            <RoomsSection workspaceId={workspaceId} />
+          )}
+          {activeTab === "positions" && (
+            <PositionsSection workspaceId={workspaceId} />
+          )}
           {activeTab === "invitations" && (
             <InvitationsSection workspace={workspace} />
           )}
           {activeTab === "members" && (
             <MembersListSection workspaceId={workspaceId} />
-          )}
-          {activeTab === "rooms" && (
-            <RoomsSection workspaceId={workspaceId} />
           )}
         </>
       )}

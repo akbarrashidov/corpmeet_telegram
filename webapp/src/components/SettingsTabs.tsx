@@ -1,13 +1,19 @@
 import { useTranslation, type TranslationKey } from "../i18n";
 import { haptic } from "../lib/haptic";
 
-export type SettingsTabId = "general" | "invitations" | "members" | "rooms";
+export type SettingsTabId =
+  | "general"
+  | "rooms"
+  | "positions"
+  | "invitations"
+  | "members";
 
 const LABEL_KEY: Record<SettingsTabId, TranslationKey> = {
   general: "ws_settings.section.general",
+  rooms: "ws_settings.section.rooms",
+  positions: "ws_settings.section.positions",
   invitations: "ws_settings.section.invitations",
   members: "ws_settings.section.members",
-  rooms: "ws_settings.section.rooms",
 };
 
 interface Props {
