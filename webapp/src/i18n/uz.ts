@@ -290,6 +290,12 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "position_warning.button": "Belgilash",
   "member_position.label_aria": "«{name}» uchun lavozim tayinlash",
   "name_warning.message": "Ismingiz yoki familiyangiz to'ldirilmagan.",
-  "name_warning.button": "Belgilash",  
+  "name_warning.button": "Belgilash",
+
+  "pending_sent.title": "Ariza yuborildi",
+  "pending_sent.body": "Admin tasdiqlashini kuting. Tasdiqlangach Mini App-ni qaytadan oching.",
+  "pending_sent.body_named": "«{name}»ga qo'shilish uchun ariza yuborildi. Admin tasdiqlashini kuting — tasdiqlangach Mini App-ni qaytadan oching.",
+  "pending_sent.button": "Yopish",
+    
 };
 

@@ -309,7 +309,12 @@ export const ru = {
   "position_warning.button": "Указать",
   "member_position.label_aria": "Назначить должность для «{name}»",
   "name_warning.message": "У вас не заполнено имя или фамилия.",
-  "name_warning.button": "Указать",    
+  "name_warning.button": "Указать",
+  
+  "pending_sent.title": "Заявка отправлена",
+  "pending_sent.body": "Ждите подтверждения от админа. Когда одобрят — снова откройте Mini App.",
+  "pending_sent.body_named": "Заявка на вступление в «{name}» отправлена. Ждите подтверждения от админа — когда одобрят, снова откройте Mini App.",
+  "pending_sent.button": "Закрыть",  
 } as const;
 
 export type TranslationKey = keyof typeof ru;

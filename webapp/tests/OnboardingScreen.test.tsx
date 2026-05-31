@@ -137,8 +137,8 @@ describe("OnboardingScreen — join by code", () => {
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 
-  it("POSTs and calls onComplete on success", async () => {
-    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+  it("POSTs and calls onComplete on success when status=active", async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { status: "active", workspace_id: 1 } });
     const { onComplete } = renderScreen();
     const user = userEvent.setup();
 
@@ -204,7 +204,7 @@ describe("OnboardingScreen — search", () => {
         { id: 1, name: "Альфа", slug: "alpha", invite_code: "AAA", timezone: "UTC", telegram_chat_id: null, created_at: "", my_role: null },
       ],
     });
-    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { status: "active", workspace_id: 1 } });
     const { onComplete } = renderScreen();
     const user = userEvent.setup();
     await user.click(screen.getByText(/Найти по названию/i));
@@ -222,4 +222,71 @@ describe("OnboardingScreen — search", () => {
       expect(onComplete).toHaveBeenCalled();
     });
   });
+// ──────── Pending sent ────────
+
+describe("OnboardingScreen — pending join", () => {
+  it("join by code with status=pending shows PendingSentScreen + does NOT call onComplete", async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { status: "pending", workspace_id: 7 },
+    });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: [] });  // /workspaces пустой → без имени
+    const { onComplete } = renderScreen();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText(/Войти по коду/i));
+    await user.type(screen.getByPlaceholderText(/ABC12345/i), "INV123");
+    await user.click(screen.getByRole("button", { name: /^Войти$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Заявка отправлена")).toBeInTheDocument();
+    });
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("join by code pending fetches workspace name when available", async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { status: "pending", workspace_id: 7 },
+    });
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: [
+        { id: 7, name: "Альфа Inc", slug: "alpha", invite_code: "AAA", timezone: "UTC", telegram_chat_id: null, created_at: "", my_role: null },
+      ],
+    });
+    renderScreen();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText(/Войти по коду/i));
+    await user.type(screen.getByPlaceholderText(/ABC12345/i), "INV123");
+    await user.click(screen.getByRole("button", { name: /^Войти$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Заявка отправлена")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Альфа Inc/)).toBeInTheDocument();
+  });
+
+  it("search join with status=pending shows PendingSentScreen with workspace name from search result", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: [
+        { id: 1, name: "Бета Co", slug: "beta", invite_code: "BBB", timezone: "UTC", telegram_chat_id: null, created_at: "", my_role: null },
+      ],
+    });
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { status: "pending", workspace_id: 1 },
+    });
+    const { onComplete } = renderScreen();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText(/Найти по названию/i));
+    await user.type(screen.getByPlaceholderText(/Начни вводить/i), "Бе");
+    await screen.findByText("Бета Co");
+    await user.click(screen.getByRole("button", { name: /Вступить/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Заявка отправлена")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Бета Co/)).toBeInTheDocument();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+});
 });
