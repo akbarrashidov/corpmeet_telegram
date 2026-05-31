@@ -87,6 +87,27 @@ async def test_deep_link_qr_calls_consume_session(monkeypatch: pytest.MonkeyPatc
         msg.answer.assert_awaited_once()
         text = msg.answer.call_args.args[0]
         assert "подтверждён" in text.lower()
+        # Mini App кнопка прикреплена
+        assert msg.answer.call_args.kwargs.get("reply_markup") is not None
+
+
+async def test_deep_link_qr_incomplete_profile_shows_registration_nudge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """profile_complete=False → текст про заполни должность/фамилию + WebApp кнопка."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(consume_result={"ok": True, "profile_complete": False})
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api):
+        await cmd_start_deep_link(msg, make_command("abc-token"), bot)
+
+    msg.answer.assert_awaited_once()
+    text = msg.answer.call_args.args[0]
+    assert "должность" in text.lower() or "профиль" in text.lower()
+    assert msg.answer.call_args.kwargs.get("reply_markup") is not None
+
 
 
 @pytest.mark.parametrize("status_code", [404, 410, 422, 500])
