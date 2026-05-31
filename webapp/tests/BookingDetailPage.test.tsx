@@ -10,6 +10,7 @@ vi.mock("@corpmeet/design/complex", () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -96,6 +97,7 @@ describe("BookingDetailPage", () => {
     } as any);
     vi.mocked(apiClient.get).mockReset();
     vi.mocked(apiClient.patch).mockReset();
+    vi.mocked(apiClient.delete).mockReset();
   });
 
   afterEach(() => {
@@ -136,6 +138,71 @@ describe("BookingDetailPage", () => {
     expect(
       screen.queryByRole("button", { name: "Отменить встречу" })
     ).not.toBeInTheDocument();
+  });
+
+  it("on cancel of recurring booking: shows series choice dialog (not simple confirm)", async () => {
+    const recurring = {
+      ...baseBooking,
+      recurrence: "weekly" as const,
+      recurrence_group_id: 42,
+    };
+    renderPage({ currentUserId: 1, booking: recurring });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Отменить встречу" }));
+
+    expect(screen.getByText(/Эта встреча повторяется/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Только эту встречу" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Всю серию" })).toBeInTheDocument();
+    expect(screen.queryByText(/Отменить встречу\?/i)).not.toBeInTheDocument();
+  });
+
+  it("series choice: 'Только эту встречу' calls useDeleteBooking with single id", async () => {
+    const mutate = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useDeleteBooking).mockReturnValue({
+      mutateAsync: mutate,
+      isPending: false,
+      error: null,
+    } as any);
+    const recurring = {
+      ...baseBooking,
+      recurrence: "weekly" as const,
+      recurrence_group_id: 42,
+    };
+    const onDeleted = vi.fn();
+    renderPage({ currentUserId: 1, booking: recurring, onDeleted });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Отменить встречу" }));
+    await user.click(screen.getByRole("button", { name: "Только эту встречу" }));
+
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith({ id: 5 });
+      expect(onDeleted).toHaveBeenCalled();
+    });
+  });
+
+  it("series choice: 'Всю серию' calls apiClient.delete with delete_series=true", async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({ data: undefined } as any);
+    const recurring = {
+      ...baseBooking,
+      recurrence: "weekly" as const,
+      recurrence_group_id: 42,
+    };
+    const onDeleted = vi.fn();
+    renderPage({ currentUserId: 1, booking: recurring, onDeleted });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Отменить встречу" }));
+    await user.click(screen.getByRole("button", { name: "Всю серию" }));
+
+    await waitFor(() => {
+      expect(apiClient.delete).toHaveBeenCalledWith(
+        "/api/v1/bookings/5",
+        expect.objectContaining({ params: { delete_series: true } }),
+      );
+      expect(onDeleted).toHaveBeenCalled();
+    });
   });
 
   // ---------- Reschedule ----------
