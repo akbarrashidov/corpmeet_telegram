@@ -143,6 +143,36 @@ export function BookingDetailPage({
   const hasAttachments = useBookingAttachments(booking.id).data === true;
   const hasVideo = booking.video_enabled === true;
 
+  // Накладки — все встречи юзера (organizer + guest) во всех workspace'ах,
+  // время которых пересекается с текущей встречей. Cache shared c useMyBookings.
+  const { data: allMyBookings } = useQuery<Booking[]>({
+    queryKey: ["bookings", "active"],
+    queryFn: async () => {
+      const res = await apiClient.get<Booking[]>("/api/v1/bookings/active");
+      // Защита от malformed/чужого response — например когда тесты мокают
+      // общий apiClient.get единственным значением для всех путей.
+      return Array.isArray(res?.data) ? res.data : [];
+    },
+    staleTime: 60_000,
+  });
+
+  const overlapping: Booking[] = (() => {
+    if (!allMyBookings) return [];
+    const newStart = new Date(booking.start_time).getTime();
+    const newEnd = new Date(booking.end_time).getTime();
+    return allMyBookings
+      .filter((other) => {
+        if (other.id === booking.id) return false;
+        const os = new Date(other.start_time).getTime();
+        const oe = new Date(other.end_time).getTime();
+        return newStart < oe && newEnd > os;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+      );
+  })();
+
   const dayLabel = formatDayMonth(booking.start_time.split("T")[0]);
   const organizerName =
     booking.user.display_name ??
@@ -300,6 +330,35 @@ export function BookingDetailPage({
         )}
 
       </div>
+
+      {overlapping.length > 0 && (
+        <div
+          className="p-3 rounded-lg flex flex-col gap-2 text-sm"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--warning, #d97706)",
+          }}
+        >
+          <div
+            className="font-medium"
+            style={{ color: "var(--warning, #d97706)" }}
+          >
+            ⚠️ {t("booking.overlap.title")}
+          </div>
+          <ul className="flex flex-col gap-1">
+            {overlapping.map((other) => (
+              <li key={other.id} className="text-xs">
+                <span className="font-medium">{other.title}</span>
+                <span style={{ color: "var(--text-muted)" }}>
+                  {" · "}
+                  {formatDayMonth(other.start_time.split("T")[0])}{" "}
+                  {formatTime(other.start_time)}–{formatTime(other.end_time)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {booking.description && (
         <div>

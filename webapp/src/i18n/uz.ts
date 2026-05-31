@@ -26,6 +26,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "booking.guests.accepted_label": "✓ Qatnashadi ({count}):",
   "booking.guests.declined_label": "✗ Rad etgan ({count}):",
   "booking.guests.pending_label": "⏳ Kutyapmiz ({count}):",
+  "booking.overlap.title": "Quyidagi uchrashuvga to'g'ri keladi:",
   "booking.cancel_button": "Uchrashuvni bekor qilish",
   "booking.reschedule_button": "Uchrashuvni ko'chirish",
   "booking.confirm.cancel_title": "Uchrashuvni bekor qilasizmi?",
