@@ -20,14 +20,12 @@ interface Props {
   tabs: SettingsTabId[];
   current: SettingsTabId;
   onChange: (id: SettingsTabId) => void;
+  /** Бейджи с числом на табах (например, count pending заявок). */
+  badges?: Partial<Record<SettingsTabId, number>>;
 }
 
-/** Горизонтальный таб-свитч для WorkspaceSettingsScreen.
- *
- * Какие табы рендерить — решает parent через RBAC.
- * Активный таб — primary underline.
- */
-export function SettingsTabs({ tabs, current, onChange }: Props) {
+/** Горизонтальный таб-свитч для WorkspaceSettingsScreen. */
+export function SettingsTabs({ tabs, current, onChange, badges }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -38,6 +36,7 @@ export function SettingsTabs({ tabs, current, onChange }: Props) {
     >
       {tabs.map((id) => {
         const active = id === current;
+        const badge = badges?.[id];
         return (
           <button
             key={id}
@@ -50,7 +49,7 @@ export function SettingsTabs({ tabs, current, onChange }: Props) {
                 onChange(id);
               }
             }}
-            className="px-3 py-2.5 text-sm font-medium whitespace-nowrap"
+            className="px-3 py-2.5 text-sm font-medium whitespace-nowrap inline-flex items-center"
             style={{
               color: active ? "var(--primary)" : "var(--text-sec)",
               borderBottom: `2px solid ${active ? "var(--primary)" : "transparent"}`,
@@ -58,6 +57,15 @@ export function SettingsTabs({ tabs, current, onChange }: Props) {
             }}
           >
             {t(LABEL_KEY[id])}
+            {badge !== undefined && badge > 0 && (
+              <span
+                aria-hidden
+                className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
+                style={{ background: "var(--primary)", color: "white" }}
+              >
+                {badge}
+              </span>
+            )}
           </button>
         );
       })}

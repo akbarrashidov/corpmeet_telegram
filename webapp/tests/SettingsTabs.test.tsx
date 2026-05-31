@@ -57,4 +57,31 @@ describe("SettingsTabs", () => {
     await user.click(screen.getByRole("tab", { name: "Общее" }));
     expect(onChange).not.toHaveBeenCalled();
   });
+  it("renders badge with count next to tab label", () => {
+    render(
+      <SettingsTabs
+        tabs={["members", "rooms"]}
+        current="members"
+        onChange={vi.fn()}
+        badges={{ members: 3 }}
+      />,
+    );
+    // Текст бейджа виден в DOM
+    expect(screen.getByText("3")).toBeInTheDocument();
+    // accessibility name таба остаётся "Участники" — getByRole его находит
+    expect(screen.getByRole("tab", { name: "Участники" })).toBeInTheDocument();
+  });
+
+  it("does NOT render badge when count is 0", () => {
+    render(
+      <SettingsTabs
+        tabs={["members"]}
+        current="members"
+        onChange={vi.fn()}
+        badges={{ members: 0 }}
+      />,
+    );
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
 });

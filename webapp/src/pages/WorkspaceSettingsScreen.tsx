@@ -39,6 +39,13 @@ export function WorkspaceSettingsScreen({ workspaceId, onBack }: Props) {
   const myRole = workspace?.my_role ?? null;
   const tabs = tabsForRole(myRole);
 
+  // Бейдж количества pending join-заявок на табе «Участники»
+  const pendingJoinCount = (workspace?.pending_members ?? []).filter(
+    (m) => m.user_id !== null && m.status === "pending",
+  ).length;
+  const tabBadges: Partial<Record<SettingsTabId, number>> =
+    pendingJoinCount > 0 ? { members: pendingJoinCount } : {};
+
   // Дожидаемся загрузки workspace перед тем как ставить дефолтный таб
   // (иначе owner стартует с "members" — initial useState считается до загрузки).
   const [currentTab, setCurrentTab] = useState<SettingsTabId | null>(null);
@@ -83,6 +90,7 @@ export function WorkspaceSettingsScreen({ workspaceId, onBack }: Props) {
             tabs={tabs}
             current={activeTab}
             onChange={setCurrentTab}
+            badges={tabBadges}
           />
 
           {activeTab === "general" && (

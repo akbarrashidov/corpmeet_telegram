@@ -314,7 +314,14 @@ export const ru = {
   "pending_sent.title": "Заявка отправлена",
   "pending_sent.body": "Ждите подтверждения от админа. Когда одобрят — снова откройте Mini App.",
   "pending_sent.body_named": "Заявка на вступление в «{name}» отправлена. Ждите подтверждения от админа — когда одобрят, снова откройте Mini App.",
-  "pending_sent.button": "Закрыть",  
+  "pending_sent.button": "Закрыть",
+
+  "pending_requests.heading": "Заявки на вступление ({count})",
+  "pending_requests.accept": "Принять",
+  "pending_requests.reject": "Отклонить",
+  "pending_requests.accept_aria": "Принять заявку от {name}",
+  "pending_requests.reject_aria": "Отклонить заявку от {name}",
+    
 } as const;
 
 export type TranslationKey = keyof typeof ru;
