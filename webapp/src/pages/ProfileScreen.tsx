@@ -1,20 +1,17 @@
 import { FormEvent, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient, useAuth, type User } from "@corpmeet/design/complex";
+import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
+import { usePositions } from "../hooks/usePositions";
+import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
+import { useUpdateMemberPosition } from "../hooks/useUpdateMemberPosition";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
-import { useTranslation, type TranslationKey } from "../i18n";
+import { useTranslation } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
-
-const POSITION_OPTIONS: { apiValue: string; labelKey: TranslationKey }[] = [
-  { apiValue: "Начальник департамента/отдела", labelKey: "position.label.heads" },
-  { apiValue: "PM", labelKey: "position.label.pm" },
-  { apiValue: "Аналитик", labelKey: "position.label.analyst" },
-  { apiValue: "Программист и др.", labelKey: "position.label.dev" },
-  { apiValue: "Дизайнер", labelKey: "position.label.designer" },
-];
+import { PositionPicker } from "../components/PositionPicker";
 
 const NAME_REGEX = /^[A-Z][a-z]+$/;
 
@@ -29,9 +26,21 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
   const { t } = useTranslation();
   const inTg = !!getTelegram();
 
+  const wsId = useCurrentWorkspaceId();
+  const { data: wsDetail } = useWorkspaceDetail(wsId);
+  const { data: positions } = usePositions(wsId);
+  const updateMemberPosition = useUpdateMemberPosition(wsId ?? 0);
+
+  // Я как member в текущем workspace
+  const myMember = wsDetail?.members.find(
+    (m) => m.user?.id === user?.id && m.status === "active",
+  );
+
   const [firstName, setFirstName] = useState(user?.first_name ?? "");
   const [lastName, setLastName] = useState(user?.last_name ?? "");
-  const [position, setPosition] = useState<string | null>(user?.position ?? null);
+  const [positionId, setPositionId] = useState<number | null>(
+    myMember?.position_id ?? null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,11 +69,31 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     haptic();
     setSubmitting(true);
     try {
-      await apiClient.patch<User>("/api/v1/auth/me", {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        position,
-      });
+      const profileChanged =
+        firstName.trim() !== (user?.first_name ?? "") ||
+        lastName.trim() !== (user?.last_name ?? "");
+      const positionChanged =
+        myMember !== undefined && positionId !== (myMember.position_id ?? null);
+
+      const tasks: Promise<unknown>[] = [];
+      if (profileChanged) {
+        tasks.push(
+          apiClient.patch<User>("/api/v1/auth/me", {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          }),
+        );
+      }
+      if (positionChanged && myMember) {
+        tasks.push(
+          updateMemberPosition.mutateAsync({
+            memberId: myMember.id,
+            positionId,
+          }),
+        );
+      }
+      await Promise.all(tasks);
+
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       hapticSuccess();
       onSaved();
@@ -98,9 +127,8 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
     color: "var(--text)",
   };
 
-  const positionItems: { value: string; label: string }[] = POSITION_OPTIONS.map(
-    (p) => ({ value: p.apiValue, label: t(p.labelKey) }),
-  );
+  const showPositionSection = wsId !== null && myMember !== undefined;
+  const hasPositions = (positions ?? []).length > 0;
 
   return (
     <form
@@ -150,33 +178,28 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
         />
       </label>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm">{t("register.field.position")}</legend>
+      {showPositionSection && (
         <div className="flex flex-col gap-2">
-          {positionItems.map((item) => {
-            const selected = position === item.value;
-            return (
-              <button
-                key={item.value ?? "__none__"}
-                type="button"
-                onClick={() => setPosition(item.value)}
-                disabled={submitting}
-                aria-pressed={selected}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-left transition"
-                style={{
-                  background: selected ? "var(--primary)" : "var(--input-bg)",
-                  color: selected ? "white" : "var(--text)",
-                  border: `1px solid ${
-                    selected ? "var(--primary)" : "var(--input-border)"
-                  }`,
-                }}
-              >
-                {item.label}
-              </button>
-            );
-          })}
+          <span className="text-sm">
+            {t("profile.position.workspace_label", {
+              name: wsDetail?.name ?? "",
+            })}
+          </span>
+          {hasPositions ? (
+            <PositionPicker
+              positions={positions ?? []}
+              value={positionId}
+              onChange={setPositionId}
+              disabled={submitting}
+              ariaLabel={t("register.field.position")}
+            />
+          ) : (
+            <p className="text-sm" style={{ color: "var(--text-sec)" }}>
+              {t("profile.position.empty_state")}
+            </p>
+          )}
         </div>
-      </fieldset>
+      )}
 
       {error && (
         <p className="text-sm" style={{ color: "var(--danger)" }}>

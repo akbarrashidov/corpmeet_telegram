@@ -308,6 +308,12 @@ export const ru = {
   "general.archive.confirm.body": "После архивации пространство станет недоступно всем участникам. Действие необратимо.",
   "general.archive.confirm.confirm": "Архивировать",
 
+  "profile.position.workspace_label": "Должность в «{name}»",
+  "profile.position.empty_state": "В этом пространстве должностей пока нет. Создайте их в настройках.",
+  "position_warning.message": "У вас не указана должность.",
+  "position_warning.button": "Указать",
+  "member_position.label_aria": "Назначить должность для «{name}»",
+    
 } as const;
 
 export type TranslationKey = keyof typeof ru;
