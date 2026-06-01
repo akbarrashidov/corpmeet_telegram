@@ -42,6 +42,11 @@ class BookingBotInfo(BaseModel):
     recurrence_group_id: Optional[int] = None
     recurrence_days: Optional[list[int]] = None  # 0=Mon … 6=Sun
     has_attachments: bool = False
+    video_enabled: bool = False
+    room_id: Optional[int] = None
+    room_name: Optional[str] = None
+    workspace_id: Optional[int] = None
+    workspace_telegram_chat_id: Optional[int] = None
     
 class ApiClient:
     """Async client to backend API.
@@ -79,11 +84,34 @@ class ApiClient:
     def _internal_headers(self) -> dict[str, str]:
         return {"X-Bot-Secret": self._settings.bot_secret}
 
-    async def consume_session(self, token: str, telegram_id: int) -> dict[str, Any]:
-        """Bind telegram_id to a QR session token."""
+    async def consume_session(
+        self,
+        token: str,
+        telegram_id: int,
+        *,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        username: Optional[str] = None,
+        language_code: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Bind telegram_id to a session token (QR/invite/ws).
+
+        Optional поля (first_name/last_name/username/language_code) —
+        бэк использует их при создании юзера через invite/ws префиксы.
+        Без них предсозданный аккаунт получает NULL вместо TG-username.
+        """
+        body: dict[str, Any] = {"token": token, "telegram_id": telegram_id}
+        if first_name is not None:
+            body["first_name"] = first_name
+        if last_name is not None:
+            body["last_name"] = last_name
+        if username is not None:
+            body["username"] = username
+        if language_code is not None:
+            body["language_code"] = language_code
         resp = await self.client.post(
             "/api/v1/internal/auth/consume-session",
-            json={"token": token, "telegram_id": telegram_id},
+            json=body,
             headers=self._internal_headers(),
         )
         resp.raise_for_status()

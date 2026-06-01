@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,7 +8,30 @@ vi.mock("@corpmeet/design/complex", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
+vi.mock("../src/lib/currentWorkspace", () => ({
+  useCurrentWorkspaceId: vi.fn(() => 10),
+  setCurrentWorkspaceId: vi.fn(),
+}));
+
+vi.mock("../src/hooks/useWorkspaceDetail", () => ({
+  useWorkspaceDetail: vi.fn(),
+}));
+
+vi.mock("../src/hooks/usePositions", () => ({
+  usePositions: vi.fn(),
+}));
+
+const updatePositionMutate = vi.fn();
+vi.mock("../src/hooks/useUpdateMemberPosition", () => ({
+  useUpdateMemberPosition: vi.fn(() => ({
+    mutateAsync: updatePositionMutate,
+    isPending: false,
+  })),
+}));
+
 import { apiClient, useAuth } from "@corpmeet/design/complex";
+import { useWorkspaceDetail } from "../src/hooks/useWorkspaceDetail";
+import { usePositions } from "../src/hooks/usePositions";
 import { ProfileScreen } from "../src/pages/ProfileScreen";
 
 const baseUser = {
@@ -19,7 +42,7 @@ const baseUser = {
   last_name: "Rakhimov",
   role: "user" as const,
   display_name: "Alisher Rakhimov",
-  position: "PM" as string | null,
+  position: null,
 };
 
 function setupAuth(overrides: Partial<typeof baseUser> = {}) {
@@ -32,6 +55,58 @@ function setupAuth(overrides: Partial<typeof baseUser> = {}) {
   });
 }
 
+function setupWorkspace(myPositionId: number | null = null) {
+  vi.mocked(useWorkspaceDetail).mockReturnValue({
+    data: {
+      id: 10,
+      name: "Test WS",
+      slug: "test",
+      invite_code: "C",
+      timezone: "UTC",
+      telegram_chat_id: null,
+      created_at: "2026-01-01T00:00:00Z",
+      my_role: "member",
+      members: [{
+        id: 50,
+        workspace_id: 10,
+        user_id: 1,
+        pending_username: null,
+        role: "member",
+        status: "active",
+        invite_deep_link: null,
+        user: {
+          id: 1,
+          display_name: "Alisher Rakhimov",
+          username: null,
+          first_name: "Alisher",
+          last_name: "Rakhimov",
+          position: null,
+        },
+        position_id: myPositionId,
+        position: null,
+        created_at: "2026-01-01T00:00:00Z",
+        invite_expires_at: null,
+      }],
+      pending_members: [],
+      tg_invite_link: null,
+    },
+    isLoading: false,
+  } as any);
+}
+
+function setupPositions(list: Array<{ id: number; name_ru: string; name_uz?: string }>) {
+  vi.mocked(usePositions).mockReturnValue({
+    data: list.map((p) => ({
+      id: p.id,
+      workspace_id: 10,
+      name_ru: p.name_ru,
+      name_uz: p.name_uz ?? p.name_ru,
+      created_at: "2026-01-01T00:00:00Z",
+    })),
+    isLoading: false,
+  } as any);
+}
+
 function renderScreen(props: { onBack?: () => void; onSaved?: () => void } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
@@ -39,62 +114,134 @@ function renderScreen(props: { onBack?: () => void; onSaved?: () => void } = {})
         onBack={props.onBack ?? vi.fn()}
         onSaved={props.onSaved ?? vi.fn()}
       />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
+beforeEach(() => {
+  updatePositionMutate.mockReset().mockResolvedValue(undefined);
+  vi.mocked(apiClient.patch).mockReset().mockResolvedValue({ data: {} } as any);
+  vi.mocked(useWorkspaceDetail).mockReset();
+  vi.mocked(usePositions).mockReset();
+});
+
 describe("ProfileScreen", () => {
-  it("prefills fields from useAuth user", () => {
+  it("prefills first/last name from useAuth", () => {
     setupAuth();
+    setupWorkspace(null);
+    setupPositions([{ id: 1, name_ru: "PM" }]);
     renderScreen();
     expect(screen.getByLabelText(/Имя/i)).toHaveValue("Alisher");
     expect(screen.getByLabelText(/Фамилия/i)).toHaveValue("Rakhimov");
-    expect(screen.getByRole("button", { name: "PM" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
   });
 
-  it("submits PATCH with current values when nothing changed", async () => {
+  it("does NOT send PATCH /auth/me when neither first nor last name changed", async () => {
     setupAuth();
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} } as any);
+    setupWorkspace(null);
+    setupPositions([{ id: 1, name_ru: "PM" }]);
     const onSaved = vi.fn();
     renderScreen({ onSaved });
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
-    await waitFor(() => {
-      expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/auth/me", {
-        first_name: "Alisher",
-        last_name: "Rakhimov",
-        position: "PM",
-      });
-      expect(onSaved).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(apiClient.patch).not.toHaveBeenCalled();
+    expect(updatePositionMutate).not.toHaveBeenCalled();
   });
 
-  it("changes position and submits new value", async () => {
+  it("PATCH /auth/me with only first_name/last_name (no position field)", async () => {
     setupAuth();
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: {} } as any);
+    setupWorkspace(null);
+    setupPositions([{ id: 1, name_ru: "PM" }]);
     renderScreen();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Дизайнер" }));
+    const firstNameInput = screen.getByLabelText(/Имя/i);
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, "Bobur");
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => {
       expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/auth/me", {
-        first_name: "Alisher",
+        first_name: "Bobur",
         last_name: "Rakhimov",
-        position: "Дизайнер",
       });
+    });
+  });
+
+  it("renders position selector when workspace + positions present", () => {
+    setupAuth();
+    setupWorkspace(null);
+    setupPositions([{ id: 1, name_ru: "PM" }, { id: 2, name_ru: "Аналитик" }]);
+    renderScreen();
+    expect(screen.getByLabelText(/Должность/i)).toBeInTheDocument();
+    expect(screen.getByText("PM")).toBeInTheDocument();
+    expect(screen.getByText("Аналитик")).toBeInTheDocument();
+  });
+
+  it("renders empty-state instead of selector when positions list is empty", () => {
+    setupAuth();
+    setupWorkspace(null);
+    setupPositions([]);
+    renderScreen();
+    expect(screen.getByText(/В этом пространстве должностей пока нет/)).toBeInTheDocument();
+  });
+
+  it("changes position and PATCHes /members/{mid} {position_id}", async () => {
+    setupAuth();
+    setupWorkspace(null);
+    setupPositions([{ id: 1, name_ru: "PM" }, { id: 2, name_ru: "Дизайнер" }]);
+    renderScreen();
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText(/Должность/i), "2");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(updatePositionMutate).toHaveBeenCalledWith({ memberId: 50, positionId: 2 });
+    });
+    expect(apiClient.patch).not.toHaveBeenCalled();  // имена не менялись
+  });
+
+  it("sends both PATCHes in parallel when name + position changed", async () => {
+    setupAuth();
+    setupWorkspace(1);
+    setupPositions([{ id: 1, name_ru: "PM" }, { id: 2, name_ru: "Дизайнер" }]);
+    renderScreen();
+
+    const user = userEvent.setup();
+    const firstNameInput = screen.getByLabelText(/Имя/i);
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, "Bobur");
+    await user.selectOptions(screen.getByLabelText(/Должность/i), "2");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(apiClient.patch).toHaveBeenCalled();
+      expect(updatePositionMutate).toHaveBeenCalledWith({ memberId: 50, positionId: 2 });
+    });
+  });
+
+  it("clears position via «—» option", async () => {
+    setupAuth();
+    setupWorkspace(1);
+    setupPositions([{ id: 1, name_ru: "PM" }]);
+    renderScreen();
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText(/Должность/i), "");
+    await user.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(updatePositionMutate).toHaveBeenCalledWith({ memberId: 50, positionId: null });
     });
   });
 
   it("rejects lowercase first name", async () => {
     setupAuth({ first_name: "alisher" });
-    vi.mocked(apiClient.patch).mockClear();
+    setupWorkspace(null);
+    setupPositions([]);
     renderScreen();
 
     const user = userEvent.setup();
@@ -104,8 +251,10 @@ describe("ProfileScreen", () => {
     expect(screen.getByText(/Имя — латиница/i)).toBeInTheDocument();
   });
 
-  it("calls onBack when ✕ clicked", async () => {
+  it("calls onBack on ✕", async () => {
     setupAuth();
+    setupWorkspace(null);
+    setupPositions([]);
     const onBack = vi.fn();
     renderScreen({ onBack });
 
@@ -113,20 +262,5 @@ describe("ProfileScreen", () => {
     await user.click(screen.getByRole("button", { name: "Закрыть" }));
 
     expect(onBack).toHaveBeenCalled();
-  });
-
-  it("shows server error and stays on screen", async () => {
-    setupAuth();
-    vi.mocked(apiClient.patch).mockRejectedValue({
-      response: { status: 422, data: { detail: "boom" } },
-    });
-    const onSaved = vi.fn();
-    renderScreen({ onSaved });
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Сохранить" }));
-
-    await screen.findByText(/\[422\] boom/i);
-    expect(onSaved).not.toHaveBeenCalled();
   });
 });

@@ -23,6 +23,10 @@ export interface Booking {
   recurrence_until: string | null;
   recurrence_group_id: number | null;
   recurrence_days: number[];
+  workspace_id?: number | null;
+  room_id?: number | null;
+  video_enabled?: boolean;
+  video_room_name?: string | null;
 }
 
 export interface BookingCreate {
@@ -34,6 +38,8 @@ export interface BookingCreate {
   recurrence?: "none" | "daily" | "weekly" | "custom";
   recurrence_until?: string;
   recurrence_days?: number[];
+  workspace_id?: number;
+  room_id?: number;
 }
 
 export interface BookingUpdate {
@@ -84,6 +90,7 @@ export const apiClient: {
   get<T>(url: string, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
   post<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
   patch<T>(url: string, body?: unknown, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
+  delete<T = unknown>(url: string, config?: { params?: Record<string, unknown> }): Promise<{ data: T }>;
 };
 
 export const storage: {
@@ -148,5 +155,40 @@ export interface Workspace {
   telegram_chat_id: number | null;
   created_at: string;
   my_role: WorkspaceMemberRole | null;
+  tg_invite_link?: string | null;
 }
 
+export type RoomJoinMode = "open" | "approval" | "closed";
+export type RoomVisibility = "full" | "busy_only";
+export type WorkspaceRoomRole = "owner" | "shared";
+
+export interface Room {
+  id: number;
+  name: string;
+  description: string | null;
+  invite_code: string | null;
+  join_mode: RoomJoinMode;
+  archived_at: string | null;
+  created_at: string;
+}
+
+export interface WorkspaceRoom {
+  id: number;
+  workspace_id: number;
+  room: Room;
+  role: WorkspaceRoomRole;
+  visibility: RoomVisibility;
+  created_at: string;
+}
+
+export interface RoomCreate {
+  name: string;
+  description?: string | null;
+  workspace_id: number;
+}
+
+export interface RoomUpdate {
+  name?: string;
+  description?: string | null;
+  join_mode?: RoomJoinMode;
+}

@@ -142,13 +142,18 @@ describe("App", () => {
     expect(storage.setToken).toHaveBeenCalledWith("tok");
   });
 
-  // ---------- Mobile: logged in but no position → registration with prefill ----------
-  it("mobile: login OK + position null → registration prefilled → patch only → HomePage", async () => {
+  // ---------- Mobile: register fails 'already registered' → retry login → PATCH ----------
+  it("mobile: register 400 'already registered' → retry login → PATCH → HomePage", async () => {
     setTelegram({ platform: "ios" });
-    vi.mocked(authApi.login).mockResolvedValue({ access_token: "tok", expires_in: 1000 });
-    vi.mocked(authApi.getMe).mockResolvedValue(
-      meWithPosition({ first_name: "Alisher", last_name: "Rakhimov", position: null })
-    );
+    // First login (init) → 404 → registration screen
+    vi.mocked(authApi.login)
+      .mockRejectedValueOnce(axiosError(404))
+      .mockResolvedValueOnce({ access_token: "tok-after-fallback", expires_in: 1000 });
+    // Register rejects with "already registered"
+    const alreadyErr: any = new Error("http");
+    alreadyErr.isAxiosError = true;
+    alreadyErr.response = { status: 400, data: { detail: "Invalid initData or user already registered" } };
+    vi.mocked(authApi.register).mockRejectedValue(alreadyErr);
     vi.mocked(apiClient.patch).mockResolvedValue({ data: {} } as any);
 
     renderApp();
@@ -156,22 +161,25 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText(/Регистрация/i)).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/Имя/i)).toHaveValue("Alisher");
-    expect(screen.getByLabelText(/Фамилия/i)).toHaveValue("Rakhimov");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "PM" }));
+    await user.type(screen.getByLabelText(/Имя/i), "Alisher");
+    await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
     await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
 
     await waitFor(() => {
-      expect(authApi.register).not.toHaveBeenCalled();
+      // Register был тапнут (упал)
+      expect(authApi.register).toHaveBeenCalled();
+      // Login был дёрнут ВТОРОЙ раз как fallback
+      expect(authApi.login).toHaveBeenCalledTimes(2);
+      // PATCH прошёл
       expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/auth/me", {
         first_name: "Alisher",
         last_name: "Rakhimov",
-        position: "PM",
       });
       expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
     });
+    expect(storage.setToken).toHaveBeenCalledWith("tok-after-fallback");
   });
 
   // ---------- Mobile: 404 → fresh registration → register + patch → HomePage ----------
@@ -192,7 +200,6 @@ describe("App", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
 
     await waitFor(() => {
@@ -204,7 +211,6 @@ describe("App", () => {
       expect(apiClient.patch).toHaveBeenCalledWith("/api/v1/auth/me", {
         first_name: "Alisher",
         last_name: "Rakhimov",
-        position: "PM",
       });
       expect(screen.getByRole("button", { name: "День" })).toBeInTheDocument();
     });
@@ -283,7 +289,6 @@ describe("App", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/Имя/i), "Alisher");
     await user.type(screen.getByLabelText(/Фамилия/i), "Rakhimov");
-    await user.click(screen.getByRole("button", { name: "PM" }));
     await user.click(screen.getByRole("button", { name: /Зарегистрироваться/i }));
 
     await waitFor(() => {

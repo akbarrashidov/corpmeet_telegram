@@ -71,6 +71,23 @@ export function filterMine(
   });
 }
 
+/** Фильтр по workspace_id текущего активного workspace.
+ *
+ * `workspaceId === null` → фильтр не применяется (пользователь ещё не выбрал
+ * workspace; UI до Onboarding не доходит до календаря, но защищаемся).
+ *
+ * Booking без `workspace_id` (legacy-данные с prod-бэка где multi-tenant ещё
+ * не задеплоен ИЛИ старые встречи до миграции) **не пройдут** фильтр — by
+ * design: в новом workspace не должны висеть старые встречи из общего пула.
+ */
+export function filterByWorkspace(
+  bookings: Booking[],
+  workspaceId: number | null,
+): Booking[] {
+  if (workspaceId === null) return bookings;
+  return bookings.filter((b) => b.workspace_id === workspaceId);
+}
+
 /** Сортировка: по start_time ascending. */
 export function sortByStart(bookings: Booking[]): Booking[] {
   return [...bookings].sort((a, b) => a.start_time.localeCompare(b.start_time));

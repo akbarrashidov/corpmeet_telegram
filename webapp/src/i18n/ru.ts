@@ -21,12 +21,23 @@ export const ru = {
   "booking.organizer_self": "(это ты)",
   "booking.description_label": "Описание",
   "booking.guest_badge": "Ты в гостях",
+  "booking.video_indicator": "Видеоконференция",
+  "booking.attachment_indicator": "Прикреплены файлы",
+  "booking.guests_label": "Гости ({count}):",
+  "booking.guests.accepted_label": "✓ Приняли ({count}):",
+  "booking.guests.declined_label": "✗ Отказались ({count}):",
+  "booking.guests.pending_label": "⏳ Ожидаем ({count}):",
+  "booking.overlap.title": "Накладывается на:",
   "booking.cancel_button": "Отменить встречу",
   "booking.reschedule_button": "Перенести встречу",
   "booking.confirm.cancel_title": "Отменить встречу?",
   "booking.confirm.cancel_body": "«{title}» — встреча будет удалена.",
   "booking.confirm.cancel": "Отменить",
   "booking.confirm.keep": "Оставить",
+  "booking.cancel_choice.title": "Эта встреча повторяется",
+  "booking.cancel_choice.body": "Что отменить?",
+  "booking.cancel_choice.one": "Только эту встречу",
+  "booking.cancel_choice.series": "Всю серию",
   "booking.error.cancel_failed": "Не удалось отменить. Попробуй ещё.",
   "booking.error.no_slots_today": "На сегодня нет свободных слотов :(",
   "booking.error.slots_failed": "Не удалось получить занятость. Попробуй ещё.",
@@ -34,12 +45,12 @@ export const ru = {
   "booking.confirm.decline_title": "Не сможешь прийти?",
   "booking.confirm.decline_body": "«{title}» — ты будешь удалён(а) из гостей.",
   "booking.confirm.decline": "Отказаться",
-  "booking.series_choice.title": "Эта встреча в серии",
-  "booking.series_choice.body": "Что отменить?",
-  "booking.series_choice.one": "Только эту встречу",
-  "booking.series_choice.series": "Всю серию",
   "booking.error.decline_failed": "Не удалось отказаться. Попробуй ещё.",
-  "booking.error.decline_partial": "Не все встречи отменены, попробуй ещё раз.",
+  "booking.error.rsvp_failed": "Не удалось сохранить ответ. Попробуй ещё.",
+  "booking.accept_button": "Принять участие",
+  "booking.my_status.accepted": "Ты принял участие",
+  "booking.my_status.declined": "Ты отказался",
+  "booking.my_status.pending": "Ожидаем твой ответ",
 
   // Create
   "create.title": "Новая встреча",
@@ -51,15 +62,15 @@ export const ru = {
   "create.guests.add_manual": "+ добавить «{value}»",
   "create.guests.no_users": "Нет пользователей",
   "create.guests.loading": "Загрузка...",
-  "create.position_filter.heads": "Начальники",
-  "create.position_filter.pm": "PM",
-  "create.position_filter.analysts": "Аналитики",
-  "create.position_filter.devs": "Программисты и др.",
-  "create.position_filter.designers": "Дизайнеры",
   "create.error.title_required": "Назови встречу.",
   "create.error.end_after_start": "Конец должен быть позже начала.",
   "create.error.failed": "Не удалось создать встречу. Попробуй ещё.",
   "create.submit": "Создать",
+  "create.error.no_workspace": "Выберите пространство (workspace).",
+  "create.error.room_required": "Выберите переговорную.",
+  "create.room.label": "Переговорная",
+  "create.room.empty_body": "В этом пространстве нет переговорных. Создайте через настройки.",
+  "create.room.empty_cta": "Открыть настройки",
 
   // Reschedule
   "reschedule.title": "Перенести встречу",
@@ -121,13 +132,104 @@ export const ru = {
   "bind.success_body": "Workspace «{name}» теперь привязан к этому чату.",
   "bind.no_workspace_title": "Нет workspace",
   "bind.no_workspace_body": "Тебе нужен workspace с ролью owner или admin, чтобы привязать к нему чат.",
-  
+  "bind.create_workspace": "Создать workspace",
+
+  // Onboarding
+  "onboarding.title": "Добро пожаловать в CorpMeet",
+  "onboarding.subtitle": "Чтобы начать — выбери одно из:",
+  "onboarding.create.title": "Создать пространство",
+  "onboarding.create.body": "Своя команда, свои переговорки, ты — owner",
+  "onboarding.join.title": "Войти по коду",
+  "onboarding.join.body": "Если коллега скинул invite-код",
+  "onboarding.search.title": "Найти по названию",
+  "onboarding.search.body": "Поиск пространства по названию",
+
+  // Create workspace
+  "create_ws.title": "Новое пространство",
+  "create_ws.name.label": "Название",
+  "create_ws.name.placeholder": "Команда Альфа",
+  "create_ws.timezone.label": "Часовой пояс",
+  "create_ws.submit": "Создать",
+  "create_ws.error.name_required": "Введи название",
+  "create_ws.error.failed": "Не удалось создать. Попробуй ещё.",
+
+  // Create room
+  "create_room.title": "Создайте переговорную",
+  "create_room.subtitle": "Хотя бы одна нужна, чтобы бронировать. Позже можно добавить ещё в настройках.",
+  "create_room.name.label": "Название",
+  "create_room.name.placeholder": "Переговорная",
+  "create_room.submit": "Создать",
+  "create_room.error.name_required": "Введи название",
+  "create_room.error.failed": "Не удалось создать. Попробуй ещё.",
+
+  // Workspace settings + rooms section
+  "ws_settings.title": "Настройки пространства",
+  "ws_settings.your_role": "Ваша роль: {role}",
+  "ws_settings.section.general": "Общее",
+  "ws_settings.section.invitations": "Приглашения",
+  "ws_settings.section.members": "Участники",
+  "ws_settings.section.rooms": "Переговорные",
+  "rooms_section.title": "Переговорные",
+  "rooms_section.empty": "Пока нет ни одной переговорной — создайте первую.",
+  "rooms_section.shared_badge": "Поделились с вами",
+  "rooms_section.create": "Создать переговорную",
+  "rooms_section.archive": "Архивировать",
+  "rooms_section.archive_aria": "Архивировать «{name}»",
+  "rooms_section.confirm.title": "Архивировать «{name}»?",
+  "rooms_section.confirm.body": "Комната пропадёт из списка. Бронирования сохранятся.",
+  "rooms_section.confirm.last_room_warning": "Это последняя переговорная в пространстве. После архивации нельзя будет создать новые бронирования, пока не появится хотя бы одна комната.",
+  "rooms_section.confirm.confirm": "Архивировать",
+
+  // Members section
+  "members_section.role.owner": "Владелец",
+  "members_section.role.admin": "Админ",
+  "members_section.role.member": "Участник",
+  "members_section.remove_aria": "Удалить «{name}»",
+  "members_section.confirm_remove.title": "Удалить «{name}»?",
+  "members_section.confirm_remove.body": "Участник потеряет доступ к workspace и встречам.",
+  "members_section.confirm_remove.confirm": "Удалить",
+  "ws_settings.section.positions": "Должности",
+  "positions_section.empty": "Должностей пока нет — добавьте первую.",
+  "positions_section.create": "Добавить должность",
+  "positions_section.name_ru_label": "Название на русском",
+  "positions_section.name_ru_placeholder": "Например, Аналитик",
+  "positions_section.name_uz_label": "O'zbekcha nomi",
+  "positions_section.name_uz_placeholder": "Masalan, Analitik",
+  "positions_section.edit_aria": "Редактировать «{name}»",
+  "positions_section.delete_aria": "Удалить «{name}»",
+  "positions_section.confirm_delete.title": "Удалить «{name}»?",
+  "positions_section.confirm_delete.body": "Должность будет удалена.",
+  "positions_section.confirm_delete.body_with_count": "Должность будет снята с {count} участников и удалена. Действие необратимо.",
+  "positions_section.confirm_delete.confirm": "Удалить",
+
+  // Join by code
+  "join_ws.title": "Войти по коду",
+  "join_ws.code.label": "Invite-код",
+  "join_ws.code.placeholder": "ABC12345",
+  "join_ws.submit": "Войти",
+  "join_ws.error.code_required": "Введи код",
+  "join_ws.error.failed": "Не удалось отправить. Попробуй ещё.",
+
+  // Search workspace
+  "search_ws.title": "Найти пространство",
+  "search_ws.placeholder": "Начни вводить название",
+  "search_ws.no_results": "Ничего не нашлось",
+  "search_ws.empty_query": "Введи хотя бы 1 символ",
+  "search_ws.submit": "Вступить",
+
+  // Workspace selector
+  "ws_selector.title": "Выбрать пространство",
+  "ws_selector.open": "Открыть выбор пространства",
+  "ws_selector.create_new": "Создать новое пространство",  
+  "ws_selector.settings_aria": "Настройки «{name}»",
+      
   // Common
   "common.close": "Закрыть",
   "common.back": "Назад",
   "common.remove": "Удалить",
   "common.confirm": "Подтвердить",
   "common.cancel": "Отмена",
+  "common.save": "Сохранить",  
 
     // Picker (DateTimePicker)
   "picker.clear": "Удалить",
@@ -160,6 +262,66 @@ export const ru = {
   "month.gen.november": "ноября",
   "month.gen.december": "декабря",
 
+  // ── Settings → Участники tab ───────────────────────────────────────────
+  "members.empty": "В пространстве пока нет других участников.",
+
+  // ── Settings → Приглашения tab ─────────────────────────────────────────
+  "invitations.one_time.button": "Пригласить коллегу",
+  "invitations.one_time.copy": "Скопировать ссылку",
+  "invitations.one_time.copied": "Скопировано ✓",
+
+  "invitations.code.label": "Инвайт-код",
+  "invitations.code.copy": "Копировать",
+  "invitations.code.copied": "Скопировано ✓",
+
+  "invitations.public_link.label": "Публичная ссылка Telegram",
+  "invitations.public_link.subtitle": "Любой, у кого есть ссылка, вступит в пространство автоматически. После обновления старая ссылка перестаёт работать.",
+  "invitations.public_link.copy": "Копировать",
+  "invitations.public_link.copied": "Скопировано ✓",
+
+  "invitations.regenerate.button": "Обновить код и ссылку",
+  "invitations.regenerate.confirm.title": "Обновить инвайт-код и ссылку?",
+  "invitations.regenerate.confirm.body": "Старый код и публичная ссылка перестанут работать немедленно. Уже выданные приглашения по ним больше не сработают. Действие необратимо.",
+  "invitations.regenerate.confirm.confirm": "Обновить",
+
+  // ── Settings → Общее tab ───────────────────────────────────────────────
+
+  "general.bind.title": "Telegram-группа для уведомлений",
+  "general.bind.hint_unbound.intro": "Чтобы привязать группу к пространству:",
+  "general.bind.hint_unbound.step1": "Добавьте бота {bot} в Telegram-группу",
+  "general.bind.hint_unbound.step2": "Дайте боту права администратора — это нужно для отправки уведомлений о встречах",
+  "general.bind.hint_unbound.step3": "Бот сам предложит привязать чат — нажмите кнопку в его сообщении и выберите это пространство",
+  "general.bind.hint_bound": "Группа {chatId} привязана. Уведомления о встречах отправляются туда.",
+  "general.bind.unbind": "Отвязать",
+  "general.bind.confirm_unbind.title": "Отвязать группу?",
+  "general.bind.confirm_unbind.body": "Уведомления о новых встречах больше не будут приходить в Telegram. Привязать снова можно будет, добавив бота в группу заново.",
+  "general.bind.confirm_unbind.confirm": "Отвязать",
+
+  "general.archive.title": "Архивирование",
+  "general.archive.button": "Архивировать пространство",
+  "general.archive.confirm.title": "Архивировать «{name}»?",
+  "general.archive.confirm.body": "После архивации пространство станет недоступно всем участникам. Действие необратимо.",
+  "general.archive.confirm.confirm": "Архивировать",
+
+  "profile.position.workspace_label": "Должность в «{name}»",
+  "profile.position.empty_state": "В этом пространстве должностей пока нет. Создайте их в настройках.",
+  "position_warning.message": "У вас не указана должность.",
+  "position_warning.button": "Указать",
+  "member_position.label_aria": "Назначить должность для «{name}»",
+  "name_warning.message": "У вас не заполнено имя или фамилия.",
+  "name_warning.button": "Указать",
+  
+  "pending_sent.title": "Заявка отправлена",
+  "pending_sent.body": "Ждите подтверждения от админа. Когда одобрят — снова откройте Mini App.",
+  "pending_sent.body_named": "Заявка на вступление в «{name}» отправлена. Ждите подтверждения от админа — когда одобрят, снова откройте Mini App.",
+  "pending_sent.button": "Закрыть",
+
+  "pending_requests.heading": "Заявки на вступление ({count})",
+  "pending_requests.accept": "Принять",
+  "pending_requests.reject": "Отклонить",
+  "pending_requests.accept_aria": "Принять заявку от {name}",
+  "pending_requests.reject_aria": "Отклонить заявку от {name}",
+    
 } as const;
 
 export type TranslationKey = keyof typeof ru;

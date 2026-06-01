@@ -5,6 +5,8 @@ import { LoadingScreen } from "./components/LoadingScreen";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { HomeContainer } from "./pages/HomeContainer";
 import { BindChatScreen } from "./pages/BindChatScreen";
+import { OnboardingScreen } from "./pages/OnboardingScreen";
+import type { Workspace } from "@corpmeet/design/complex";
 import { getDevice, type Device } from "./lib/platform";
 import { getTelegram } from "./lib/telegram";
 import { setLang as setI18nLang, useTranslation } from "./i18n";
@@ -13,7 +15,8 @@ const DESKTOP_FALLBACK_URL = "https://corpmeet.uz";
 
 type Phase =
   | { kind: "init" }
-  | { kind: "needs_registration"; alreadyAuthed: boolean; prefill: { firstName: string; lastName: string } }
+  | { kind: "needs_registration" }
+  | { kind: "needs_onboarding" }
   | { kind: "redirecting" }
   | { kind: "ready" }
   | { kind: "error"; error: string };
@@ -56,7 +59,7 @@ export default function App() {
     }
 
     if (!tg!.initData) {
-        setPhase({ kind: "error", error: t("app.error.open_via_telegram") });
+      setPhase({ kind: "error", error: t("app.error.open_via_telegram") });
       return;
     }
 
@@ -68,28 +71,10 @@ export default function App() {
       const { access_token } = await Promise.race([loginPromise, timeoutPromise]);
       storage.setToken(access_token);
 
-      // Проверяем, заполнена ли должность. Если нет — экран регистрации с prefilled.
-      const me = await authApi.getMe();
-      if (!me.position) {
-        setPhase({
-          kind: "needs_registration",
-          alreadyAuthed: true,
-          prefill: {
-            firstName: me.first_name ?? "",
-            lastName: me.last_name ?? "",
-          },
-        });
-        return;
-      }
-
       await onAuthSuccess(dev);
     } catch (e: any) {
       if (axios.isAxiosError(e) && e.response?.status === 404) {
-        setPhase({
-          kind: "needs_registration",
-          alreadyAuthed: false,
-          prefill: { firstName: "", lastName: "" },
-        });
+        setPhase({ kind: "needs_registration" });
       } else {
         const status = axios.isAxiosError(e) ? e.response?.status ?? "?" : "?";
         const detail = axios.isAxiosError(e) ? e.response?.data?.detail : null;
@@ -104,29 +89,36 @@ export default function App() {
     }
   }
 
-  async function handleRegister(
-    firstName: string,
-    lastName: string,
-    position: string,
-  ) {
+  async function handleRegister(firstName: string, lastName: string) {
     const tg = getTelegram();
     if (!tg) return;
 
-    const alreadyAuthed = phase.kind === "needs_registration" && phase.alreadyAuthed;
-
-    if (!alreadyAuthed) {
+    try {
       const { access_token } = await authApi.register(
         tg.initData,
         firstName,
         lastName,
       );
       storage.setToken(access_token);
+    } catch (e) {
+      // Юзер уже создан (например, через QR consume-session с username, но без
+      // first_name/last_name) — register отвечает 400 "already registered".
+      // Падать нельзя — пробуем login повторно и идём дальше через PATCH /auth/me.
+      const err = e as { response?: { status?: number; data?: { detail?: unknown } } };
+      const detail = err.response?.data?.detail;
+      const isAlreadyRegistered =
+        err.response?.status === 400 &&
+        typeof detail === "string" &&
+        detail.toLowerCase().includes("registered");
+      if (!isAlreadyRegistered) throw e;
+
+      const { access_token } = await authApi.login(tg.initData);
+      storage.setToken(access_token);
     }
 
     await apiClient.patch<User>("/api/v1/auth/me", {
       first_name: firstName,
       last_name: lastName,
-      position,
     });
 
     await onAuthSuccess(device);
@@ -136,9 +128,19 @@ export default function App() {
     if (dev === "desktop") {
       setPhase({ kind: "redirecting" });
       await runDesktopRedirect();
-    } else {
-      setPhase({ kind: "ready" });
+      return;
     }
+    // Проверяем активные workspaces — если нет ни одного, идём в onboarding.
+    try {
+      const res = await apiClient.get<Workspace[]>("/api/v1/workspaces");
+      if (res.data.length === 0) {
+        setPhase({ kind: "needs_onboarding" });
+        return;
+      }
+    } catch {
+      // Если эндпоинт не отвечает — не блокируем юзера, идём в home
+    }
+    setPhase({ kind: "ready" });
   }
 
   async function runDesktopRedirect() {
@@ -161,13 +163,7 @@ export default function App() {
   if (phase.kind === "redirecting")
     return <LoadingScreen message={t("app.opening_browser")} />;
   if (phase.kind === "needs_registration")
-    return (
-      <RegistrationScreen
-        defaultFirstName={phase.prefill.firstName}
-        defaultLastName={phase.prefill.lastName}
-        onSubmit={handleRegister}
-      />
-    );
+    return <RegistrationScreen onSubmit={handleRegister} />;
   if (phase.kind === "error") {
     return (
       <div
@@ -182,6 +178,14 @@ export default function App() {
   const bindChat = parseBindChatParam();
   if (bindChat !== null) {
     return <BindChatScreen chatId={bindChat} />;
+  }
+
+  if (phase.kind === "needs_onboarding") {
+    return (
+      <OnboardingScreen
+        onComplete={() => setPhase({ kind: "ready" })}
+      />
+    );
   }
 
   return <HomeContainer />;

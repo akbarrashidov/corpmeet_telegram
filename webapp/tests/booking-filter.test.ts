@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Booking, User } from "@corpmeet/design/complex";
-import { filterInvited, filterMine, sortByStart, userFullName } from "../src/lib/booking-filter";
+import {
+  filterByWorkspace,
+  filterInvited,
+  filterMine,
+  sortByStart,
+  userFullName,
+} from "../src/lib/booking-filter";
 
 function makeUser(over: Partial<User> = {}): User {
   return {
@@ -241,5 +247,41 @@ describe("sortByStart", () => {
     const before = bookings.map((b) => b.id);
     sortByStart(bookings);
     expect(bookings.map((b) => b.id)).toEqual(before);
+  });
+});
+
+
+describe("filterByWorkspace", () => {
+  const b1 = makeBooking({ id: 1, workspace_id: 10 });
+  const b2 = makeBooking({ id: 2, workspace_id: 20 });
+  const b3 = makeBooking({ id: 3, workspace_id: 10 });
+  const bNull = makeBooking({ id: 4, workspace_id: null });
+  const bMissing = makeBooking({ id: 5 }); // workspace_id отсутствует
+
+  it("returns only bookings of given workspace", () => {
+    expect(filterByWorkspace([b1, b2, b3], 10).map((b) => b.id)).toEqual([1, 3]);
+  });
+
+  it("returns empty when no booking matches workspace", () => {
+    expect(filterByWorkspace([b1, b2], 999)).toEqual([]);
+  });
+
+  it("excludes bookings with workspace_id === null", () => {
+    expect(filterByWorkspace([b1, bNull], 10).map((b) => b.id)).toEqual([1]);
+  });
+
+  it("excludes bookings without workspace_id field (legacy)", () => {
+    expect(filterByWorkspace([b1, bMissing], 10).map((b) => b.id)).toEqual([1]);
+  });
+
+  it("workspaceId === null → returns all bookings unchanged", () => {
+    const input = [b1, b2, bNull, bMissing];
+    expect(filterByWorkspace(input, null)).toEqual(input);
+  });
+
+  it("does not mutate input", () => {
+    const input = [b1, b2, b3];
+    filterByWorkspace(input, 10);
+    expect(input.map((b) => b.id)).toEqual([1, 2, 3]);
   });
 });

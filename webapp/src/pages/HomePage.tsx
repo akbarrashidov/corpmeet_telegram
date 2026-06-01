@@ -1,9 +1,10 @@
-import { useAuth, useBookings, type Booking } from "@corpmeet/design/complex";
+import { useAuth, type Booking } from "@corpmeet/design/complex";
 import { HomeChips, type HomeTab } from "../components/HomeChips";
 import { DateStrip } from "../components/DateStrip";
 import { BookingsList } from "../components/BookingsList";
 import { useInvitedBookings } from "../hooks/useInvitedBookings";
 import { useMyBookings } from "../hooks/useMyBookings";
+import { useDayBookings } from "../hooks/useDayBookings";
 import { useTgMainButton } from "../hooks/useTgMainButton";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { todayIso } from "../lib/datetime";
@@ -12,6 +13,9 @@ import { getTelegram } from "../lib/telegram";
 import { haptic } from "../lib/haptic";
 import { useTranslation, type TranslationKey } from "../i18n";
 import { LangToggle } from "../components/LangToggle";
+import { WorkspaceSelector } from "../components/WorkspaceSelector";
+import { PositionWarningBanner } from "../components/PositionWarningBanner";
+import { NameWarningBanner } from "../components/NameWarningBanner";
 import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
 import { addDaysIso } from "../lib/datetime";
 
@@ -23,6 +27,7 @@ interface Props {
   onCreate: () => void;
   onSelect: (booking: Booking) => void;
   onProfile: () => void;
+  onOpenSettings: (workspaceId: number) => void;
 }
 
 export function HomePage({
@@ -33,6 +38,7 @@ export function HomePage({
   onCreate,
   onSelect,
   onProfile,
+  onOpenSettings,
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -48,7 +54,7 @@ export function HomePage({
   ];
   const monthIndex = parseInt(selectedDate.slice(5, 7), 10) - 1;
   const monthLabel = t(monthKeys[monthIndex]);
-  const dayQuery = useBookings(selectedDate);
+  const dayQuery = useDayBookings(selectedDate);
   const mineQuery = useMyBookings(user);
   const invitedQuery = useInvitedBookings(user);
 
@@ -114,9 +120,11 @@ export function HomePage({
       className="min-h-screen p-4 flex flex-col gap-4 relative"
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
-      <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">{t("home.title")}</h1>
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+        <WorkspaceSelector onOpenSettings={onOpenSettings} />
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
           <LangToggle />
           <button
             type="button"
@@ -128,6 +136,9 @@ export function HomePage({
           </button>
         </div>
       </header>
+
+      <NameWarningBanner onOpenProfile={handleProfile} />
+      <PositionWarningBanner onOpenProfile={handleProfile} />
 
       <div>
         <p className="text-sm mb-1" style={{ color: "var(--text-sec)" }}>

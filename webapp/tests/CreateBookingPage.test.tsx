@@ -6,6 +6,22 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 vi.mock("@corpmeet/design/complex", () => ({
   useCreateBooking: vi.fn(),
   useUsers: vi.fn(),
+  useAuth: vi.fn(() => ({
+    user: { id: 9999 },
+    isLoading: false,
+    isAuthenticated: true,
+    setToken: vi.fn(),
+    logout: vi.fn(),
+  })),
+}));
+
+vi.mock("../src/hooks/useWorkspaceRooms", () => ({
+  useWorkspaceRooms: vi.fn(),
+}));
+
+vi.mock("../src/lib/currentWorkspace", () => ({
+  useCurrentWorkspaceId: vi.fn(),
+  setCurrentWorkspaceId: vi.fn(),
 }));
 
 vi.mock("../src/components/DateTimePicker", () => ({
@@ -22,23 +38,48 @@ vi.mock("../src/components/DateTimePicker", () => ({
 }));
 
 import { useCreateBooking, useUsers } from "@corpmeet/design/complex";
+import { useWorkspaceRooms } from "../src/hooks/useWorkspaceRooms";
+import { useCurrentWorkspaceId } from "../src/lib/currentWorkspace";
 import { CreateBookingPage } from "../src/pages/CreateBookingPage";
+
+const ROOM = {
+  id: 1,
+  workspace_id: 10,
+  room: {
+    id: 77,
+    name: "Переговорная",
+    description: null,
+    invite_code: null,
+    join_mode: "open" as const,
+    archived_at: null,
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  role: "owner" as const,
+  visibility: "full" as const,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
+function setupDefaults() {
+  vi.mocked(useUsers).mockReturnValue({
+    data: [], isLoading: false, isFetching: false, error: null,
+  } as any);
+  vi.mocked(useCurrentWorkspaceId).mockReturnValue(10);
+  vi.mocked(useWorkspaceRooms).mockReturnValue({
+    data: [ROOM], isLoading: false,
+  } as any);
+}
 
 function renderPage(
   props: Partial<{ onBack: () => void; onCreated: () => void; defaultDate: string }> = {}
 ) {
-  vi.mocked(useUsers).mockReturnValue({
-    data: [],
-    isLoading: false,
-    isFetching: false,
-    error: null,
-  } as any);
+  setupDefaults();
   return render(
     <QueryClientProvider client={new QueryClient()}>
       <CreateBookingPage
         onBack={props.onBack ?? vi.fn()}
         onCreated={props.onCreated ?? vi.fn()}
         defaultDate={props.defaultDate}
+        onOpenSettings={() => {}}
       />
     </QueryClientProvider>
   );
@@ -80,6 +121,8 @@ describe("CreateBookingPage", () => {
     expect(arg.start_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(arg.end_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(arg.guests).toEqual([]);
+    expect(arg.workspace_id).toBe(10);
+    expect(arg.room_id).toBe(77);
   });
 
   it("submits guests added via GuestPicker (manual entry)", async () => {

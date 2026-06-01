@@ -86,3 +86,25 @@ async def test_handles_no_inviter(monkeypatch: pytest.MonkeyPatch) -> None:
     # Только сообщение в группу, без DM
     assert bot.send_message.await_count == 1
     assert bot.send_message.await_args.args[0] == -100123
+
+
+async def test_group_fallback_includes_deep_link_button(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fallback в группу содержит inline URL-кнопку с deep-link на bot/start=bind_<chat>."""
+    _setup_env(monkeypatch)
+    monkeypatch.setenv("TG_BOT_USERNAME", "corpmeet_test_bot")
+    from bot.config import get_settings
+    get_settings.cache_clear()
+
+    bot = MagicMock()
+    bot.send_message = AsyncMock(side_effect=[Exception("blocked"), None])
+    event = _make_event(chat_id=-100777)
+
+    await on_added_to_group(event, bot)
+
+    fallback = bot.send_message.await_args_list[1]
+    keyboard = fallback.kwargs.get("reply_markup")
+    assert keyboard is not None, "fallback должен содержать inline keyboard"
+    button = keyboard.inline_keyboard[0][0]
+    assert button.url is not None
+    assert "t.me/corpmeet_test_bot" in button.url
+    assert "start=bind_-100777" in button.url

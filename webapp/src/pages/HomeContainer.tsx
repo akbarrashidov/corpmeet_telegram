@@ -5,6 +5,7 @@ import { CreateBookingPage } from "./CreateBookingPage";
 import { BookingDetailPage } from "./BookingDetailPage";
 import { ReschedulePage } from "./ReschedulePage";
 import { ProfileScreen } from "./ProfileScreen";
+import { WorkspaceSettingsScreen } from "./WorkspaceSettingsScreen";
 import type { HomeTab } from "../components/HomeChips";
 import { todayIso } from "../lib/datetime";
 
@@ -18,6 +19,11 @@ type View =
       booking: Booking;
       defaultStart: string;
       defaultEnd: string;
+    }
+  | {
+      kind: "workspace_settings";
+      workspaceId: number;
+      returnTo: "list" | "create";
     };
 
 export function HomeContainer() {
@@ -35,6 +41,9 @@ export function HomeContainer() {
         onCreate={() => setView({ kind: "create" })}
         onSelect={(b) => setView({ kind: "detail", booking: b })}
         onProfile={() => setView({ kind: "profile" })}
+        onOpenSettings={(workspaceId) =>
+          setView({ kind: "workspace_settings", workspaceId, returnTo: "list" })
+        }
       />
     );
   }
@@ -44,6 +53,9 @@ export function HomeContainer() {
         defaultDate={selectedDate}
         onBack={() => setView({ kind: "list" })}
         onCreated={() => setView({ kind: "list" })}
+        onOpenSettings={(workspaceId) =>
+          setView({ kind: "workspace_settings", workspaceId, returnTo: "create" })
+        }
       />
     );
   }
@@ -52,6 +64,17 @@ export function HomeContainer() {
       <ProfileScreen
         onBack={() => setView({ kind: "list" })}
         onSaved={() => setView({ kind: "list" })}
+      />
+    );
+  }
+  if (view.kind === "workspace_settings") {
+    const back = view.returnTo === "create"
+      ? () => setView({ kind: "create" })
+      : () => setView({ kind: "list" });
+    return (
+      <WorkspaceSettingsScreen
+        workspaceId={view.workspaceId}
+        onBack={back}
       />
     );
   }
