@@ -47,8 +47,7 @@ describe("TelegramBindStatusBlock", () => {
   it("shows bound status and unbind button when bound", () => {
     mockRebind();
     render(<TelegramBindStatusBlock workspace={makeWorkspace(-100123)} />);
-    expect(screen.getByText(/-100123/)).toBeInTheDocument();
-    expect(screen.getByText(/привязана/i)).toBeInTheDocument();
+    expect(screen.getByText(/Группа привязана/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Отвязать/i })).toBeInTheDocument();
   });
 

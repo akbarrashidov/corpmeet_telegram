@@ -43,7 +43,7 @@ export function TelegramBindStatusBlock({ workspace }: Props) {
             color: "var(--text-sec)",
           }}
         >
-          <p>{t("general.bind.hint_unbound.intro")}</p>
+          <p style={{ whiteSpace: "pre-line" }}>{t("general.bind.hint_unbound.intro")}</p>
           <ol className="list-decimal list-inside flex flex-col gap-1">
             <li>{t("general.bind.hint_unbound.step1", { bot: `@${BOT_USERNAME}` })}</li>
             <li>{t("general.bind.hint_unbound.step2")}</li>
@@ -62,10 +62,8 @@ export function TelegramBindStatusBlock({ workspace }: Props) {
               color: "var(--text)",
             }}
           >
-            <p>
-              {t("general.bind.hint_bound", {
-                chatId: String(workspace.telegram_chat_id),
-              })}
+            <p style={{ whiteSpace: "pre-line" }}>
+              {t("general.bind.hint_bound")}
             </p>
           </div>
           <button
