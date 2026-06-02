@@ -256,8 +256,7 @@ describe("BookingDetailPage", () => {
     }
   });
 
-  it("shows error and does not call onReschedule when no available slots", async () => {
-
+  it("calls onReschedule with original times when no available slots today", async () => {
     vi.mocked(apiClient.get).mockResolvedValue({ data: [] });
     const onReschedule = vi.fn();
 
@@ -266,11 +265,13 @@ describe("BookingDetailPage", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Перенести встречу" }));
 
-    await screen.findByText(/На сегодня нет свободных слотов/i);
-    expect(onReschedule).not.toHaveBeenCalled();
+    await waitFor(() => expect(onReschedule).toHaveBeenCalled());
+    const [start, end] = onReschedule.mock.calls[0];
+    expect(start).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect(end).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
   });
 
-  it("shows error when slots fetch fails", async () => {
+  it("calls onReschedule with original times when slots fetch fails", async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error("network"));
     const onReschedule = vi.fn();
 
@@ -279,8 +280,7 @@ describe("BookingDetailPage", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Перенести встречу" }));
 
-    await screen.findByText(/Не удалось получить занятость/i);
-    expect(onReschedule).not.toHaveBeenCalled();
+    await waitFor(() => expect(onReschedule).toHaveBeenCalled());
   });
 
   // ---------- Decline (guest leaves meeting) ----------

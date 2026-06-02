@@ -269,6 +269,12 @@ export function BookingDetailPage({
     haptic();
     setError(null);
     setRescheduleBusy(true);
+
+    // По умолчанию открываем ReschedulePage с теми же временами как у встречи —
+    // юзер сам подкрутит. Если на сегодня есть свободный слот той же длительности,
+    // подставляем его как умный сoftset — но никогда не блокируем переход.
+    let defaultStart = isoToLocalInput(booking.start_time);
+    let defaultEnd = isoToLocalInput(booking.end_time);
     try {
       const { data: slots } = await apiClient.get<SlotResponse[]>(
         "/api/v1/slots",
@@ -278,18 +284,16 @@ export function BookingDetailPage({
         new Date(booking.end_time).getTime() -
         new Date(booking.start_time).getTime();
       const plan = findNextFreeSlot(slots, originalDurationMs);
-      if (!plan) {
-        hapticError();
-        setError(t("booking.error.no_slots_today"));
-        return;
+      if (plan) {
+        defaultStart = isoToLocalInput(plan.start);
+        defaultEnd = isoToLocalInput(plan.end);
       }
-      onReschedule(isoToLocalInput(plan.start), isoToLocalInput(plan.end));
     } catch {
-      hapticError();
-      setError(t("booking.error.slots_failed"));
+      // не критично — используем оригинальные times
     } finally {
       setRescheduleBusy(false);
     }
+    onReschedule(defaultStart, defaultEnd);
   }
 
   return (
