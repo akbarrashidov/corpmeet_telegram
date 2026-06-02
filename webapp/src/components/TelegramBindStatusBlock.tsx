@@ -10,7 +10,7 @@ interface Props {
 }
 
 const BOT_USERNAME =
-  (import.meta as any).env?.VITE_BOT_USERNAME ?? "corpmeet_dev_bot";
+  (import.meta as any).env?.VITE_BOT_USERNAME ?? "corpmeetbot";
 
 export function TelegramBindStatusBlock({ workspace }: Props) {
   const { t } = useTranslation();
