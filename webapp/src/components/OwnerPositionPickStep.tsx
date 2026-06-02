@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@corpmeet/design/complex";
 import { usePositions } from "../hooks/usePositions";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
@@ -27,6 +27,14 @@ export function OwnerPositionPickStep({ workspaceId, onDone }: Props) {
   const [positionId, setPositionId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+    // Авто-выбор первой должности когда список загрузился — без этого
+  // PositionPicker (с allowClear=false) визуально показывает первую опцию,
+  // но state=null → кнопка Сохранить заблокирована.
+  useEffect(() => {
+    if (positionId === null && positions && positions.length > 0) {
+      setPositionId(positions[0].id);
+    }
+  }, [positions, positionId]);
 
   const myMember = wsDetail?.members.find(
     (m) => m.user?.id === user?.id && m.status === "active",
