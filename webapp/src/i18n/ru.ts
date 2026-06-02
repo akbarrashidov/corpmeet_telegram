@@ -332,7 +332,10 @@ export const ru = {
   "owner_position_pick.subtitle": "Без должности нельзя создавать встречи и заходить в конференции.",
   "owner_position_pick.label": "Должность",
   "owner_position_pick.error.failed": "Не удалось сохранить. Попробуй ещё раз.",
-  "create.error.position_required": "Сначала укажи свою должность в профиле.",  
+  "create.error.position_required": "Сначала укажи свою должность в профиле.",
+
+  "timeline.title": "Занятость комнаты",
+  "timeline.overlap": "Пересекается с другой встречей",  
 } as const;
 
 export type TranslationKey = keyof typeof ru;

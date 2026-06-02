@@ -238,6 +238,16 @@ export function CreateBookingPage({
           )}
         </label>
 
+        {roomId !== null && (
+          <RoomTimeline
+            bookings={roomBookings}
+            date={dateForSlots}
+            selectedStart={start}
+            selectedEnd={end}
+            onTap={handleTimelineTap}
+          />
+        )}
+
         <DateTimePicker
           label={t("create.field.start")}
           value={start}
@@ -249,16 +259,6 @@ export function CreateBookingPage({
           value={end}
           onChange={handleEndChange}
         />
-
-        {roomId !== null && (
-          <RoomTimeline
-            bookings={roomBookings}
-            date={dateForSlots}
-            selectedStart={start}
-            selectedEnd={end}
-            onTap={handleTimelineTap}
-          />
-        )}
 
         <GuestPicker
           value={guests}

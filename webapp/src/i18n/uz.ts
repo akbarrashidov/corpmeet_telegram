@@ -312,6 +312,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "owner_position_pick.subtitle": "Lavozimsiz uchrashuv yaratish va konferensiyaga kirish mumkin emas.",
   "owner_position_pick.label": "Lavozim",
   "owner_position_pick.error.failed": "Saqlab bo'lmadi. Qayta urinib ko'ring.",
-  "create.error.position_required": "Avval profilingizda lavozimni belgilang.",    
+  "create.error.position_required": "Avval profilingizda lavozimni belgilang.",
+  "timeline.title": "Xona bandligi",
+  "timeline.overlap": "Boshqa uchrashuv bilan to'g'ri keladi",
 };
 
