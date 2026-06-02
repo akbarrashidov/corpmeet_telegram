@@ -305,10 +305,10 @@ export const ru = {
 
   "profile.position.workspace_label": "Должность в «{name}»",
   "profile.position.empty_state": "В этом пространстве должностей пока нет. Создайте их в настройках.",
-  "position_warning.message": "У вас не указана должность.",
+  "position_warning.message": "Заполните должность в пространстве, чтобы создавать встречи.",
   "position_warning.button": "Указать",
   "member_position.label_aria": "Назначить должность для «{name}»",
-  "name_warning.message": "У вас не заполнено имя или фамилия.",
+  "name_warning.message": "Заполните имя и фамилию, чтобы другие могли вас найти.",
   "name_warning.button": "Указать",
   
   "pending_sent.title": "Заявка отправлена",
@@ -321,7 +321,18 @@ export const ru = {
   "pending_requests.reject": "Отклонить",
   "pending_requests.accept_aria": "Принять заявку от {name}",
   "pending_requests.reject_aria": "Отклонить заявку от {name}",
-    
+
+  "position_setup.title": "Создай должности для пространства",
+  "position_setup.subtitle": "Нужно минимум одна должность. Это можно будет изменить позже в настройках.",
+  "position_setup.add_more": "Добавить ещё",
+  "position_setup.remove_aria": "Удалить должность {index}",
+  "position_setup.submit": "Далее",
+  "position_setup.error.failed": "Не удалось создать должности. Попробуй ещё раз.",
+  "owner_position_pick.title": "Выбери свою должность",
+  "owner_position_pick.subtitle": "Без должности нельзя создавать встречи и заходить в конференции.",
+  "owner_position_pick.label": "Должность",
+  "owner_position_pick.error.failed": "Не удалось сохранить. Попробуй ещё раз.",
+  "create.error.position_required": "Сначала укажи свою должность в профиле.",  
 } as const;
 
 export type TranslationKey = keyof typeof ru;

@@ -49,6 +49,43 @@ vi.mock("../src/hooks/useMyBookings", () => ({
   useMyBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
 }));
 
+vi.mock("../src/lib/currentWorkspace", () => ({
+  useCurrentWorkspaceId: vi.fn(() => 1),
+  setCurrentWorkspaceId: vi.fn(),
+}));
+
+vi.mock("../src/hooks/useWorkspaceDetail", () => ({
+  useWorkspaceDetail: vi.fn(() => ({
+    data: {
+      id: 1,
+      name: "Test WS",
+      slug: "test",
+      invite_code: "X",
+      timezone: "UTC",
+      telegram_chat_id: null,
+      created_at: "",
+      my_role: "owner" as const,
+      members: [{
+        id: 50,
+        workspace_id: 1,
+        user_id: 1,
+        pending_username: null,
+        role: "owner" as const,
+        status: "active" as const,
+        invite_deep_link: null,
+        user: { id: 1, display_name: "Иван Иванов", username: null, first_name: "Иван", last_name: "Иванов", position: null },
+        position_id: 1,
+        position: { id: 1, workspace_id: 1, name_ru: "PM", name_uz: "PM", created_at: "" },
+        created_at: "",
+        invite_expires_at: null,
+      }],
+      pending_members: [],
+      tg_invite_link: null,
+    },
+    isLoading: false,
+  })),
+}));
+
 import { HomeContainer } from "../src/pages/HomeContainer";
 import { addDaysIso, formatDayMonth, todayIso } from "../src/lib/datetime";
 

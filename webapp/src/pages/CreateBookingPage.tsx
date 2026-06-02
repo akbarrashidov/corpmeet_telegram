@@ -130,9 +130,14 @@ export function CreateBookingPage({
       });
       hapticSuccess();
       onCreated();
-    } catch {
+    } catch (e: any) {
       hapticError();
-      setError(t("create.error.failed"));
+      const status = e?.response?.status;
+      if (status === 403) {
+        setError(t("create.error.position_required"));
+      } else {
+        setError(t("create.error.failed"));
+      }
     }
   }
 

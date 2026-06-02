@@ -286,10 +286,10 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "positions_section.confirm_delete.confirm": "O'chirish",
   "profile.position.workspace_label": "«{name}»dagi lavozim",
   "profile.position.empty_state": "Bu makonda hozircha lavozimlar yo'q. Sozlamalarda yarating.",
-  "position_warning.message": "Sizning lavozimingiz ko'rsatilmagan.",
+  "position_warning.message": "Uchrashuv yaratish uchun makondagi lavozimingizni to'ldiring.",
   "position_warning.button": "Belgilash",
   "member_position.label_aria": "«{name}» uchun lavozim tayinlash",
-  "name_warning.message": "Ismingiz yoki familiyangiz to'ldirilmagan.",
+  "name_warning.message": "Boshqalar sizni topa olishi uchun ism va familiyani to'ldiring.",
   "name_warning.button": "Belgilash",
 
   "pending_sent.title": "Ariza yuborildi",
@@ -302,6 +302,16 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "pending_requests.reject": "Rad etish",
   "pending_requests.accept_aria": "{name} dan kelgan arizani qabul qilish",
   "pending_requests.reject_aria": "{name} dan kelgan arizani rad etish",
-    
+  "position_setup.title": "Makon uchun lavozimlar yarating",
+  "position_setup.subtitle": "Kamida bitta lavozim kerak. Buni keyinroq sozlamalarda o'zgartirish mumkin.",
+  "position_setup.add_more": "Yana qo'shish",
+  "position_setup.remove_aria": "{index}-lavozimni o'chirish",
+  "position_setup.submit": "Davom etish",
+  "position_setup.error.failed": "Lavozimlarni yaratib bo'lmadi. Qayta urinib ko'ring.",
+  "owner_position_pick.title": "O'z lavozimingizni tanlang",
+  "owner_position_pick.subtitle": "Lavozimsiz uchrashuv yaratish va konferensiyaga kirish mumkin emas.",
+  "owner_position_pick.label": "Lavozim",
+  "owner_position_pick.error.failed": "Saqlab bo'lmadi. Qayta urinib ko'ring.",
+  "create.error.position_required": "Avval profilingizda lavozimni belgilang.",    
 };
 
