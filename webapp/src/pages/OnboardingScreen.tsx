@@ -89,7 +89,6 @@ export function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  if (mode === "create_room" && createdWs !== null) {
   if (mode === "positions_setup" && createdWs !== null) {
     return (
       <PositionSetupStep
@@ -106,7 +105,9 @@ export function OnboardingScreen({ onComplete }: Props) {
         onDone={() => setMode("create_room")}
       />
     );
-  }    
+  }
+
+  if (mode === "create_room" && createdWs !== null) {
     return (
       <div
         className="min-h-screen p-6"
