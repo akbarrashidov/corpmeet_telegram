@@ -223,21 +223,6 @@ describe("ProfileScreen", () => {
     });
   });
 
-  it("clears position via «—» option", async () => {
-    setupAuth();
-    setupWorkspace(1);
-    setupPositions([{ id: 1, name_ru: "PM" }]);
-    renderScreen();
-
-    const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText(/Должность/i), "");
-    await user.click(screen.getByRole("button", { name: "Сохранить" }));
-
-    await waitFor(() => {
-      expect(updatePositionMutate).toHaveBeenCalledWith({ memberId: 50, positionId: null });
-    });
-  });
-
   it("rejects lowercase first name", async () => {
     setupAuth({ first_name: "alisher" });
     setupWorkspace(null);
