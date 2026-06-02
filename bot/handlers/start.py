@@ -15,6 +15,7 @@ from aiogram.types import (
 
 from bot.config import Settings, get_settings
 from bot.services.api_client import ApiClient
+from bot.services.membership import is_group_member
 from bot.services.bind_helpers import (
     BIND_DEEP_LINK_PREFIX,
     DM_GREETING_TEMPLATE,
@@ -152,12 +153,45 @@ async def _handle_invite_deep_link(
 
 
 async def _handle_ws_deep_link(
-    message: Message, settings: Settings, raw_code: str,
+    message: Message, bot: Bot, settings: Settings, raw_code: str,
 ) -> None:
-    """`/start ws_<CODE>` — join workspace через consume-session."""
+    """`/start ws_<CODE>` — join workspace через consume-session.
+
+    Если у workspace'а привязана TG-группа (`telegram_chat_id != null`) —
+    проверяем что юзер в этой группе ДО consume_session. Не в группе → отказ
+    с понятным текстом, consume не зовём (никакая запись не создаётся).
+
+    Если у workspace'а нет привязанной группы или metadata-фетч упал по сети —
+    fallback к обычному consume_session (как было раньше).
+    """
     if not raw_code or message.from_user is None:
         await _send_welcome(message, settings)
         return
+
+    # Pre-check метаданных воркспейса
+    metadata: Optional[dict] = None
+    try:
+        async with ApiClient(settings) as api:
+            metadata = await api.get_workspace_by_invite(raw_code)
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "get_workspace_by_invite failed for %s; continuing without group check",
+            raw_code,
+        )
+
+    if metadata and metadata.get("telegram_chat_id"):
+        chat_id = metadata["telegram_chat_id"]
+        is_member = await is_group_member(bot, chat_id, message.from_user.id)
+        if not is_member:
+            ws_name = metadata.get("workspace_name") or "пространства"
+            text = (
+                f"❌ Чтобы вступить по этой ссылке, сначала вступи в группу "
+                f"«{ws_name}» в Telegram."
+            )
+            await message.answer(text)
+            return
+
+    # Либо нет привязанной группы, либо юзер в ней → продолжаем
     full_token = f"{WS_DEEP_LINK_PREFIX}{raw_code}"
     error_text = await _consume_invite_or_ws(
         settings,
@@ -173,7 +207,6 @@ async def _handle_ws_deep_link(
         await message.answer(error_text, reply_markup=keyboard)
         return
     await message.answer(WS_DM_GREETING, reply_markup=keyboard)
-
 
 @router.message(CommandStart(deep_link=True))
 async def cmd_start_deep_link(
@@ -207,7 +240,7 @@ async def cmd_start_deep_link(
 
     if token.startswith(WS_DEEP_LINK_PREFIX):
         await _handle_ws_deep_link(
-            message, settings,
+            message, bot, settings,
             raw_code=token[len(WS_DEEP_LINK_PREFIX):],
         )
         return

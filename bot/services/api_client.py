@@ -117,6 +117,26 @@ class ApiClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def get_workspace_by_invite(self, code: str) -> Optional[dict[str, Any]]:
+        """Lookup workspace metadata by invite_code (internal endpoint).
+
+        Возвращает `{workspace_id, workspace_name, telegram_chat_id,
+        restrict_join_to_group}` или None если код не найден / network error.
+        Caller (бот) при None продолжает к consume_session как обычно — graceful
+        degradation, не блокируем юзера если бэк временно недоступен.
+        """
+        try:
+            resp = await self.client.get(
+                f"/api/v1/internal/workspaces/by-invite/{code}",
+                headers=self._internal_headers(),
+            )
+            if resp.status_code == 404:
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError:
+            return None
+
     async def bookings_since(self, updated_at: datetime) -> list[BookingBotInfo]:
         """Bookings with updated_at >= the given datetime."""
         resp = await self.client.get(

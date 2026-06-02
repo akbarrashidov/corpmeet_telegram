@@ -45,8 +45,12 @@ def setup_env(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
 
 
-def patch_api_client(consume_result=None, consume_error: Exception | None = None):
-    """Хелпер: ApiClient context-manager c замоканным consume_session."""
+def patch_api_client(
+    consume_result=None,
+    consume_error: Exception | None = None,
+    workspace_by_invite=None,
+):
+    """Хелпер: ApiClient context-manager c замоканными методами."""
     mock_api = MagicMock()
     mock_api.__aenter__ = AsyncMock(return_value=mock_api)
     mock_api.__aexit__ = AsyncMock(return_value=None)
@@ -56,8 +60,8 @@ def patch_api_client(consume_result=None, consume_error: Exception | None = None
         mock_api.consume_session = AsyncMock(
             return_value=consume_result or {"ok": True},
         )
+    mock_api.get_workspace_by_invite = AsyncMock(return_value=workspace_by_invite)
     return mock_api
-
 
 def http_status_error(status_code: int) -> httpx.HTTPStatusError:
     fake_response = MagicMock()
@@ -128,6 +132,88 @@ async def test_deep_link_qr_error_falls_back_to_welcome(
         args, kwargs = msg.answer.call_args
         assert "CorpMeet" in args[0]
         assert kwargs.get("reply_markup") is not None
+
+async def test_deep_link_ws_with_bound_group_not_member_rejects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + у workspace'а привязана группа + юзер НЕ в группе →
+    бот шлёт friendly text и НЕ дёргает consume_session."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": -100123,
+            "restrict_join_to_group": True,
+        },
+    )
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=AsyncMock(return_value=False)):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    msg.answer.assert_awaited_once()
+    text = msg.answer.call_args.args[0]
+    assert "сначала вступи в группу" in text.lower()
+    assert "Acme" in text
+    # consume_session НЕ был вызван
+    mock_api.consume_session.assert_not_awaited()
+
+
+async def test_deep_link_ws_with_bound_group_is_member_proceeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + привязана группа + юзер В группе → consume_session как обычно."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": -100123,
+            "restrict_join_to_group": True,
+        },
+        consume_result={"ok": True},
+    )
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=AsyncMock(return_value=True)):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    mock_api.consume_session.assert_awaited_once()
+    msg.answer.assert_awaited_once()
+    text = msg.answer.call_args.args[0]
+    assert "ты присоединился" in text.lower() or "добавили" in text.lower() or "присоедин" in text.lower()
+
+
+async def test_deep_link_ws_without_bound_group_proceeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + у workspace'а НЕТ привязанной группы → consume как раньше,
+    is_group_member НЕ вызывается."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": None,
+            "restrict_join_to_group": False,
+        },
+        consume_result={"ok": True},
+    )
+    mock_check = AsyncMock(return_value=True)
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=mock_check):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    mock_check.assert_not_awaited()
+    mock_api.consume_session.assert_awaited_once()
 
 
 async def test_deep_link_qr_unexpected_error_falls_back_to_welcome(
@@ -403,3 +489,84 @@ async def test_deep_link_ws_empty_code_falls_back_to_welcome(
     msg.answer.assert_called_once()
     text = msg.answer.call_args.args[0]
     assert "CorpMeet" in text
+
+    # ---------- ws_<CODE> group-membership pre-check ----------
+
+async def test_deep_link_ws_with_bound_group_not_member_rejects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + у workspace'а привязана группа + юзер НЕ в группе →
+    бот шлёт friendly text и НЕ дёргает consume_session."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": -100123,
+            "restrict_join_to_group": True,
+        },
+    )
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=AsyncMock(return_value=False)):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    msg.answer.assert_awaited_once()
+    text = msg.answer.call_args.args[0]
+    assert "сначала вступи в группу" in text.lower()
+    assert "Acme" in text
+    mock_api.consume_session.assert_not_awaited()
+
+
+async def test_deep_link_ws_with_bound_group_is_member_proceeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + привязана группа + юзер В группе → consume_session как обычно."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": -100123,
+            "restrict_join_to_group": True,
+        },
+        consume_result={"ok": True},
+    )
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=AsyncMock(return_value=True)):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    mock_api.consume_session.assert_awaited_once()
+
+
+async def test_deep_link_ws_without_bound_group_proceeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ws_<CODE> + у workspace'а НЕТ привязанной группы → consume как раньше,
+    is_group_member НЕ вызывается."""
+    setup_env(monkeypatch)
+    msg = make_message()
+    bot = make_bot()
+
+    mock_api = patch_api_client(
+        workspace_by_invite={
+            "workspace_id": 42,
+            "workspace_name": "Acme",
+            "telegram_chat_id": None,
+            "restrict_join_to_group": False,
+        },
+        consume_result={"ok": True},
+    )
+    mock_check = AsyncMock(return_value=True)
+    with patch("bot.handlers.start.ApiClient", return_value=mock_api), \
+         patch("bot.handlers.start.is_group_member", new=mock_check):
+        await cmd_start_deep_link(msg, make_command("ws_ABC"), bot)
+
+    mock_check.assert_not_awaited()
+    mock_api.consume_session.assert_awaited_once()
+

@@ -254,12 +254,12 @@ export const uz: Partial<Record<TranslationKey, string>> = {
 
   // ── Settings → Umumiy tab ──────────────────────────────────────────────
 
-  "general.bind.title": "Bildirishnomalar uchun Telegram-guruh",
-  "general.bind.hint_unbound.intro": "Guruhni ish maydoniga bog'lash uchun:",
+  "general.bind.title": "Ish maydonining Telegram-guruhi",
+  "general.bind.hint_unbound.intro": "Guruhni bog'lab, siz quyidagilarni olasiz:\n📅 Uchrashuvlar haqidagi bildirishnomalar shu guruhga keladi\n🔒 Ommaviy havola orqali faqat shu guruh a'zolari qo'shilishi mumkin\n\nBog'lash uchun:",
   "general.bind.hint_unbound.step1": "{bot} botini Telegram-guruhga qo'shing",
   "general.bind.hint_unbound.step2": "Botga administrator huquqlarini bering — bu uchrashuvlar haqida bildirishnomalar yuborish uchun kerak",
   "general.bind.hint_unbound.step3": "Bot o'zi guruhni bog'lashni taklif qiladi — uning xabaridagi tugmani bosing va bu ish maydonini tanlang",
-  "general.bind.hint_bound": "{chatId} guruhi bog'langan. Uchrashuvlar haqidagi bildirishnomalar shu yerga keladi.",
+  "general.bind.hint_bound": "{chatId} guruhi bog'langan.\n📅 Uchrashuvlar haqidagi bildirishnomalar shu yerga keladi.\n🔒 Ommaviy havola orqali faqat shu guruh a'zolari qo'shilishi mumkin.",
   "general.bind.unbind": "Uzish",
   "general.bind.confirm_unbind.title": "Guruhni uzish?",
   "general.bind.confirm_unbind.body": "Yangi uchrashuvlar haqidagi bildirishnomalar endi Telegram'ga kelmaydi. Qaytadan bog'lash uchun botni guruhga yana qo'shish kerak bo'ladi.",
