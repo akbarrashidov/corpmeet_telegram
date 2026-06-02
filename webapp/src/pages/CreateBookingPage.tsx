@@ -19,6 +19,8 @@ import { getTelegram } from "../lib/telegram";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
 import { DateTimePicker } from "../components/DateTimePicker";
+import { RoomTimeline } from "../components/RoomTimeline";
+import { useDayBookings } from "../hooks/useDayBookings";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
@@ -46,11 +48,18 @@ export function CreateBookingPage({
   // Если юзер сам поменял время — не подменяем дефолт когда подгрузятся slots.
   const userChangedTimeRef = useRef(false);
 
-  useTgBackButton(onBack);
-
   // Подгружаем слоты для выбранной даты, чтобы дефолт времени = ближайший
   // свободный (а не статическое 09:00).
   const dateForSlots = defaultDate ?? todayIso();
+
+  // Брони комнаты на выбранную дату — для timeline-визуализации
+  const dayBookings = useDayBookings(dateForSlots);
+  const roomBookings = (dayBookings.data ?? []).filter(
+    (b) => b.room_id === roomId,
+  );
+
+  useTgBackButton(onBack);
+
   const { data: slots } = useQuery<SlotResponse[]>({
     queryKey: ["slots", dateForSlots],
     queryFn: async () => {
@@ -85,6 +94,12 @@ export function CreateBookingPage({
   }, [rooms, roomId]);
 
   const noRooms = !roomsLoading && (rooms?.length ?? 0) === 0;
+
+  function handleTimelineTap(newStart: string, newEnd: string) {
+    userChangedTimeRef.current = true;
+    setStart(newStart);
+    setEnd(newEnd);
+  }  
 
   function handleStartChange(v: string) {
     userChangedTimeRef.current = true;
@@ -234,6 +249,16 @@ export function CreateBookingPage({
           value={end}
           onChange={handleEndChange}
         />
+
+        {roomId !== null && (
+          <RoomTimeline
+            bookings={roomBookings}
+            date={dateForSlots}
+            selectedStart={start}
+            selectedEnd={end}
+            onTap={handleTimelineTap}
+          />
+        )}
 
         <GuestPicker
           value={guests}
