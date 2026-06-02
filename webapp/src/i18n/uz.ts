@@ -243,7 +243,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "invitations.code.copied": "Nusxalandi ✓",
 
   "invitations.public_link.label": "Telegram'dagi ommaviy havola",
-  "invitations.public_link.subtitle": "Havolaga ega bo'lgan har bir kishi ish maydoniga avtomatik qo'shiladi. Yangilash bosilsa eski havola ishlamay qoladi.",
+   "invitations.public_link.subtitle": "Havolaga ega bo'lgan har bir kishi ish maydoniga avtomatik qo'shiladi — agar ish maydoni Telegram-guruhga bog'lanmagan bo'lsa.\n🔒 Faqat guruh a'zolari qo'shilishini cheklash uchun «Umumiy» bo'limida guruhni bog'lang.\n\nYangilash bosilsa eski havola ishlamay qoladi.",
   "invitations.public_link.copy": "Nusxalash",
   "invitations.public_link.copied": "Nusxalandi ✓",
 
