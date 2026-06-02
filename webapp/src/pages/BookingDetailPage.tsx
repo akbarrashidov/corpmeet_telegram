@@ -26,6 +26,7 @@ import { useBookingAttachments } from "../hooks/useBookingAttachments";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
 import { useFormatDayMonth, useTranslation, type TranslationKey } from "../i18n";
+import { useWorkspaces } from "../hooks/useWorkspaces";
 
 interface Props {
   booking: Booking;
@@ -60,6 +61,10 @@ export function BookingDetailPage({
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { data: workspaces } = useWorkspaces();
+  const wsNameById = new Map<number, string>(
+    (workspaces ?? []).map((w) => [w.id, w.name]),
+  );  
   const formatDayMonth = useFormatDayMonth();
   const deleteBooking = useDeleteBooking();
   const queryClient = useQueryClient();
@@ -346,16 +351,27 @@ export function BookingDetailPage({
             ⚠️ {t("booking.overlap.title")}
           </div>
           <ul className="flex flex-col gap-1">
-            {overlapping.map((other) => (
-              <li key={other.id} className="text-xs">
-                <span className="font-medium">{other.title}</span>
-                <span style={{ color: "var(--text-muted)" }}>
-                  {" · "}
-                  {formatDayMonth(other.start_time.split("T")[0])}{" "}
-                  {formatTime(other.start_time)}–{formatTime(other.end_time)}
-                </span>
-              </li>
-            ))}
+            {overlapping.map((other) => {
+              const wsName = other.workspace_id
+                ? wsNameById.get(other.workspace_id)
+                : null;
+              return (
+                <li key={other.id} className="text-xs">
+                  <span className="font-medium">{other.title}</span>
+                  {wsName && (
+                    <span style={{ color: "var(--text-muted)" }}>
+                      {" · "}
+                      {wsName}
+                    </span>
+                  )}
+                  <span style={{ color: "var(--text-muted)" }}>
+                    {" · "}
+                    {formatDayMonth(other.start_time.split("T")[0])}{" "}
+                    {formatTime(other.start_time)}–{formatTime(other.end_time)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
