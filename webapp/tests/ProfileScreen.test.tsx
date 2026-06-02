@@ -128,7 +128,7 @@ beforeEach(() => {
 describe("ProfileScreen", () => {
   it("prefills first/last name from useAuth", () => {
     setupAuth();
-    setupWorkspace(null);
+    setupWorkspace(1);
     setupPositions([{ id: 1, name_ru: "PM" }]);
     renderScreen();
     expect(screen.getByLabelText(/Имя/i)).toHaveValue("Alisher");
@@ -137,7 +137,7 @@ describe("ProfileScreen", () => {
 
   it("does NOT send PATCH /auth/me when neither first nor last name changed", async () => {
     setupAuth();
-    setupWorkspace(null);
+    setupWorkspace(1);
     setupPositions([{ id: 1, name_ru: "PM" }]);
     const onSaved = vi.fn();
     renderScreen({ onSaved });
