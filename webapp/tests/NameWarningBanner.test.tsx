@@ -37,7 +37,7 @@ describe("NameWarningBanner", () => {
     setupUser({ first_name: "", last_name: "Smith" });
     render(<NameWarningBanner onOpenProfile={vi.fn()} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText(/не заполнено имя или фамилия/i)).toBeInTheDocument();
+    expect(screen.getByText(/Заполните имя и фамилию/i)).toBeInTheDocument();
   });
 
   it("renders when last_name is null", () => {

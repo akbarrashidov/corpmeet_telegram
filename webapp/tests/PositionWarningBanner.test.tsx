@@ -63,7 +63,7 @@ describe("PositionWarningBanner", () => {
     setupPositions(2);
     render(<PositionWarningBanner onOpenProfile={vi.fn()} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText(/не указана должность/)).toBeInTheDocument();
+    expect(screen.getByText(/Заполните должность в пространстве/)).toBeInTheDocument();
   });
 
   it("does NOT render when my position is set", () => {

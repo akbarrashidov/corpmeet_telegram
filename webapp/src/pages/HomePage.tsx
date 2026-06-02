@@ -18,6 +18,8 @@ import { PositionWarningBanner } from "../components/PositionWarningBanner";
 import { NameWarningBanner } from "../components/NameWarningBanner";
 import { useDatesWithBookings } from "../hooks/useDatesWithBookings";
 import { addDaysIso } from "../lib/datetime";
+import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
+import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 
 interface Props {
   tab: HomeTab;
@@ -42,6 +44,12 @@ export function HomePage({
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const currentWsId = useCurrentWorkspaceId();
+  const { data: wsDetail } = useWorkspaceDetail(currentWsId);
+  const myMember = wsDetail?.members.find(
+    (m) => m.user?.id === user?.id && m.status === "active",
+  );
+  const hasPosition = myMember?.position_id !== null && myMember?.position_id !== undefined;  
   const today = todayIso();
   const stripFrom = addDaysIso(today, -3);
   const stripTo = addDaysIso(today, 30);
@@ -61,11 +69,20 @@ export function HomePage({
   useTgBackButton(null);
 
   const handleCreate = () => {
+    if (!hasPosition) {
+      haptic();
+      onProfile();  // ведём в Profile где можно поставить должность
+      return;
+    }
     haptic();
     onCreate();
   };
 
-  useTgMainButton({ text: t("home.fab.book"), onClick: handleCreate });
+  useTgMainButton({
+    text: t("home.fab.book"),
+    onClick: handleCreate,
+    disabled: !hasPosition,
+  });
 
   const handleSelect = (b: Booking) => {
     haptic();
@@ -160,8 +177,13 @@ export function HomePage({
           type="button"
           onClick={handleCreate}
           aria-label={t("home.fab.book")}
+          disabled={!hasPosition}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full text-2xl font-bold shadow-lg"
-          style={{ background: "var(--primary)", color: "white" }}
+          style={{
+            background: "var(--primary)",
+            color: "white",
+            opacity: hasPosition ? 1 : 0.5,
+          }}
         >
           +
         </button>

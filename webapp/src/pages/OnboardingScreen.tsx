@@ -5,10 +5,20 @@ import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTgBackButton } from "../hooks/useTgBackButton";
 import { CreateWorkspaceForm } from "../components/CreateWorkspaceForm";
 import { CreateRoomForm } from "../components/CreateRoomForm";
+import { PositionSetupStep } from "../components/PositionSetupStep";
+import { OwnerPositionPickStep } from "../components/OwnerPositionPickStep";
 import { setCurrentWorkspaceId } from "../lib/currentWorkspace";
 import { getTelegram } from "../lib/telegram";
 
-type Mode = "menu" | "create" | "create_room" | "join" | "search" | "pending_sent";
+type Mode =
+  | "menu"
+  | "create"
+  | "positions_setup"
+  | "owner_pick_position"
+  | "create_room"
+  | "join"
+  | "search"
+  | "pending_sent";
 
 interface JoinResponse {
   workspace_id: number;
@@ -39,7 +49,11 @@ export function OnboardingScreen({ onComplete }: Props) {
 
   // На шагах create_room и pending_sent — Назад не возвращает в меню.
   useTgBackButton(
-    mode === "menu" || mode === "create_room" || mode === "pending_sent"
+    mode === "menu" ||
+      mode === "create_room" ||
+      mode === "pending_sent" ||
+      mode === "positions_setup" ||
+      mode === "owner_pick_position"
       ? null
       : backToMenu,
   );
@@ -68,7 +82,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           onCreated={(ws) => {
             setCreatedWs(ws);
             setCurrentWorkspaceId(ws.id);
-            setMode("create_room");
+            setMode("positions_setup");
           }}
         />
       </div>
@@ -76,6 +90,23 @@ export function OnboardingScreen({ onComplete }: Props) {
   }
 
   if (mode === "create_room" && createdWs !== null) {
+  if (mode === "positions_setup" && createdWs !== null) {
+    return (
+      <PositionSetupStep
+        workspaceId={createdWs.id}
+        onDone={() => setMode("owner_pick_position")}
+      />
+    );
+  }
+
+  if (mode === "owner_pick_position" && createdWs !== null) {
+    return (
+      <OwnerPositionPickStep
+        workspaceId={createdWs.id}
+        onDone={() => setMode("create_room")}
+      />
+    );
+  }    
     return (
       <div
         className="min-h-screen p-6"
