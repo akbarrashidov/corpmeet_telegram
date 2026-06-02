@@ -8,6 +8,7 @@ import { ProfileScreen } from "./ProfileScreen";
 import { WorkspaceSettingsScreen } from "./WorkspaceSettingsScreen";
 import type { HomeTab } from "../components/HomeChips";
 import { todayIso } from "../lib/datetime";
+import { setCurrentWorkspaceId } from "../lib/currentWorkspace";
 
 type View =
   | { kind: "list" }
@@ -102,6 +103,12 @@ export function HomeContainer() {
           defaultEnd,
         })
       }
+      onSelectOverlap={(other) => {
+        if (other.workspace_id) {
+          setCurrentWorkspaceId(other.workspace_id);
+        }
+        setView({ kind: "detail", booking: other });
+      }}
     />
   );
 }

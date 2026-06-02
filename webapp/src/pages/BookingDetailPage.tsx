@@ -33,6 +33,7 @@ interface Props {
   onBack: () => void;
   onDeleted: () => void;
   onReschedule: (defaultStart: string, defaultEnd: string) => void;
+  onSelectOverlap?: (b: Booking) => void;
 }
 
 /** Снимает ведущий @ и переводит в lowercase для сравнения имён гостей.
@@ -58,6 +59,7 @@ export function BookingDetailPage({
   onBack,
   onDeleted,
   onReschedule,
+  onSelectOverlap,
 }: Props) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -356,19 +358,31 @@ export function BookingDetailPage({
                 ? wsNameById.get(other.workspace_id)
                 : null;
               return (
-                <li key={other.id} className="text-xs">
-                  <span className="font-medium">{other.title}</span>
-                  {wsName && (
+                <li key={other.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!onSelectOverlap) return;
+                      haptic();
+                      onSelectOverlap(other);
+                    }}
+                    disabled={!onSelectOverlap}
+                    className="text-xs text-left w-full"
+                    style={{ cursor: onSelectOverlap ? "pointer" : "default" }}
+                  >
+                    <span className="font-medium underline">{other.title}</span>
+                    {wsName && (
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {" · "}
+                        {wsName}
+                      </span>
+                    )}
                     <span style={{ color: "var(--text-muted)" }}>
                       {" · "}
-                      {wsName}
+                      {formatDayMonth(other.start_time.split("T")[0])}{" "}
+                      {formatTime(other.start_time)}–{formatTime(other.end_time)}
                     </span>
-                  )}
-                  <span style={{ color: "var(--text-muted)" }}>
-                    {" · "}
-                    {formatDayMonth(other.start_time.split("T")[0])}{" "}
-                    {formatTime(other.start_time)}–{formatTime(other.end_time)}
-                  </span>
+                  </button>
                 </li>
               );
             })}
