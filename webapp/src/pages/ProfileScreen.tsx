@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient, useAuth, type User } from "@corpmeet/design/complex";
 import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
@@ -43,6 +43,21 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Синхронизация state'а с реальным myMember.position_id (он undefined на mount,
+  // данные подгружаются через useWorkspaceDetail позже) + auto-select первой
+  // позиции если у юзера нет, чтобы кнопка Сохранить сразу стала кликабельна
+  // (без явного клика по дропдауну).
+  useEffect(() => {
+    if (positionId !== null) return;
+    if (myMember?.position_id != null) {
+      setPositionId(myMember.position_id);
+      return;
+    }
+    if (positions && positions.length > 0) {
+      setPositionId(positions[0].id);
+    }
+  }, [myMember, positions, positionId]);
 
   useTgBackButton(onBack);
 
