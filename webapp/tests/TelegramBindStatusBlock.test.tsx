@@ -39,7 +39,7 @@ describe("TelegramBindStatusBlock", () => {
   it("shows instruction with bot username when unbound", () => {
     mockRebind();
     render(<TelegramBindStatusBlock workspace={makeWorkspace(null)} />);
-    expect(screen.getByText(/Чтобы привязать группу/i)).toBeInTheDocument();
+    expect(screen.getByText(/Привязав группу/i)).toBeInTheDocument();
     expect(screen.getByText(/@corpmeet_dev_bot/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Отвязать/i })).not.toBeInTheDocument();
   });

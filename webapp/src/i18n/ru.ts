@@ -286,13 +286,12 @@ export const ru = {
 
   // ── Settings → Общее tab ───────────────────────────────────────────────
 
-  "general.bind.title": "Telegram-группа для уведомлений",
-  "general.bind.hint_unbound.intro": "Чтобы привязать группу к пространству:",
+  "general.bind.title": "Telegram-группа пространства",
+  "general.bind.hint_unbound.intro": "Привязав группу, вы получаете:\n📅 Уведомления о встречах приходят в эту группу\n🔒 По публичной ссылке могут вступать только участники этой группы\n\nКак привязать:",
   "general.bind.hint_unbound.step1": "Добавьте бота {bot} в Telegram-группу",
   "general.bind.hint_unbound.step2": "Дайте боту права администратора — это нужно для отправки уведомлений о встречах",
   "general.bind.hint_unbound.step3": "Бот сам предложит привязать чат — нажмите кнопку в его сообщении и выберите это пространство",
-  "general.bind.hint_bound": "Группа {chatId} привязана. Уведомления о встречах отправляются туда.",
-  "general.bind.unbind": "Отвязать",
+  "general.bind.hint_bound": "Группа {chatId} привязана.\n📅 Уведомления о встречах приходят туда.\n🔒 По публичной ссылке могут вступать только участники этой группы.",  "general.bind.unbind": "Отвязать",
   "general.bind.confirm_unbind.title": "Отвязать группу?",
   "general.bind.confirm_unbind.body": "Уведомления о новых встречах больше не будут приходить в Telegram. Привязать снова можно будет, добавив бота в группу заново.",
   "general.bind.confirm_unbind.confirm": "Отвязать",
