@@ -38,9 +38,11 @@ export function useTgMainButton({ text, onClick, visible = true, disabled = fals
     const handler = () => handlerRef.current();
     tg.MainButton.setText(text);
     // Match brand --primary (корпоративный синий), а не дефолтный тематики Telegram.
+    // При disabled — серый текст чтобы юзер визуально видел что кнопка неактивна
+    // (TG SDK сам не серит при disable(), только убирает click).
     tg.MainButton.setParams?.({
       color: readPrimaryColor(),
-      text_color: "#ffffff",
+      text_color: disabled ? "#9ca3af" : "#ffffff",
     });
     tg.MainButton.onClick(handler);
     if (visible) tg.MainButton.show();
