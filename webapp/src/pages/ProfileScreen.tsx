@@ -192,6 +192,7 @@ export function ProfileScreen({ onBack, onSaved }: Props) {
               onChange={setPositionId}
               disabled={submitting}
               ariaLabel={t("register.field.position")}
+              allowClear={false}
             />
           ) : (
             <p className="text-sm" style={{ color: "var(--text-sec)" }}>

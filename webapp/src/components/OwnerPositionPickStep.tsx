@@ -77,6 +77,7 @@ export function OwnerPositionPickStep({ workspaceId, onDone }: Props) {
             onChange={setPositionId}
             disabled={busy}
             ariaLabel={t("owner_position_pick.label")}
+            allowClear={false}
           />
         </div>
       )}

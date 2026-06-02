@@ -8,6 +8,9 @@ interface Props {
   onChange: (id: number | null) => void;
   disabled?: boolean;
   ariaLabel?: string;
+  /** Опция «—» (снять должность). По дефолту true. False — для контекстов где
+   * должность обязательна (ProfileScreen, onboarding). */
+  allowClear?: boolean;
 }
 
 /**
@@ -15,7 +18,7 @@ interface Props {
  * Reusable: ProfileScreen (self), MemberListRow (admin → other).
  * Лейбл локализуется через текущий язык.
  */
-export function PositionPicker({ positions, value, onChange, disabled, ariaLabel }: Props) {
+export function PositionPicker({ positions, value, onChange, disabled, ariaLabel, allowClear = true }: Props) {
   const { lang } = useTranslation();
   return (
     <select
@@ -33,7 +36,7 @@ export function PositionPicker({ positions, value, onChange, disabled, ariaLabel
         color: "var(--text)",
       }}
     >
-      <option value="">—</option>
+      {allowClear && <option value="">—</option>}
       {positions.map((p) => (
         <option key={p.id} value={p.id}>
           {getPositionLabel(p, lang)}
