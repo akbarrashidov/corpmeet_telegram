@@ -40,7 +40,7 @@ describe("TelegramBindStatusBlock", () => {
     mockRebind();
     render(<TelegramBindStatusBlock workspace={makeWorkspace(null)} />);
     expect(screen.getByText(/Привязав группу/i)).toBeInTheDocument();
-    expect(screen.getByText(/@corpmeet_dev_bot/i)).toBeInTheDocument();
+    expect(screen.getByText(/@corpmeetbot/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Отвязать/i })).not.toBeInTheDocument();
   });
 

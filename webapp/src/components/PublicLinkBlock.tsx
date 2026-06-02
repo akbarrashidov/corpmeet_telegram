@@ -9,7 +9,7 @@ interface Props {
 }
 
 const FALLBACK_BOT_USERNAME =
-  (import.meta as any).env?.VITE_BOT_USERNAME ?? "corpmeet_dev_bot";
+  (import.meta as any).env?.VITE_BOT_USERNAME ?? "corpmeetbot";
 const COPIED_FEEDBACK_MS = 2000;
 
 /** Блок публичной Telegram-ссылки workspace'а. */
