@@ -9,9 +9,11 @@ vi.mock("@corpmeet/design/complex", () => ({
     post: vi.fn(),
     patch: vi.fn(),
   },
-  useBookings: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
+vi.mock("../src/hooks/useTimelineDayBookings", () => ({
+  useTimelineDayBookings: vi.fn(() => ({ data: [], isLoading: false })),
+}));
 vi.mock("../src/components/DateTimePicker", () => ({
   DateTimePicker: ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
     <label>

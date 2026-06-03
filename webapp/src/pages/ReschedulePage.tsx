@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiClient, useBookings, type Booking } from "@corpmeet/design/complex";
+import { apiClient, type Booking } from "@corpmeet/design/complex";
+import { useTimelineDayBookings } from "../hooks/useTimelineDayBookings";
 import { PageHeader } from "../components/PageHeader";
 import { addDaysIso, localInputToIso, todayIso } from "../lib/datetime";
 import { useTgMainButton } from "../hooks/useTgMainButton";
@@ -38,7 +39,7 @@ export function ReschedulePage({
   const isToday = dateForSlots === today;
   const isTomorrow = dateForSlots === tomorrow;
 
-  const dayBookings = useBookings(dateForSlots);
+  const dayBookings = useTimelineDayBookings(dateForSlots);
   const roomId = (booking as Booking & { room_id?: number | null }).room_id ?? null;
   const roomBookings = (dayBookings.data ?? []).filter(
     (b) => (b as Booking & { room_id?: number | null }).room_id === roomId,
