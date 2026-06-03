@@ -6,7 +6,6 @@ import {
   useDeleteBooking,
   type Booking,
   type SlotResponse,
-  type WorkspaceRoom,
 } from "@corpmeet/design/complex";
 import { PageHeader } from "../components/PageHeader";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -27,6 +26,7 @@ import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { findNextFreeSlot } from "../lib/findNextFreeSlot";
 import { useFormatDayMonth, useTranslation, type TranslationKey } from "../i18n";
 import { useWorkspaces } from "../hooks/useWorkspaces";
+import { useAllMyRooms, resolveRoomName } from "../hooks/useAllMyRooms";
 
 interface Props {
   booking: Booking;
@@ -127,25 +127,13 @@ export function BookingDetailPage({
     grouped[status].push(raw);
   }
 
-  // Резолвим room_name через `/api/v1/rooms` — переиспользуем cache с useWorkspaceRooms
-  // (тот же queryKey). Гост-помещение из чужого workspace — fallback (имя не покажем).
-  const { data: allRooms } = useQuery<WorkspaceRoom[]>({
-    queryKey: ["rooms", "mine"],
-    queryFn: async () => {
-      const res = await apiClient.get<WorkspaceRoom[]>("/api/v1/rooms");
-      return res.data;
-    },
-    staleTime: 60_000,
-  });
-  const roomName: string | null = (() => {
-    if (booking.room_id == null || !allRooms) return null;
-    const match = allRooms.find(
-      (r) =>
-        r.room.id === booking.room_id &&
-        (booking.workspace_id == null || r.workspace_id === booking.workspace_id),
-    );
-    return match?.room.name ?? null;
-  })();
+  // Резолвим room_name через общий хук (cache shared с BookingCard).
+  const { data: allRooms } = useAllMyRooms();
+  const roomName = resolveRoomName(
+    allRooms,
+    booking.room_id,
+    booking.workspace_id,
+  );
 
   const hasAttachments = useBookingAttachments(booking.id).data === true;
   const hasVideo = booking.video_enabled === true;

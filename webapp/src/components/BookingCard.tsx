@@ -1,6 +1,7 @@
 import type { Booking } from "@corpmeet/design/complex";
 import { formatTime } from "../lib/datetime";
 import { useFormatDayMonth, useTranslation } from "../i18n";
+import { useAllMyRooms, resolveRoomName } from "../hooks/useAllMyRooms";
 
 interface Props {
   booking: Booking;
@@ -11,12 +12,20 @@ interface Props {
 
 export function BookingCard({ booking, invitedBadge, showDate, onClick }: Props) {
   const { t } = useTranslation();
-  const formatDayMonth = useFormatDayMonth();  
+  const formatDayMonth = useFormatDayMonth();
+  const { data: allRooms } = useAllMyRooms();
+
   const organizerName =
     booking.user.display_name ??
     [booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ");
 
   const dayLabel = showDate ? formatDayMonth(booking.start_time.split("T")[0]) : null;
+
+  const roomName = resolveRoomName(
+    allRooms,
+    (booking as Booking & { room_id?: number | null }).room_id,
+    (booking as Booking & { workspace_id?: number | null }).workspace_id,
+  );
 
   return (
     <article
@@ -51,6 +60,11 @@ export function BookingCard({ booking, invitedBadge, showDate, onClick }: Props)
       <div className="text-sm" style={{ color: "var(--text-sec)" }}>
         👤 {organizerName}
       </div>
+      {roomName && (
+        <div className="text-sm" style={{ color: "var(--text-sec)" }}>
+          🚪 {roomName}
+        </div>
+      )}
       {invitedBadge && (
         <div
           className="mt-2 inline-flex self-start text-xs px-2 py-0.5 rounded-full"
