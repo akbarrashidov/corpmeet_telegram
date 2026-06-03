@@ -1,21 +1,13 @@
-import { useMemo } from "react";
-import { useBookings, type Booking } from "@corpmeet/design/complex";
-import { filterByWorkspace } from "../lib/booking-filter";
-import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
+import { useBookings } from "@corpmeet/design/complex";
 
 /**
- * День: встречи на конкретную дату, отфильтрованные по активному workspace.
+ * День: все встречи на конкретную дату, доступные текущему юзеру.
  *
- * Тонкая обёртка над `useBookings` из design-package (сам пакет про workspaces
- * не знает) — фильтрация на клиенте через `filterByWorkspace`. Если wsId =
- * null, фильтр не применяется (возвращаются все).
+ * Тонкая обёртка над `useBookings` без клиентской фильтрации по workspace —
+ * timeline должен видеть и брони других пространств, шарящих ту же комнату,
+ * иначе при бронировании возможны накладки. Page-level фильтрация по
+ * `room_id` остаётся на стороне страниц (см. CreateBookingPage).
  */
 export function useDayBookings(date: string | undefined) {
-  const wsId = useCurrentWorkspaceId();
-  const query = useBookings(date);
-  const filtered = useMemo<Booking[] | undefined>(
-    () => (query.data ? filterByWorkspace(query.data, wsId) : query.data),
-    [query.data, wsId],
-  );
-  return { ...query, data: filtered };
+  return useBookings(date);
 }
