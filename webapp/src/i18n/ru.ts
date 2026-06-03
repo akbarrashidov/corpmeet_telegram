@@ -175,6 +175,7 @@ export const ru = {
   "rooms_section.create": "Создать переговорную",
   "rooms_section.archive": "Архивировать",
   "rooms_section.archive_aria": "Архивировать «{name}»",
+  "rooms_section.archive_blocked_aria": "Создайте другую переговорную, прежде чем архивировать «{name}»",
   "rooms_section.confirm.title": "Архивировать «{name}»?",
   "rooms_section.confirm.body": "Комната пропадёт из списка. Бронирования сохранятся.",
   "rooms_section.confirm.last_room_warning": "Это последняя переговорная в пространстве. После архивации нельзя будет создать новые бронирования, пока не появится хотя бы одна комната.",

@@ -163,6 +163,7 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "rooms_section.create": "Xona yaratish",
   "rooms_section.archive": "Arxivlash",
   "rooms_section.archive_aria": "«{name}» xonasini arxivlash",
+  "rooms_section.archive_blocked_aria": "«{name}»ni arxivlashdan oldin boshqa xona yarating",
   "rooms_section.confirm.title": "«{name}» xonasini arxivlash?",
   "rooms_section.confirm.body": "Xona ro'yxatdan yo'qoladi. Mavjud bronlar saqlanadi.",
   "rooms_section.confirm.last_room_warning": "Bu pespacedagi oxirgi xona. Arxivdan keyin yangi xona yaratilmaguncha bron qilish mumkin emas.",

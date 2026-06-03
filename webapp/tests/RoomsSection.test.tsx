@@ -113,20 +113,6 @@ describe("RoomsSection", () => {
     expect(screen.queryByText(/последняя переговорная/i)).not.toBeInTheDocument();
   });
 
-  it("shows last-room warning in confirm dialog when archiving the only room", async () => {
-    vi.mocked(useWorkspaceRooms).mockReturnValue({
-      data: [makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "Единственная" } })],
-      isLoading: false,
-    } as any);
-    mockArchive();
-
-    renderSection();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Архивировать «Единственная»/i }));
-
-    expect(screen.getByText(/последняя переговорная/i)).toBeInTheDocument();
-  });
-
   it("calls mutateAsync with room id on confirm", async () => {
     const mutateAsync = vi.fn();
     vi.mocked(useArchiveRoom).mockReturnValue({
@@ -150,6 +136,37 @@ describe("RoomsSection", () => {
 
     expect(mutateAsync).toHaveBeenCalledWith(77);
   });
+
+
+  it("disables Archive button when only one room remains", () => {
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "Last" } })],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    const btn = screen.getByRole("button", {
+      name: /Создайте другую переговорную, прежде чем архивировать «Last»/,
+    });
+    expect(btn).toBeDisabled();
+  });
+
+  it("enables Archive button when more than one room exists", () => {
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [
+        makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "A" } }),
+        makeWR({ id: 2, room: { ...makeWR().room, id: 2, name: "B" } }),
+      ],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    expect(screen.getByRole("button", { name: /Архивировать «A»/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Архивировать «B»/ })).toBeEnabled();
+  });
+
     it("hides + Create and Archive buttons for non-admin", () => {
     vi.mocked(useWorkspaceDetail).mockReturnValue({
       data: { my_role: "member" },

@@ -114,13 +114,19 @@ export function RoomsSection({ workspaceId }: Props) {
                         haptic();
                         setConfirmArchive(wr);
                       }}
-                      disabled={archive.isPending}
-                      aria-label={t("rooms_section.archive_aria", { name: wr.room.name })}
+                      disabled={archive.isPending || isLastRoom}
+                      aria-label={
+                        isLastRoom
+                          ? t("rooms_section.archive_blocked_aria", { name: wr.room.name })
+                          : t("rooms_section.archive_aria", { name: wr.room.name })
+                      }
                       className="rounded-lg px-3 py-2 text-sm"
                       style={{
                         background: "var(--surface)",
                         color: "var(--danger)",
                         border: "1px solid var(--border)",
+                        opacity: isLastRoom ? 0.4 : 1,
+                        cursor: isLastRoom ? "not-allowed" : "pointer",
                       }}
                     >
                       {t("rooms_section.archive")}
