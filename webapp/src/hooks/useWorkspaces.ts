@@ -13,5 +13,6 @@ export function useWorkspaces() {
       return res.data;
     },
     staleTime: 60_000,
+    refetchOnWindowFocus: "always",    
   });
 }
