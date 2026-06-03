@@ -180,6 +180,20 @@ export const ru = {
   "rooms_section.confirm.last_room_warning": "Это последняя переговорная в пространстве. После архивации нельзя будет создать новые бронирования, пока не появится хотя бы одна комната.",
   "rooms_section.confirm.confirm": "Архивировать",
 
+  "rooms_section.share_aria": "Поделиться «{name}»",
+  "rooms_section.shared_badge_emoji": "🔗",
+
+  // Share room modal
+  "share_room.title": "Поделиться «{room}»",
+  "share_room.code_label": "Код приглашения",
+  "share_room.copy": "Скопировать код",
+  "share_room.copied": "Скопировано ✓",
+  "share_room.share_tg": "Поделиться в Telegram",
+  "share_room.tg_text": "Подключитесь к комнате «{room}» в CorpMeet — код: {code}",
+  "share_room.hint_web": "Дополнительные настройки шеринга — в веб-версии: corpmeet.uz",
+  "share_room.no_code": "У комнаты пока нет кода приглашения. Создайте его в веб-версии.",
+ 
+
   // Members section
   "members_section.role.owner": "Владелец",
   "members_section.role.admin": "Админ",
