@@ -1,13 +1,21 @@
-import { useBookings } from "@corpmeet/design/complex";
+import { useMemo } from "react";
+import { useBookings, type Booking } from "@corpmeet/design/complex";
+import { filterByWorkspace } from "../lib/booking-filter";
+import { useCurrentWorkspaceId } from "../lib/currentWorkspace";
 
 /**
- * День: все встречи на конкретную дату, доступные текущему юзеру.
+ * День: встречи на конкретную дату, отфильтрованные по активному workspace.
  *
- * Тонкая обёртка над `useBookings` без клиентской фильтрации по workspace —
- * timeline должен видеть и брони других пространств, шарящих ту же комнату,
- * иначе при бронировании возможны накладки. Page-level фильтрация по
- * `room_id` остаётся на стороне страниц (см. CreateBookingPage).
+ * Для cross-workspace сценариев (timeline в CreateBookingPage) используется
+ * сырой `useBookings` напрямую — этот хук остаётся для UI, который должен
+ * видеть только свой workspace (HomePage tab «сегодня»).
  */
 export function useDayBookings(date: string | undefined) {
-  return useBookings(date);
+  const wsId = useCurrentWorkspaceId();
+  const query = useBookings(date);
+  const filtered = useMemo<Booking[] | undefined>(
+    () => (query.data ? filterByWorkspace(query.data, wsId) : query.data),
+    [query.data, wsId],
+  );
+  return { ...query, data: filtered };
 }

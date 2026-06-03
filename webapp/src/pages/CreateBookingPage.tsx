@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { apiClient, useCreateBooking, type SlotResponse } from "@corpmeet/design/complex";
+import { apiClient, useBookings, useCreateBooking, type SlotResponse } from "@corpmeet/design/complex";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "../components/PageHeader";
 import { GuestPicker, type GuestEntry } from "../components/GuestPicker";
@@ -20,7 +20,6 @@ import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 import { useTranslation } from "../i18n";
 import { DateTimePicker } from "../components/DateTimePicker";
 import { RoomTimeline } from "../components/RoomTimeline";
-import { useDayBookings } from "../hooks/useDayBookings";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
@@ -53,7 +52,7 @@ export function CreateBookingPage({
   const dateForSlots = defaultDate ?? todayIso();
 
   // Брони комнаты на выбранную дату — для timeline-визуализации
-  const dayBookings = useDayBookings(dateForSlots);
+  const dayBookings = useBookings(dateForSlots);
   const roomBookings = (dayBookings.data ?? []).filter(
     (b) => b.room_id === roomId,
   );

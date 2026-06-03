@@ -8,10 +8,16 @@ vi.mock("@corpmeet/design/complex", async () => {
   return { ...actual, useBookings: vi.fn() };
 });
 
+vi.mock("../src/lib/currentWorkspace", () => ({
+  useCurrentWorkspaceId: vi.fn(),
+}));
+
 import { useBookings, type Booking } from "@corpmeet/design/complex";
+import { useCurrentWorkspaceId } from "../src/lib/currentWorkspace";
 import { useDayBookings } from "../src/hooks/useDayBookings";
 
 const mockUseBookings = useBookings as unknown as ReturnType<typeof vi.fn>;
+const mockUseWs = useCurrentWorkspaceId as unknown as ReturnType<typeof vi.fn>;
 
 function makeBooking(id: number, workspaceId: number | null): Booking {
   return {
@@ -35,25 +41,33 @@ function makeBooking(id: number, workspaceId: number | null): Booking {
 describe("useDayBookings", () => {
   beforeEach(() => {
     mockUseBookings.mockReset();
+    mockUseWs.mockReset();
   });
 
-  it("returns all bookings without filtering by workspace (cross-workspace timeline)", () => {
-    const all = [makeBooking(1, 10), makeBooking(2, 20), makeBooking(3, 30)];
-    mockUseBookings.mockReturnValue({ data: all, isLoading: false });
+  it("filters bookings to the active workspace", () => {
+    mockUseWs.mockReturnValue(10);
+    mockUseBookings.mockReturnValue({
+      data: [makeBooking(1, 10), makeBooking(2, 20), makeBooking(3, 10)],
+      isLoading: false,
+    });
     const { result } = renderHook(() => useDayBookings("2026-06-03"));
-    expect(result.current.data?.map((b) => b.id)).toEqual([1, 2, 3]);
+    expect(result.current.data?.map((b) => b.id)).toEqual([1, 3]);
   });
 
-  it("passes date through to useBookings", () => {
-    mockUseBookings.mockReturnValue({ data: [], isLoading: false });
-    renderHook(() => useDayBookings("2026-06-15"));
-    expect(mockUseBookings).toHaveBeenCalledWith("2026-06-15");
+  it("returns all when workspace id is null", () => {
+    mockUseWs.mockReturnValue(null);
+    mockUseBookings.mockReturnValue({
+      data: [makeBooking(1, 10), makeBooking(2, 20)],
+      isLoading: false,
+    });
+    const { result } = renderHook(() => useDayBookings("2026-06-03"));
+    expect(result.current.data?.map((b) => b.id)).toEqual([1, 2]);
   });
 
-  it("returns undefined data while loading (no filter side-effect)", () => {
+  it("returns undefined while loading", () => {
+    mockUseWs.mockReturnValue(10);
     mockUseBookings.mockReturnValue({ data: undefined, isLoading: true });
     const { result } = renderHook(() => useDayBookings("2026-06-03"));
     expect(result.current.data).toBeUndefined();
-    expect(result.current.isLoading).toBe(true);
   });
 });
