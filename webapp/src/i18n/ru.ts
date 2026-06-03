@@ -76,7 +76,9 @@ export const ru = {
   "reschedule.title": "Перенести встречу",
   "reschedule.submit_short": "Перенести",
   "reschedule.error.failed": "Не удалось перенести. Попробуй ещё.",
-
+  "reschedule.day.today": "Сегодня",
+  "reschedule.day.tomorrow": "Завтра",
+  
   // Registration
   "register.title": "Регистрация",
   "register.subtitle": "Чтобы пользоваться CorpMeet, укажи имя, фамилию и должность.",

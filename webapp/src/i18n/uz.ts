@@ -28,7 +28,9 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "booking.guests.pending_label": "⏳ Kutyapmiz ({count}):",
   "booking.overlap.title": "Quyidagi uchrashuvga to'g'ri keladi:",
   "booking.cancel_button": "Uchrashuvni bekor qilish",
+
   "booking.reschedule_button": "Uchrashuvni ko'chirish",
+  
   "booking.confirm.cancel_title": "Uchrashuvni bekor qilasizmi?",
   "booking.confirm.cancel_body": "«{title}» — uchrashuv o'chiriladi.",
   "booking.confirm.cancel": "Bekor qilish",
@@ -68,6 +70,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "reschedule.title": "Uchrashuv vaqtini o'zgartirish",
   "reschedule.submit_short": "Vaqtini o'zgartirish",
   "reschedule.error.failed": "Vaqtini o'zgartirib bo'lmadi. Qayta urinib ko'ring.",
+  "reschedule.day.today": "Bugun",
+  "reschedule.day.tomorrow": "Ertaga",  
 
   "register.title": "Ro'yxatdan o'tish",
   "register.subtitle": "CorpMeet'dan foydalanish uchun ism, familiya va lavozimni ko'rsating.",
@@ -214,7 +218,8 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "common.remove": "O'chirish",
   "common.confirm": "Tasdiqlash",
   "common.cancel": "Bekor qilish",
-    "picker.clear": "O'chirish",
+
+  "picker.clear": "O'chirish",
   "picker.today": "Bugun",
   "picker.ok": "OK",
   "dow.short.mon": "Du",

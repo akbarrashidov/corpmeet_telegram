@@ -9,6 +9,7 @@ vi.mock("@corpmeet/design/complex", () => ({
     post: vi.fn(),
     patch: vi.fn(),
   },
+  useBookings: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
 vi.mock("../src/components/DateTimePicker", () => ({
@@ -134,5 +135,37 @@ describe("ReschedulePage", () => {
 
     await screen.findByText(/Не удалось перенести/i);
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+    it("renders Today/Tomorrow day buttons", () => {
+    renderPage({});
+    expect(screen.getByRole("button", { name: /^Сегодня$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Завтра$/ })).toBeInTheDocument();
+  });
+
+  it("clicking Tomorrow shifts both dates to tomorrow, preserves time-of-day", async () => {
+    const { addDaysIso, todayIso } = await import("../src/lib/datetime");
+    renderPage({
+      defaultStart: "2026-05-04T12:00",
+      defaultEnd: "2026-05-04T12:30",
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /^Завтра$/ }));
+    const tomorrow = addDaysIso(todayIso(), 1);
+    expect(screen.getByLabelText(/Начало/i)).toHaveValue(`${tomorrow}T12:00`);
+    expect(screen.getByLabelText(/Конец/i)).toHaveValue(`${tomorrow}T12:30`);
+  });
+
+  it("clicking Today shifts both dates to today, preserves time-of-day", async () => {
+    const { todayIso } = await import("../src/lib/datetime");
+    renderPage({
+      defaultStart: "2026-05-04T09:15",
+      defaultEnd: "2026-05-04T10:00",
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /^Сегодня$/ }));
+    const today = todayIso();
+    expect(screen.getByLabelText(/Начало/i)).toHaveValue(`${today}T09:15`);
+    expect(screen.getByLabelText(/Конец/i)).toHaveValue(`${today}T10:00`);
   });
 });
