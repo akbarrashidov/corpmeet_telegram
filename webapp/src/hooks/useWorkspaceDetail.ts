@@ -54,5 +54,6 @@ export function useWorkspaceDetail(wsId: number | null) {
     },
     enabled: wsId !== null,
     staleTime: 30_000,
+    refetchOnWindowFocus: "always",    
   });
 }
