@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 vi.mock("@corpmeet/design/complex", () => ({
   useCreateBooking: vi.fn(),
   useUsers: vi.fn(),
-  useBookings: vi.fn(() => ({ data: [], isLoading: false, isFetching: false, error: null })),
   apiClient: { get: vi.fn(() => Promise.resolve({ data: [] })) },
   useAuth: vi.fn(() => ({
     user: { id: 9999 },
@@ -15,6 +14,10 @@ vi.mock("@corpmeet/design/complex", () => ({
     setToken: vi.fn(),
     logout: vi.fn(),
   })),
+}));
+
+vi.mock("../src/hooks/useTimelineDayBookings", () => ({
+  useTimelineDayBookings: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
 vi.mock("../src/hooks/useWorkspaceRooms", () => ({

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { apiClient, useBookings, useCreateBooking, type SlotResponse } from "@corpmeet/design/complex";
+import { apiClient, useCreateBooking, type SlotResponse } from "@corpmeet/design/complex";
+import { useTimelineDayBookings } from "../hooks/useTimelineDayBookings";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "../components/PageHeader";
 import { GuestPicker, type GuestEntry } from "../components/GuestPicker";
@@ -52,7 +53,7 @@ export function CreateBookingPage({
   const dateForSlots = defaultDate ?? todayIso();
 
   // Брони комнаты на выбранную дату — для timeline-визуализации
-  const dayBookings = useBookings(dateForSlots);
+  const dayBookings = useTimelineDayBookings(dateForSlots);
   const roomBookings = (dayBookings.data ?? []).filter(
     (b) => b.room_id === roomId,
   );
