@@ -168,6 +168,19 @@ export const uz: Partial<Record<TranslationKey, string>> = {
   "rooms_section.confirm.last_room_warning": "Bu pespacedagi oxirgi xona. Arxivdan keyin yangi xona yaratilmaguncha bron qilish mumkin emas.",
   "rooms_section.confirm.confirm": "Arxivlash",
 
+  "rooms_section.share_aria": "«{name}»ni baham ko'rish",
+  "rooms_section.shared_badge_emoji": "🔗",
+
+  // Share room modal
+  "share_room.title": "«{room}»ni baham ko'rish",
+  "share_room.code_label": "Taklif kodi",
+  "share_room.copy": "Kodni nusxalash",
+  "share_room.copied": "Nusxalandi ✓",
+  "share_room.share_tg": "Telegram orqali yuborish",
+  "share_room.tg_text": "CorpMeet'da «{room}» xonasiga qo'shiling — kod: {code}",
+  "share_room.hint_web": "Qo'shimcha sozlamalar — veb-versiyada: corpmeet.uz",
+  "share_room.no_code": "Xona uchun hali taklif kodi yo'q. Veb-versiyada yarating.",
+
   // Members section
   "members_section.role.owner": "Egasi",
   "members_section.role.admin": "Admin",

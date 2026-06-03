@@ -166,4 +166,64 @@ describe("RoomsSection", () => {
     expect(screen.queryByRole("button", { name: /Архивировать/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Создать переговорную/ })).not.toBeInTheDocument();
   });
+  it("shows 📤 share button only on owner rooms, hides on shared", () => {
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [
+        makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "Owned" }, role: "owner" }),
+        makeWR({ id: 2, room: { ...makeWR().room, id: 2, name: "FromOther" }, role: "shared" }),
+      ],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    expect(screen.getByRole("button", { name: /Поделиться «Owned»/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Поделиться «FromOther»/ })).not.toBeInTheDocument();
+  });
+
+  it("shows 🔗 emoji on shared rooms", () => {
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "FromOther" }, role: "shared" })],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    expect(screen.getByLabelText(/Поделились с вами/i)).toBeInTheDocument();
+  });
+
+  it("opens ShareModal with room code when share button clicked", async () => {
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [
+        makeWR({
+          id: 1,
+          room: { ...makeWR().room, id: 1, name: "Rm1350", invite_code: "ABCD-1234" },
+          role: "owner",
+        }),
+      ],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Поделиться «Rm1350»/ }));
+    expect(screen.getByText("ABCD-1234")).toBeInTheDocument();
+    expect(screen.getByText(/Поделиться «Rm1350»/)).toBeInTheDocument();
+  });
+
+  it("hides 📤 share button for non-admin role even on owner rooms", () => {
+    vi.mocked(useWorkspaceDetail).mockReturnValue({
+      data: { my_role: "member" },
+      isLoading: false,
+    } as any);
+    vi.mocked(useWorkspaceRooms).mockReturnValue({
+      data: [makeWR({ id: 1, room: { ...makeWR().room, id: 1, name: "Owned" }, role: "owner" })],
+      isLoading: false,
+    } as any);
+    mockArchive();
+
+    renderSection();
+    expect(screen.queryByRole("button", { name: /Поделиться/ })).not.toBeInTheDocument();
+  });
 });

@@ -5,6 +5,7 @@ import { useArchiveRoom } from "../hooks/useArchiveRoom";
 import { useWorkspaceDetail } from "../hooks/useWorkspaceDetail";
 import { CreateRoomForm } from "./CreateRoomForm";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ShareModal } from "./ShareModal";
 import { useTranslation } from "../i18n";
 import { haptic, hapticError, hapticSuccess } from "../lib/haptic";
 
@@ -21,7 +22,8 @@ interface Props {
  * клике на шестерёнку в WorkspaceSelector.
  *
  * RBAC: только owner/admin могут создавать и архивировать. Member видит
- * read-only список.
+ * read-only список. Шеринг (кнопка 📤) — только на own-комнатах для admin'ов.
+ * Подключённые комнаты помечаются 🔗.
  */
 export function RoomsSection({ workspaceId }: Props) {
   const { t } = useTranslation();
@@ -30,6 +32,7 @@ export function RoomsSection({ workspaceId }: Props) {
   const archive = useArchiveRoom();
   const [creatingMode, setCreatingMode] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<WorkspaceRoom | null>(null);
+  const [shareTarget, setShareTarget] = useState<WorkspaceRoom | null>(null);
 
   const myRole = workspace?.my_role ?? null;
   const canManage = myRole === "owner" || myRole === "admin";
@@ -65,44 +68,68 @@ export function RoomsSection({ workspaceId }: Props) {
 
       {activeRooms.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {activeRooms.map((wr) => (
-            <li
-              key={wr.id}
-              className="p-3 rounded-lg flex items-center justify-between gap-2"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{wr.room.name}</div>
-                {wr.role === "shared" && (
-                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {t("rooms_section.shared_badge")}
-                  </div>
-                )}
-              </div>
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic();
-                    setConfirmArchive(wr);
-                  }}
-                  disabled={archive.isPending}
-                  aria-label={t("rooms_section.archive_aria", { name: wr.room.name })}
-                  className="rounded-lg px-3 py-2 text-sm"
-                  style={{
-                    background: "var(--surface)",
-                    color: "var(--danger)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  {t("rooms_section.archive")}
-                </button>
-              )}
-            </li>
-          ))}
+          {activeRooms.map((wr) => {
+            const isShared = wr.role === "shared";
+            const canShare = canManage && !isShared;
+            return (
+              <li
+                key={wr.id}
+                className="p-3 rounded-lg flex items-center justify-between gap-2"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {isShared && (
+                    <span aria-label={t("rooms_section.shared_badge")}>
+                      {t("rooms_section.shared_badge_emoji")}
+                    </span>
+                  )}
+                  <div className="font-medium truncate">{wr.room.name}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canShare && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        haptic();
+                        setShareTarget(wr);
+                      }}
+                      aria-label={t("rooms_section.share_aria", { name: wr.room.name })}
+                      className="rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        background: "var(--surface)",
+                        color: "var(--text)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      📤
+                    </button>
+                  )}
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        haptic();
+                        setConfirmArchive(wr);
+                      }}
+                      disabled={archive.isPending}
+                      aria-label={t("rooms_section.archive_aria", { name: wr.room.name })}
+                      className="rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        background: "var(--surface)",
+                        color: "var(--danger)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      {t("rooms_section.archive")}
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -162,6 +189,13 @@ export function RoomsSection({ workspaceId }: Props) {
         variant="danger"
         onConfirm={handleConfirmArchive}
         onCancel={() => setConfirmArchive(null)}
+      />
+
+      <ShareModal
+        open={shareTarget !== null}
+        roomName={shareTarget?.room.name ?? ""}
+        inviteCode={shareTarget?.room.invite_code ?? null}
+        onClose={() => setShareTarget(null)}
       />
     </section>
   );
